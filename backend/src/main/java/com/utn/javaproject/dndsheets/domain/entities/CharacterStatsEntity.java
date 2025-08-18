@@ -1,4 +1,4 @@
-package com.utn.javaproject.dndsheets.domain;
+package com.utn.javaproject.dndsheets.domain.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.xml.stream.events.Characters;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -17,14 +15,14 @@ import java.util.List;
 @Builder
 @Entity
 @Table(name = "CharacterStats")
-public class CharacterStats {
+public class CharacterStatsEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "character_stats_id_seq")
     @SequenceGenerator(name = "character_stats_id_seq", sequenceName = "character_stats_id_seq", allocationSize = 1)
     private Long id;
     @OneToOne
     @JoinColumn(name = "character_id")
-    private Character characterId;
+    private CharacterEntity characterEntityId;
 
     private Long xp;
     private Short proficiency;

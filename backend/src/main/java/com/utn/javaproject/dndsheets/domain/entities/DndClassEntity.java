@@ -1,4 +1,4 @@
-package com.utn.javaproject.dndsheets.domain;
+package com.utn.javaproject.dndsheets.domain.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -14,7 +14,7 @@ import java.util.HashMap;
 @Builder
 @Entity
 @Table(name = "Class")
-public class DndClass {
+public class DndClassEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "class_id_seq")
     @SequenceGenerator(name = "class_id_seq", sequenceName = "class_id_seq", allocationSize = 1)

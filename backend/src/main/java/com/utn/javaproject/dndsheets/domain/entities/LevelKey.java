@@ -1,4 +1,4 @@
-package com.utn.javaproject.dndsheets.domain;
+package com.utn.javaproject.dndsheets.domain.entities;
 
 
 import jakarta.persistence.Column;

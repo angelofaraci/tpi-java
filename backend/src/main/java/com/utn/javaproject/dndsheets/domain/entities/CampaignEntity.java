@@ -1,4 +1,4 @@
-package com.utn.javaproject.dndsheets.domain;
+package com.utn.javaproject.dndsheets.domain.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -16,20 +16,25 @@ import java.util.List;
 @Builder
 @Entity
 @Table(name = "Campaigns")
-public class Campaign {
+public class CampaignEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "campaign_id_seq")
     private Long id;
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private User dmId;
+    private UserEntity dmId;
     private String name;
     private String description;
     private Boolean privacy;
     private Date CreationDate;
     @ManyToMany
-    @JoinColumn(name = "user_id")
-    private List<User> playersIds;
-    @OneToMany(mappedBy = "Characters", cascade = CascadeType.ALL)
-    private List<Characters> characters;
+    @JoinTable(
+            name = "campaign_players",
+            joinColumns = @JoinColumn(name = "campaign_id"),
+            inverseJoinColumns = @JoinColumn(name = "player_id")
+    )
+    private List<UserEntity> playersIds;
+
+    @OneToMany(mappedBy = "id", cascade = CascadeType.ALL)
+    private List<CharacterEntity> characters;
 }

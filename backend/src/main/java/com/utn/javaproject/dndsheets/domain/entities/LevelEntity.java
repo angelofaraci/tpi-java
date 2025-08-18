@@ -1,4 +1,4 @@
-package com.utn.javaproject.dndsheets.domain;
+package com.utn.javaproject.dndsheets.domain.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -12,19 +12,19 @@ import lombok.NoArgsConstructor;
 @Builder
 @Entity
 @Table(name = "Level")
-public class Level {
+public class LevelEntity {
     @EmbeddedId
     private LevelKey id;
 
     @ManyToOne
-    @MapsId("character_id")
+    @MapsId
     @JoinColumn(name = "character_id")
-    private Character character;
+    private CharacterEntity characterEntity;
 
     @ManyToOne
-    @MapsId("class_id")
+    @MapsId
     @JoinColumn(name = "class_id")
-    private DndClass dndClass;
+    private DndClassEntity dndClassEntity;
 
     private Short Level;
 }
