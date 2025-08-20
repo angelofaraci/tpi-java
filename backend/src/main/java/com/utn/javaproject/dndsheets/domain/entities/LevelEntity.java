@@ -17,15 +17,15 @@ public class LevelEntity {
     private LevelKey id;
 
     @ManyToOne
-    @MapsId
-    @JoinColumn(name = "character_id")
+    @MapsId("characterId")
+    @JoinColumn(name = "character_id", insertable = false, updatable = false)
     private CharacterEntity characterEntity;
 
     @ManyToOne
-    @MapsId
-    @JoinColumn(name = "class_id")
+    @MapsId("classId")
+    @JoinColumn(name = "class_id", insertable = false, updatable = false)
     private DndClassEntity dndClassEntity;
 
-    private Short Level;
+    private Short level;
 }
 

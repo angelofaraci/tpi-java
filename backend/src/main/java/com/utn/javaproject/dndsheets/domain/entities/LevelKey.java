@@ -3,9 +3,11 @@ package com.utn.javaproject.dndsheets.domain.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import lombok.Data;
 
 import java.io.Serializable;
 
+@Data
 @Embeddable
 class LevelKey implements Serializable {
 
@@ -13,6 +15,6 @@ class LevelKey implements Serializable {
     private Long characterId;
 
     @Column(name = "class_id")
-    private Long courseId;
+    private Long classId;
 
 }

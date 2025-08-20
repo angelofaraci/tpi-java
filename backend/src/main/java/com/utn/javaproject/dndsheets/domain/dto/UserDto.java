@@ -22,4 +22,7 @@ public class UserDto {
     private Role role;
     private List<CampaignEntity> isDm;
     private List<CharacterEntity> characterEntity;
+
+
+
 }
