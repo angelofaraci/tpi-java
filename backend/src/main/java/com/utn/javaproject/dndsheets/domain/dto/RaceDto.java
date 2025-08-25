@@ -1,7 +1,5 @@
 package com.utn.javaproject.dndsheets.domain.dto;
 
-import com.utn.javaproject.dndsheets.Role;
-import com.utn.javaproject.dndsheets.domain.dto.CampaignDto;
 import com.utn.javaproject.dndsheets.domain.dto.CharacterDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,15 +12,9 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UserDto {
+public class RaceDto {
     private Long id;
-    private String username;
-    private String email;
-    private String password;
-    private Role role;
-    private List<CampaignDto> isDm;
+    private String description;
+    private List<String> racialFeats;
     private List<CharacterDto> characterDto;
-
-
-
 }
