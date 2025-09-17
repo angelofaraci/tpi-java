@@ -9,7 +9,7 @@ import java.io.Serializable;
 
 @Data
 @Embeddable
-class LevelKey implements Serializable {
+public class LevelKey implements Serializable {
 
     @Column(name = "character_id")
     private Long characterId;
@@ -17,4 +17,6 @@ class LevelKey implements Serializable {
     @Column(name = "class_id")
     private Long classId;
 
+    public LevelKey(Long characterId, Long classId) {
+    }
 }
