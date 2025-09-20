@@ -28,7 +28,7 @@ public class UserEntity implements UserDetails {
     private String email;
     private String password;
     private Role role;
-    @OneToMany(mappedBy = "dmId", cascade = CascadeType.ALL, orphanRemoval = false)
+    @OneToMany(mappedBy = "dm", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<CampaignEntity> isDm;
     @OneToMany(mappedBy = "userEntityId", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CharacterEntity> characterEntities;

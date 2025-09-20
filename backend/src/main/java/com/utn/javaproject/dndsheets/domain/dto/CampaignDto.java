@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 public class CampaignDto {
     private Long id;
-    private UserDto dmId;
+    private UserDto dm;
     private String name;
     private String description;
     private Boolean privacy;

@@ -22,7 +22,7 @@ public class CharacterController {
         this.characterService = characterService;
     }
 
-    @PutMapping(path = "/characters")
+    @PostMapping(path = "/characters")
     public ResponseEntity<CharacterDto> createCharacter(@RequestBody CharacterDto characterDto) {
         CharacterEntity characterEntity = characterMapper.mapFrom(characterDto);
         CharacterEntity savedCharacterEntity = characterService.save(characterEntity);

@@ -22,7 +22,7 @@ public class RaceController {
         this.raceService = raceService;
     }
 
-    @PutMapping(path = "/races")
+    @PostMapping(path = "/races")
     public ResponseEntity<RaceDto> createRace(@RequestBody RaceDto raceDto) {
         RaceEntity raceEntity = raceMapper.mapFrom(raceDto);
         RaceEntity savedRaceEntity = raceService.save(raceEntity);

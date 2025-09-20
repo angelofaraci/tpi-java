@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @RestController
 public class CharacterStatsController {
@@ -23,9 +24,38 @@ public class CharacterStatsController {
         this.characterStatsService = characterStatsService;
     }
 
-    @PutMapping(path = "/character-stats")
+    @PostMapping(path = "/character-stats")
     public ResponseEntity<CharacterStatsDto> createCharacterStats(@RequestBody CharacterStatsDto characterStatsDto) {
         CharacterStatsEntity characterStatsEntity = characterStatsMapper.mapFrom(characterStatsDto);
+        if (!(characterStatsEntity.getAbilityScores().size() == 6)) {
+            Set<String> requiredKeys = Set.of("Strength", "Dexterity", "Constitution",
+                    "Intelligence", "Wisdom", "Charisma");
+
+            if(!characterStatsEntity.getAbilityScores().keySet().equals(requiredKeys)){
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            };
+            for(Short value: characterStatsEntity.getAbilityScores().values()){
+                if(value<1 || value>20){
+                    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+                }
+            }
+        }
+
+        Set<String> requiredProficiencies = Set.of(
+            "Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History",
+            "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception",
+            "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"
+        );
+        if (characterStatsEntity.getProficiencies() == null ||
+            !characterStatsEntity.getProficiencies().keySet().equals(requiredProficiencies)) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        for (Short value : characterStatsEntity.getProficiencies().values()) {
+            if (value == null || (value != 0 && value != 1 && value != 2)) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+        }
+
         CharacterStatsEntity savedCharacterStatsEntity = characterStatsService.save(characterStatsEntity);
         CharacterStatsDto savedCharacterStatsDto = characterStatsMapper.mapTo(savedCharacterStatsEntity);
         return new ResponseEntity<>(savedCharacterStatsDto, HttpStatus.CREATED);

@@ -24,7 +24,7 @@ public class LevelController {
         this.levelService = levelService;
     }
 
-    @PutMapping(path = "/levels")
+    @PostMapping(path = "/levels")
     public ResponseEntity<LevelDto> createLevel(@RequestBody LevelDto levelDto) {
         LevelEntity levelEntity = levelMapper.mapFrom(levelDto);
         LevelEntity savedLevelEntity = levelService.save(levelEntity);

@@ -23,7 +23,7 @@ public class DndClassController {
         this.dndClassService = dndClassService;
     }
 
-    @PutMapping(path = "/dnd-classes")
+    @PostMapping(path = "/dnd-classes")
     public ResponseEntity<DndClassDto> createDndClass(@RequestBody DndClassDto dndClassDto) {
         DndClassEntity dndClassEntity = dndClassMapper.mapFrom(dndClassDto);
         DndClassEntity savedDndClassEntity = dndClassService.save(dndClassEntity);

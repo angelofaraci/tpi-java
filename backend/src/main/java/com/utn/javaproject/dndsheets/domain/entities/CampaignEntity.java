@@ -22,7 +22,7 @@ public class CampaignEntity {
     private Long id;
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private UserEntity dmId;
+    private UserEntity dm;
     private String name;
     private String description;
     private Boolean privacy;

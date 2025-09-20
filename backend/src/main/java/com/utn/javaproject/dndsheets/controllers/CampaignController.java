@@ -4,6 +4,8 @@ package com.utn.javaproject.dndsheets.controllers;
 import com.utn.javaproject.dndsheets.domain.dto.CampaignDto;
 import com.utn.javaproject.dndsheets.domain.entities.CampaignEntity;
 import com.utn.javaproject.dndsheets.mappers.Mapper;
+import com.utn.javaproject.dndsheets.repositories.UserRepository;
+import com.utn.javaproject.dndsheets.services.AuthService;
 import com.utn.javaproject.dndsheets.services.CampaignService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,13 +20,15 @@ public class CampaignController {
     private final Mapper<CampaignEntity, CampaignDto> campaignMapper;
 
     private final CampaignService campaignService;
+    private final UserRepository userRepository;
 
-    public CampaignController(Mapper<CampaignEntity, CampaignDto> campaignMapper, CampaignService campaignService) {
+    public CampaignController(Mapper<CampaignEntity, CampaignDto> campaignMapper, CampaignService campaignService, UserRepository userRepository) {
         this.campaignMapper = campaignMapper;
         this.campaignService = campaignService;
+        this.userRepository = userRepository;
     }
 
-    @PutMapping(path = "/campaigns")
+    @PostMapping(path = "/campaigns")
     public ResponseEntity<CampaignDto> createCampaign(@RequestBody CampaignDto campaignDto) {
         CampaignEntity campaignEntity = campaignMapper.mapFrom(campaignDto);
         CampaignEntity savedCampaignEntity = campaignService.save(campaignEntity);
