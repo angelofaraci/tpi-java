@@ -4,9 +4,12 @@ import com.utn.javaproject.dndsheets.domain.dto.CharacterStatsDto;
 import com.utn.javaproject.dndsheets.domain.entities.CharacterStatsEntity;
 import com.utn.javaproject.dndsheets.mappers.Mapper;
 import com.utn.javaproject.dndsheets.services.CharacterStatsService;
+import com.utn.javaproject.dndsheets.services.LevelService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.utn.javaproject.dndsheets.domain.entities.LevelKey;
+import com.utn.javaproject.dndsheets.domain.entities.LevelEntity;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,11 +20,13 @@ public class CharacterStatsController {
 
     private final Mapper<CharacterStatsEntity, CharacterStatsDto> characterStatsMapper;
     private final CharacterStatsService characterStatsService;
+    private final LevelService levelService;
 
     public CharacterStatsController(Mapper<CharacterStatsEntity, CharacterStatsDto> characterStatsMapper,
-                                  CharacterStatsService characterStatsService) {
+                                    CharacterStatsService characterStatsService, LevelService levelService) {
         this.characterStatsMapper = characterStatsMapper;
         this.characterStatsService = characterStatsService;
+        this.levelService = levelService;
     }
 
     @PostMapping(path = "/character-stats")
@@ -109,5 +114,27 @@ public class CharacterStatsController {
     public ResponseEntity deleteCharacterStats(@PathVariable("id") Long id) {
         characterStatsService.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PutMapping(path = "character-stats/{id}/{classid}")
+    public ResponseEntity<CharacterStatsDto> updateCharacterHp(
+            @PathVariable("id") Long characterStatsId,
+            @PathVariable("classId") Long classId,
+            @RequestBody Short hitDice) {
+        Optional<CharacterStatsEntity> foundCharacterStats = characterStatsService.findOne(characterStatsId);
+        if (!foundCharacterStats.isEmpty()) {
+
+
+            CharacterStatsEntity characterStatsEntity = foundCharacterStats.get();
+            LevelEntity characterLevel = levelService.findOne(new LevelKey(characterStatsEntity.getCharacterEntityId().getId(), classId))
+                    .orElse(null);
+
+            characterStatsEntity.setHp(characterLevel.getLevel()*(characterStatsEntity.getProficiencies().get("Constitution")+hitDice));
+            CharacterStatsEntity updatedCharacterStats = characterStatsService.save(characterStatsEntity);
+            return new ResponseEntity<>(characterStatsMapper.mapTo(updatedCharacterStats), HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
     }
 }

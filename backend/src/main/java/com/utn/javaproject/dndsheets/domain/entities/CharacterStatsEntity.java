@@ -29,5 +29,5 @@ public class CharacterStatsEntity {
     private HashMap<String,Short> abilityScores;
     private List<Long> velocities;
     private HashMap<String, Short> proficiencies;
-    private Long hp;
+    private Integer hp;
 }
