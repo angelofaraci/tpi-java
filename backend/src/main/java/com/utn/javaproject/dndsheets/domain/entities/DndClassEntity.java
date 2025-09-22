@@ -22,5 +22,6 @@ public class DndClassEntity {
 
     private String description;
     private HashMap<Short, String> levelCharacteristics;
+    private Integer hitDice;
 
 }

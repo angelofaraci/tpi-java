@@ -15,5 +15,6 @@ public class DndClassDto {
     private Long id;
     private String description;
     private HashMap<Short, String> levelCharacteristics;
+    private Integer hitDice;
 
 }

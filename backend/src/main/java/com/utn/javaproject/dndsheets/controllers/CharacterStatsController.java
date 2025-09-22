@@ -119,8 +119,7 @@ public class CharacterStatsController {
     @PutMapping(path = "character-stats/{id}/{classid}")
     public ResponseEntity<CharacterStatsDto> updateCharacterHp(
             @PathVariable("id") Long characterStatsId,
-            @PathVariable("classId") Long classId,
-            @RequestBody Short hitDice) {
+            @PathVariable("classId") Long classId) {
         Optional<CharacterStatsEntity> foundCharacterStats = characterStatsService.findOne(characterStatsId);
         if (!foundCharacterStats.isEmpty()) {
 
@@ -128,8 +127,10 @@ public class CharacterStatsController {
             CharacterStatsEntity characterStatsEntity = foundCharacterStats.get();
             LevelEntity characterLevel = levelService.findOne(new LevelKey(characterStatsEntity.getCharacterEntityId().getId(), classId))
                     .orElse(null);
-
-            characterStatsEntity.setHp(characterLevel.getLevel()*(characterStatsEntity.getProficiencies().get("Constitution")+hitDice));
+            Short level = characterLevel.getLevel();
+            Short constitutionModifier = (short) Math.floor((characterStatsEntity.getAbilityScores().get("Constitution")-10)/2);
+            Integer hitDice = characterLevel.getDndClassEntity().getHitDice();
+            characterStatsEntity.setHp((level-1)*(constitutionModifier+hitDice));
             CharacterStatsEntity updatedCharacterStats = characterStatsService.save(characterStatsEntity);
             return new ResponseEntity<>(characterStatsMapper.mapTo(updatedCharacterStats), HttpStatus.OK);
         } else {
