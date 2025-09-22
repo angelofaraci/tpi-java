@@ -38,12 +38,12 @@ public class CampaignService {
 
 
         return campaignRepository.findById(id).map(existingCampaign -> {
-            Optional.ofNullable(campaignEntity.getDmId()).ifPresent(existingCampaign::setDmId);
+            Optional.ofNullable(campaignEntity.getDm()).ifPresent(existingCampaign::setDm);
             Optional.ofNullable(campaignEntity.getName()).ifPresent(existingCampaign::setName);
             Optional.ofNullable(campaignEntity.getDescription()).ifPresent(existingCampaign::setDescription);
             Optional.ofNullable(campaignEntity.getPrivacy()).ifPresent(existingCampaign::setPrivacy);
             Optional.ofNullable(campaignEntity.getCreationDate()).ifPresent(existingCampaign::setCreationDate);
-            Optional.ofNullable(campaignEntity.getPlayersIds()).ifPresent(existingCampaign::setPlayersIds);
+            Optional.ofNullable(campaignEntity.getPlayers()).ifPresent(existingCampaign::setPlayers);
             Optional.ofNullable(campaignEntity.getCharacters()).ifPresent(existingCampaign::setCharacters);
 
             return campaignRepository.save(existingCampaign);

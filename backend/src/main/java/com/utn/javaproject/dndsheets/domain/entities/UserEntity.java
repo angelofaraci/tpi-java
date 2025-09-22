@@ -30,8 +30,8 @@ public class UserEntity implements UserDetails {
     private Role role;
     @OneToMany(mappedBy = "dm", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<CampaignEntity> isDm;
-    @OneToMany(mappedBy = "userEntityId", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CharacterEntity> characterEntities;
+    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CharacterEntity> charactersEntities;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

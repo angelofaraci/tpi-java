@@ -22,8 +22,7 @@ public class CharacterStatsEntity {
     private Long id;
     @OneToOne
     @JoinColumn(name = "character_id")
-    private CharacterEntity characterEntityId;
-
+    private CharacterEntity characterEntity;
     private Long xp;
     private Short proficiency;
     private HashMap<String,Short> abilityScores;

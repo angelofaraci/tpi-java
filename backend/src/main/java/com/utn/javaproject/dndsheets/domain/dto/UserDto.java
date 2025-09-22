@@ -21,7 +21,7 @@ public class UserDto {
     private String password;
     private Role role;
     private List<CampaignDto> isDm;
-    private List<CharacterDto> characterDto;
+    private List<CharacterDto> charactersDto;
 
 
 

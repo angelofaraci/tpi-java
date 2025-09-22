@@ -21,18 +21,18 @@ public class CharacterEntity {
     private Long id;
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private UserEntity userEntityId;
+    private UserEntity userEntity;
     @ManyToOne
     @JoinColumn(name = "campaign_id")
-    private CampaignEntity campaignEntityId;
+    private CampaignEntity campaignEntity;
     private String name;
     private List<String> characteristics;
     private String alignment;
     private String Background;
-    @OneToOne(mappedBy = "characterEntityId")
+    @OneToOne(mappedBy = "characterEntity")
     private CharacterStatsEntity charactersStats;
     @ManyToOne
     @JoinColumn(name = "character_id")
-    private RaceEntity raceEntityId;
+    private RaceEntity raceEntity;
 
 }

@@ -21,6 +21,6 @@ public class CampaignDto {
     private String description;
     private Boolean privacy;
     private Date CreationDate;
-    private List<UserDto> playersIds;
+    private List<UserDto> players;
     private List<CharacterDto> characters;
 }

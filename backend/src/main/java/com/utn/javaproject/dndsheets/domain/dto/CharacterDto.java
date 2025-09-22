@@ -17,13 +17,13 @@ import java.util.List;
 @Builder
 public class CharacterDto {
     private Long id;
-    private UserDto userDtoId;
-    private CampaignDto campaignDtoId;
+    private UserDto userDto;
+    private CampaignDto campaignDto;
     private String name;
     private List<String> characteristics;
     private String alignment;
     private String Background;
     private CharacterStatsDto charactersStats;
-    private RaceDto raceDtoId;
+    private RaceDto raceDto;
 
 }

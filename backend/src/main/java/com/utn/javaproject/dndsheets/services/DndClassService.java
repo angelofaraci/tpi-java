@@ -38,6 +38,7 @@ public class DndClassService {
         return dndClassRepository.findById(id).map(existingClass -> {
             Optional.ofNullable(dndClassEntity.getDescription()).ifPresent(existingClass::setDescription);
             Optional.ofNullable(dndClassEntity.getLevelCharacteristics()).ifPresent(existingClass::setLevelCharacteristics);
+            Optional.ofNullable(dndClassEntity.getHitDice()).ifPresent(existingClass::setHitDice);
 
             return dndClassRepository.save(existingClass);
         }).orElseThrow(() -> new RuntimeException("DndClass does not exist"));

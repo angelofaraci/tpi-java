@@ -36,11 +36,10 @@ public class CharacterStatsService {
         characterStatsEntity.setId(id);
 
         return characterStatsRepository.findById(id).map(existingStats -> {
-            Optional.ofNullable(characterStatsEntity.getCharacterEntityId()).ifPresent(existingStats::setCharacterEntityId);
+            Optional.ofNullable(characterStatsEntity.getCharacterEntity()).ifPresent(existingStats::setCharacterEntity);
             Optional.ofNullable(characterStatsEntity.getXp()).ifPresent(existingStats::setXp);
             Optional.ofNullable(characterStatsEntity.getProficiency()).ifPresent(existingStats::setProficiency);
             Optional.ofNullable(characterStatsEntity.getAbilityScores()).ifPresent(existingStats::setAbilityScores);
-            Optional.ofNullable(characterStatsEntity.getAbilityModifier()).ifPresent(existingStats::setAbilityModifier);
             Optional.ofNullable(characterStatsEntity.getVelocities()).ifPresent(existingStats::setVelocities);
             Optional.ofNullable(characterStatsEntity.getProficiencies()).ifPresent(existingStats::setProficiencies);
             Optional.ofNullable(characterStatsEntity.getHp()).ifPresent(existingStats::setHp);

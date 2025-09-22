@@ -20,7 +20,7 @@ public class RaceEntity {
     private Long id;
     private String description;
     private List<String> racialFeats;
-    @OneToMany(mappedBy = "raceEntityId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "raceEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CharacterEntity> characterEntities;
 
 }

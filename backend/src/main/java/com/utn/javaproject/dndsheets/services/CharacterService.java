@@ -36,14 +36,14 @@ public class CharacterService {
         characterEntity.setId(id);
 
         return characterRepository.findById(id).map(existingCharacter -> {
-            Optional.ofNullable(characterEntity.getUserEntityId()).ifPresent(existingCharacter::setUserEntityId);
-            Optional.ofNullable(characterEntity.getCampaignEntityId()).ifPresent(existingCharacter::setCampaignEntityId);
+            Optional.ofNullable(characterEntity.getUserEntity()).ifPresent(existingCharacter::setUserEntity);
+            Optional.ofNullable(characterEntity.getCampaignEntity()).ifPresent(existingCharacter::setCampaignEntity);
             Optional.ofNullable(characterEntity.getName()).ifPresent(existingCharacter::setName);
             Optional.ofNullable(characterEntity.getCharacteristics()).ifPresent(existingCharacter::setCharacteristics);
             Optional.ofNullable(characterEntity.getAlignment()).ifPresent(existingCharacter::setAlignment);
             Optional.ofNullable(characterEntity.getBackground()).ifPresent(existingCharacter::setBackground);
             Optional.ofNullable(characterEntity.getCharactersStats()).ifPresent(existingCharacter::setCharactersStats);
-            Optional.ofNullable(characterEntity.getRaceEntityId()).ifPresent(existingCharacter::setRaceEntityId);
+            Optional.ofNullable(characterEntity.getRaceEntity()).ifPresent(existingCharacter::setRaceEntity);
 
             return characterRepository.save(existingCharacter);
         }).orElseThrow(() -> new RuntimeException("Character does not exist"));

@@ -33,7 +33,7 @@ public class CampaignEntity {
             joinColumns = @JoinColumn(name = "campaign_id"),
             inverseJoinColumns = @JoinColumn(name = "player_id")
     )
-    private List<UserEntity> playersIds;
+    private List<UserEntity> players;
 
     @OneToMany(mappedBy = "id", cascade = CascadeType.ALL)
     private List<CharacterEntity> characters;
