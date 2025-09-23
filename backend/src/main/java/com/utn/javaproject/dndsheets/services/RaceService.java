@@ -36,9 +36,9 @@ public class RaceService {
         raceEntity.setId(id);
 
         return raceRepository.findById(id).map(existingRace -> {
+            Optional.ofNullable(raceEntity.getName()).ifPresent(existingRace::setName);
             Optional.ofNullable(raceEntity.getDescription()).ifPresent(existingRace::setDescription);
             Optional.ofNullable(raceEntity.getRacialFeats()).ifPresent(existingRace::setRacialFeats);
-            Optional.ofNullable(raceEntity.getCharacterEntities()).ifPresent(existingRace::setCharacterEntities);
 
             return raceRepository.save(existingRace);
         }).orElseThrow(() -> new RuntimeException("Race does not exist"));

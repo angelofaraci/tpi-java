@@ -18,9 +18,7 @@ public class RaceEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "race_id_seq")
     @SequenceGenerator(name = "race_id_seq", sequenceName = "race_id_seq", allocationSize = 1)
     private Long id;
+    private String name;
     private String description;
     private List<String> racialFeats;
-    @OneToMany(mappedBy = "raceEntity", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CharacterEntity> characterEntities;
-
 }

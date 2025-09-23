@@ -22,8 +22,8 @@ public class CharacterDto {
     private String name;
     private List<String> characteristics;
     private String alignment;
-    private String Background;
+    private String background;
     private CharacterStatsDto charactersStats;
-    private RaceDto raceDto;
+    private RaceDto race;
 
 }

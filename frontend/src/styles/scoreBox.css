@@ -1,0 +1,7 @@
+.ability-Score-Container {
+    border: 1px solid #000;
+    border-radius: 4px;
+    padding: 10px;
+    text-align: center;
+    text-shadow: #000;
+}

@@ -43,7 +43,7 @@ public class CharacterService {
             Optional.ofNullable(characterEntity.getAlignment()).ifPresent(existingCharacter::setAlignment);
             Optional.ofNullable(characterEntity.getBackground()).ifPresent(existingCharacter::setBackground);
             Optional.ofNullable(characterEntity.getCharactersStats()).ifPresent(existingCharacter::setCharactersStats);
-            Optional.ofNullable(characterEntity.getRaceEntity()).ifPresent(existingCharacter::setRaceEntity);
+            Optional.ofNullable(characterEntity.getRace()).ifPresent(existingCharacter::setRace);
 
             return characterRepository.save(existingCharacter);
         }).orElseThrow(() -> new RuntimeException("Character does not exist"));

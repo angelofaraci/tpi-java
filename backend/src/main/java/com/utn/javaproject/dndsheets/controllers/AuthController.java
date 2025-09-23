@@ -1,8 +1,10 @@
 package com.utn.javaproject.dndsheets.controllers;
 
+import com.utn.javaproject.dndsheets.domain.dto.CharacterDto;
 import com.utn.javaproject.dndsheets.domain.dto.LoginDto;
 import com.utn.javaproject.dndsheets.domain.dto.UserDto;
 import com.utn.javaproject.dndsheets.domain.entities.AuthResponse;
+import com.utn.javaproject.dndsheets.domain.entities.CharacterEntity;
 import com.utn.javaproject.dndsheets.domain.entities.UserEntity;
 import com.utn.javaproject.dndsheets.mappers.impl.UserMapperImpl;
 import com.utn.javaproject.dndsheets.services.AuthService;
@@ -13,10 +15,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RequestMapping("/auth")
 @RestController
@@ -60,4 +61,14 @@ public class AuthController {
         userEntity.setPassword(passwordEncoder.encode(userEntity.getPassword()));
         return new ResponseEntity<>(authService.register(userEntity), HttpStatus.CREATED);
     }
+
+    @GetMapping(path = "/test/{id}")
+    public ResponseEntity<UserDto> getUser(@PathVariable("id") Long id) {
+        Optional<UserEntity> foundUser = userService.findOne(id);
+        return foundUser.map(userEntity -> {
+            UserDto userDto = mapper.mapTo(userEntity);
+            return new ResponseEntity<>(userDto, HttpStatus.OK);
+        }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
 }

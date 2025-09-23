@@ -28,11 +28,11 @@ public class CharacterEntity {
     private String name;
     private List<String> characteristics;
     private String alignment;
-    private String Background;
+    private String background;
     @OneToOne(mappedBy = "characterEntity")
     private CharacterStatsEntity charactersStats;
-    @ManyToOne
-    @JoinColumn(name = "character_id")
-    private RaceEntity raceEntity;
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "race_id")
+    private RaceEntity race;
 
 }
