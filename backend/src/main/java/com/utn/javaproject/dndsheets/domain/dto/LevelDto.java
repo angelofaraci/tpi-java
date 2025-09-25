@@ -14,8 +14,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class LevelDto {
     private LevelKeyDto id;
-    private CharacterDto characterDto;
-    private DndClassDto dndClassDto;
+    private CharacterDto character;
+    private DndClassDto dndClass;
     private Short level;
 }
-

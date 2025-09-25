@@ -2,6 +2,9 @@ package com.utn.javaproject.dndsheets.services;
 
 import com.utn.javaproject.dndsheets.domain.entities.CharacterEntity;
 import com.utn.javaproject.dndsheets.repositories.CharacterRepository;
+import com.utn.javaproject.dndsheets.repositories.UserRepository;
+import com.utn.javaproject.dndsheets.repositories.CampaignRepository;
+import com.utn.javaproject.dndsheets.repositories.RaceRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -10,13 +13,31 @@ import java.util.Optional;
 
 @Service
 public class CharacterService {
-    private CharacterRepository characterRepository;
+    private final CharacterRepository characterRepository;
+    private final UserRepository userRepository;
+    private final CampaignRepository campaignRepository;
+    private final RaceRepository raceRepository;
 
-    public CharacterService(CharacterRepository characterRepository) {
+    public CharacterService(CharacterRepository characterRepository,
+                           UserRepository userRepository,
+                           CampaignRepository campaignRepository,
+                           RaceRepository raceRepository) {
         this.characterRepository = characterRepository;
+        this.userRepository = userRepository;
+        this.campaignRepository = campaignRepository;
+        this.raceRepository = raceRepository;
     }
 
     public CharacterEntity save(CharacterEntity character) {
+        if (character.getUser() != null && character.getUser().getId() != null) {
+            character.setUser(userRepository.findById(character.getUser().getId()).orElse(null));
+        }
+        if (character.getCampaign() != null && character.getCampaign().getId() != null) {
+            character.setCampaign(campaignRepository.findById(character.getCampaign().getId()).orElse(null));
+        }
+        if (character.getRace() != null && character.getRace().getId() != null) {
+            character.setRace(raceRepository.findById(character.getRace().getId()).orElse(null));
+        }
         return characterRepository.save(character);
     }
 
@@ -36,14 +57,39 @@ public class CharacterService {
         characterEntity.setId(id);
 
         return characterRepository.findById(id).map(existingCharacter -> {
-            Optional.ofNullable(characterEntity.getUserEntity()).ifPresent(existingCharacter::setUserEntity);
-            Optional.ofNullable(characterEntity.getCampaignEntity()).ifPresent(existingCharacter::setCampaignEntity);
+            // Resolve and update associated entities if IDs are provided
+            if (characterEntity.getUser() != null) {
+                if (characterEntity.getUser().getId() != null) {
+                    existingCharacter.setUser(
+                            userRepository.findById(characterEntity.getUser().getId()).orElse(null)
+                    );
+                } else {
+                    existingCharacter.setUser(characterEntity.getUser());
+                }
+            }
+            if (characterEntity.getCampaign() != null) {
+                if (characterEntity.getCampaign().getId() != null) {
+                    existingCharacter.setCampaign(
+                            campaignRepository.findById(characterEntity.getCampaign().getId()).orElse(null)
+                    );
+                } else {
+                    existingCharacter.setCampaign(characterEntity.getCampaign());
+                }
+            }
             Optional.ofNullable(characterEntity.getName()).ifPresent(existingCharacter::setName);
             Optional.ofNullable(characterEntity.getCharacteristics()).ifPresent(existingCharacter::setCharacteristics);
             Optional.ofNullable(characterEntity.getAlignment()).ifPresent(existingCharacter::setAlignment);
             Optional.ofNullable(characterEntity.getBackground()).ifPresent(existingCharacter::setBackground);
-            Optional.ofNullable(characterEntity.getCharactersStats()).ifPresent(existingCharacter::setCharactersStats);
-            Optional.ofNullable(characterEntity.getRace()).ifPresent(existingCharacter::setRace);
+            Optional.ofNullable(characterEntity.getCharacterStats()).ifPresent(existingCharacter::setCharacterStats);
+            if (characterEntity.getRace() != null) {
+                if (characterEntity.getRace().getId() != null) {
+                    existingCharacter.setRace(
+                            raceRepository.findById(characterEntity.getRace().getId()).orElse(null)
+                    );
+                } else {
+                    existingCharacter.setRace(characterEntity.getRace());
+                }
+            }
 
             return characterRepository.save(existingCharacter);
         }).orElseThrow(() -> new RuntimeException("Character does not exist"));

@@ -21,16 +21,16 @@ public class CharacterEntity {
     private Long id;
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private UserEntity userEntity;
+    private UserEntity user;
     @ManyToOne
     @JoinColumn(name = "campaign_id")
-    private CampaignEntity campaignEntity;
+    private CampaignEntity campaign;
     private String name;
     private List<String> characteristics;
     private String alignment;
     private String background;
-    @OneToOne(mappedBy = "characterEntity")
-    private CharacterStatsEntity charactersStats;
+    @OneToOne(mappedBy = "character")
+    private CharacterStatsEntity characterStats;
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "race_id")
     private RaceEntity race;

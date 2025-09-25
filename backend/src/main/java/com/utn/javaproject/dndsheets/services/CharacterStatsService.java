@@ -36,7 +36,7 @@ public class CharacterStatsService {
         characterStatsEntity.setId(id);
 
         return characterStatsRepository.findById(id).map(existingStats -> {
-            Optional.ofNullable(characterStatsEntity.getCharacterEntity()).ifPresent(existingStats::setCharacterEntity);
+            Optional.ofNullable(characterStatsEntity.getCharacter()).ifPresent(existingStats::setCharacter);
             Optional.ofNullable(characterStatsEntity.getXp()).ifPresent(existingStats::setXp);
             Optional.ofNullable(characterStatsEntity.getProficiency()).ifPresent(existingStats::setProficiency);
             Optional.ofNullable(characterStatsEntity.getAbilityScores()).ifPresent(existingStats::setAbilityScores);

@@ -125,7 +125,7 @@ public class CharacterStatsController {
 
 
             CharacterStatsEntity characterStatsEntity = foundCharacterStats.get();
-            LevelEntity characterLevel = levelService.findOne(new LevelKey(characterStatsEntity.getCharacterEntity().getId(), classId))
+            LevelEntity characterLevel = levelService.findOne(new LevelKey(characterStatsEntity.getCharacter().getId(), classId))
                     .orElse(null);
             Short level = characterLevel.getLevel();
             Short constitutionModifier = (short) Math.floor((characterStatsEntity.getAbilityScores().get("Constitution")-10)/2);

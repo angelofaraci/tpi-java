@@ -1,5 +1,7 @@
 package com.utn.javaproject.dndsheets.domain.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.utn.javaproject.dndsheets.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,9 +31,11 @@ public class UserEntity implements UserDetails {
     private String password;
     private Role role;
     @OneToMany(mappedBy = "dm", cascade = CascadeType.ALL, orphanRemoval = false)
+    @JsonManagedReference
     private List<CampaignEntity> isDm;
-    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CharacterEntity> charactersEntities;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<CharacterEntity> characters;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

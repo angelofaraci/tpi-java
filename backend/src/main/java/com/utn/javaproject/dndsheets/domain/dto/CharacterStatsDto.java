@@ -15,7 +15,6 @@ import java.util.List;
 @Builder
 public class CharacterStatsDto {
     private Long id;
-    private CharacterDto characterDto;
     private Long xp;
     private Short proficiency;
     private HashMap<String,Short> abilityScores;
