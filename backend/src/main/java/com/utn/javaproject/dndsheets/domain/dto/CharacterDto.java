@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class CharacterDto {
-    private Long id;
+    private Long id;;
     private UserDto user;
     private CampaignDto campaign;
     private String name;

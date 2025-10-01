@@ -21,7 +21,7 @@ public class CharacterStatsEntity {
     @SequenceGenerator(name = "character_stats_id_seq", sequenceName = "character_stats_id_seq", allocationSize = 1)
     private Long id;
     @OneToOne
-    @JoinColumn(name = "character_id")
+    @JoinColumn(name = "character_id", nullable = false)
     private CharacterEntity character;
     private Long xp;
     private Short proficiency;

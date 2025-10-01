@@ -5,6 +5,7 @@ import com.utn.javaproject.dndsheets.repositories.CharacterRepository;
 import com.utn.javaproject.dndsheets.repositories.UserRepository;
 import com.utn.javaproject.dndsheets.repositories.CampaignRepository;
 import com.utn.javaproject.dndsheets.repositories.RaceRepository;
+import com.utn.javaproject.dndsheets.repositories.CharacterStatsRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,15 +18,18 @@ public class CharacterService {
     private final UserRepository userRepository;
     private final CampaignRepository campaignRepository;
     private final RaceRepository raceRepository;
+    private final CharacterStatsRepository characterStatsRepository;
 
     public CharacterService(CharacterRepository characterRepository,
                            UserRepository userRepository,
                            CampaignRepository campaignRepository,
-                           RaceRepository raceRepository) {
+                           RaceRepository raceRepository,
+                            CharacterStatsRepository characterStatsRepository) {
         this.characterRepository = characterRepository;
         this.userRepository = userRepository;
         this.campaignRepository = campaignRepository;
         this.raceRepository = raceRepository;
+        this.characterStatsRepository = characterStatsRepository;
     }
 
     public CharacterEntity save(CharacterEntity character) {
@@ -38,6 +42,7 @@ public class CharacterService {
         if (character.getRace() != null && character.getRace().getId() != null) {
             character.setRace(raceRepository.findById(character.getRace().getId()).orElse(null));
         }
+        character.getCharacterStats().setCharacter(character);
         return characterRepository.save(character);
     }
 

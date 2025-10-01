@@ -1,5 +1,6 @@
 package com.utn.javaproject.dndsheets.domain.entities;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,7 +30,7 @@ public class CharacterEntity {
     private List<String> characteristics;
     private String alignment;
     private String background;
-    @OneToOne(mappedBy = "character")
+    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true)
     private CharacterStatsEntity characterStats;
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "race_id")
