@@ -1,5 +1,6 @@
 package com.utn.javaproject.dndsheets.domain.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.utn.javaproject.dndsheets.domain.dto.CharacterDto;
 import com.utn.javaproject.dndsheets.domain.dto.UserDto;
 import lombok.AllArgsConstructor;
@@ -16,6 +17,8 @@ import java.util.List;
 @Builder
 public class CampaignDto {
     private Long id;
+    @JsonIgnore
+    private UserDto dm;
     private String name;
     private String description;
     private Boolean privacy;

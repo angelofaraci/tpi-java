@@ -1,6 +1,7 @@
 package com.utn.javaproject.dndsheets.domain.entities;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,8 +23,7 @@ public class CampaignEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "campaign_id_seq")
     private Long id;
     @ManyToOne
-    @JoinColumn(name = "user_id")
-    @JsonBackReference
+
     private UserEntity dm;
     private String name;
     private String description;

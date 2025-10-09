@@ -129,7 +129,7 @@ public class CharacterStatsController {
                     .orElse(null);
             Short level = characterLevel.getLevel();
             Short constitutionModifier = (short) Math.floor((characterStatsEntity.getAbilityScores().get("Constitution")-10)/2);
-            Integer hitDice = characterLevel.getDndClassEntity().getHitDice();
+            Integer hitDice = characterLevel.getDndClass().getHitDice();
             characterStatsEntity.setHp((level-1)*(constitutionModifier+hitDice));
             CharacterStatsEntity updatedCharacterStats = characterStatsService.save(characterStatsEntity);
             return new ResponseEntity<>(characterStatsMapper.mapTo(updatedCharacterStats), HttpStatus.OK);

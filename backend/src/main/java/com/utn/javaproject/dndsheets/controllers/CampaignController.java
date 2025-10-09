@@ -20,12 +20,10 @@ public class CampaignController {
     private final Mapper<CampaignEntity, CampaignDto> campaignMapper;
 
     private final CampaignService campaignService;
-    private final UserRepository userRepository;
 
-    public CampaignController(Mapper<CampaignEntity, CampaignDto> campaignMapper, CampaignService campaignService, UserRepository userRepository) {
+    public CampaignController(Mapper<CampaignEntity, CampaignDto> campaignMapper, CampaignService campaignService) {
         this.campaignMapper = campaignMapper;
         this.campaignService = campaignService;
-        this.userRepository = userRepository;
     }
 
     @PostMapping(path = "/campaigns")

@@ -1,6 +1,5 @@
 package com.utn.javaproject.dndsheets.domain.entities;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,7 +31,7 @@ public class CharacterEntity {
     private String background;
     @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true)
     private CharacterStatsEntity characterStats;
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "race_id")
     private RaceEntity race;
 

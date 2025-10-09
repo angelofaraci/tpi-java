@@ -2,6 +2,7 @@ package com.utn.javaproject.dndsheets.services;
 
 import com.utn.javaproject.dndsheets.domain.entities.CampaignEntity;
 import com.utn.javaproject.dndsheets.repositories.CampaignRepository;
+import com.utn.javaproject.dndsheets.repositories.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -10,14 +11,20 @@ import java.util.Optional;
 
 @Service
 public class CampaignService {
-    private CampaignRepository campaignRepository;
+    private final CampaignRepository campaignRepository;
+    private final UserRepository userRepository;
 
-    public CampaignService(CampaignRepository campaignRepository) {
-
+    public CampaignService(CampaignRepository campaignRepository, UserRepository userRepository) {
         this.campaignRepository = campaignRepository;
+        this.userRepository = userRepository;
     }
 
     public CampaignEntity save(CampaignEntity campaign){
+        if (campaign.getDm() != null && campaign.getDm().getId() != null) {
+            var dm = userRepository.findById(campaign.getDm().getId())
+                    .orElseThrow(() -> new RuntimeException("DM user does not exist"));
+            campaign.setDm(dm);
+        }
         return campaignRepository.save(campaign);
     }
 
@@ -36,9 +43,16 @@ public class CampaignService {
     public CampaignEntity partialUpdate(Long id, CampaignEntity campaignEntity) {
         campaignEntity.setId(id);
 
-
         return campaignRepository.findById(id).map(existingCampaign -> {
-            Optional.ofNullable(campaignEntity.getDm()).ifPresent(existingCampaign::setDm);
+            if (campaignEntity.getDm() != null) {
+                if (campaignEntity.getDm().getId() != null) {
+                    var dm = userRepository.findById(campaignEntity.getDm().getId())
+                            .orElseThrow(() -> new RuntimeException("DM user does not exist"));
+                    existingCampaign.setDm(dm);
+                } else {
+                    existingCampaign.setDm(campaignEntity.getDm());
+                }
+            }
             Optional.ofNullable(campaignEntity.getName()).ifPresent(existingCampaign::setName);
             Optional.ofNullable(campaignEntity.getDescription()).ifPresent(existingCampaign::setDescription);
             Optional.ofNullable(campaignEntity.getPrivacy()).ifPresent(existingCampaign::setPrivacy);

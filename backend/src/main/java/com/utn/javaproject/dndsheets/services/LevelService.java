@@ -28,34 +28,34 @@ public class LevelService {
     }
 
     public LevelEntity save(LevelEntity level) {
-        // Resolve and attach CharacterEntity if an ID is provided
-        if (level.getCharacterEntity() != null && level.getCharacterEntity().getId() != null) {
+        // Resolve and attach Character if an ID is provided
+        if (level.getCharacter() != null && level.getCharacter().getId() != null) {
             CharacterEntity resolvedCharacter = characterRepository
-                    .findById(level.getCharacterEntity().getId())
+                    .findById(level.getCharacter().getId())
                     .orElse(null);
-            level.setCharacterEntity(resolvedCharacter);
+            level.setCharacter(resolvedCharacter);
         }
-        // Resolve and attach DndClassEntity if an ID is provided
-        if (level.getDndClassEntity() != null && level.getDndClassEntity().getId() != null) {
+        // Resolve and attach DndClass if an ID is provided
+        if (level.getDndClass() != null && level.getDndClass().getId() != null) {
             DndClassEntity resolvedClass = dndClassRepository
-                    .findById(level.getDndClassEntity().getId())
+                    .findById(level.getDndClass().getId())
                     .orElse(null);
-            level.setDndClassEntity(resolvedClass);
+            level.setDndClass(resolvedClass);
         }
         // Ensure embedded key is present & in sync with associated entities
         if (level.getId() == null) {
-            Long characterId = level.getCharacterEntity() != null ? level.getCharacterEntity().getId() : null;
-            Long classId = level.getDndClassEntity() != null ? level.getDndClassEntity().getId() : null;
+            Long characterId = level.getCharacter() != null ? level.getCharacter().getId() : null;
+            Long classId = level.getDndClass() != null ? level.getDndClass().getId() : null;
             if (characterId != null && classId != null) {
                 level.setId(new LevelKey(characterId, classId));
             }
         } else {
             // Sync id fields if associations are already resolved
-            if (level.getCharacterEntity() != null) {
-                level.getId().setCharacterId(level.getCharacterEntity().getId());
+            if (level.getCharacter() != null) {
+                level.getId().setCharacterId(level.getCharacter().getId());
             }
-            if (level.getDndClassEntity() != null) {
-                level.getId().setClassId(level.getDndClassEntity().getId());
+            if (level.getDndClass() != null) {
+                level.getId().setClassId(level.getDndClass().getId());
             }
         }
         return levelRepository.save(level);
@@ -78,34 +78,34 @@ public class LevelService {
 
         return levelRepository.findById(id).map(existingLevel -> {
             // Update associations if new ones (with IDs) are provided
-            if (levelEntity.getCharacterEntity() != null) {
-                if (levelEntity.getCharacterEntity().getId() != null) {
+            if (levelEntity.getCharacter() != null) {
+                if (levelEntity.getCharacter().getId() != null) {
                     CharacterEntity resolvedCharacter = characterRepository
-                            .findById(levelEntity.getCharacterEntity().getId())
+                            .findById(levelEntity.getCharacter().getId())
                             .orElse(null);
-                    existingLevel.setCharacterEntity(resolvedCharacter);
+                    existingLevel.setCharacter(resolvedCharacter);
                 } else {
-                    existingLevel.setCharacterEntity(levelEntity.getCharacterEntity());
+                    existingLevel.setCharacter(levelEntity.getCharacter());
                 }
             }
-            if (levelEntity.getDndClassEntity() != null) {
-                if (levelEntity.getDndClassEntity().getId() != null) {
+            if (levelEntity.getDndClass() != null) {
+                if (levelEntity.getDndClass().getId() != null) {
                     DndClassEntity resolvedClass = dndClassRepository
-                            .findById(levelEntity.getDndClassEntity().getId())
+                            .findById(levelEntity.getDndClass().getId())
                             .orElse(null);
-                    existingLevel.setDndClassEntity(resolvedClass);
+                    existingLevel.setDndClass(resolvedClass);
                 } else {
-                    existingLevel.setDndClassEntity(levelEntity.getDndClassEntity());
+                    existingLevel.setDndClass(levelEntity.getDndClass());
                 }
             }
             Optional.ofNullable(levelEntity.getLevel()).ifPresent(existingLevel::setLevel);
 
             // Keep embedded key in sync with associations
-            if (existingLevel.getCharacterEntity() != null) {
-                existingLevel.getId().setCharacterId(existingLevel.getCharacterEntity().getId());
+            if (existingLevel.getCharacter() != null) {
+                existingLevel.getId().setCharacterId(existingLevel.getCharacter().getId());
             }
-            if (existingLevel.getDndClassEntity() != null) {
-                existingLevel.getId().setClassId(existingLevel.getDndClassEntity().getId());
+            if (existingLevel.getDndClass() != null) {
+                existingLevel.getId().setClassId(existingLevel.getDndClass().getId());
             }
 
             return levelRepository.save(existingLevel);

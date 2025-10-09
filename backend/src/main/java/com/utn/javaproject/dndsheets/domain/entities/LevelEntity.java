@@ -19,12 +19,12 @@ public class LevelEntity {
     @ManyToOne
     @MapsId("characterId")
     @JoinColumn(name = "character_id", insertable = false, updatable = false)
-    private CharacterEntity characterEntity;
+    private CharacterEntity character;
 
     @ManyToOne
     @MapsId("classId")
     @JoinColumn(name = "class_id", insertable = false, updatable = false)
-    private DndClassEntity dndClassEntity;
+    private DndClassEntity dndClass;
 
     private Short level;
 }
