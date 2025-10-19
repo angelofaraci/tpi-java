@@ -42,7 +42,7 @@ public class AuthService {
                 .username(request.getUsername())
                 .password(request.getPassword())
                 .email(request.getEmail())
-                .role(Role.USER)
+                .role(Role.ROLE_USER)
                 .build();
         userRepository.save(userEntity);
         return AuthResponse.builder()
