@@ -1,210 +1,148 @@
 import { useState, useEffect } from 'react'
-import { ScoreBox } from './components/scoreBox'
-import './styles/CharacterSheet.css'
 import { api } from './services/api'
-import type { Character } from './interfaces/character'
+import { Characters } from './Characters'
+import './App.css'
 
-interface FormCharacterData {
-  name: string;
-  class: string;
-  species: string;
-  background: string;
+interface LoginForm {
+  username: string
+  password: string
 }
 
 function App() {
-  const [characterData, setCharacterData] = useState<Character | null>()
-  const [formData, setFormData] = useState<FormCharacterData>({
-    name: '',
-    class: '',
-    species: '',
-    background: ''
-  })
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [loginForm, setLoginForm] = useState<LoginForm>({
+    username: '',
+    password: ''
+  })
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
 
+  // Check if user is already authenticated on component mount
   useEffect(() => {
-    const fetchCharacterData = async () => {
-      try {
-        setLoading(true)
-        const response = await api.characters.findById(1)
-        if (!response.ok) {
-          throw new Error('Failed to fetch character data')
-        }
-        const responseData = await response.json()
-        
-        // Map the backend DTO to our frontend interface
-        const mappedData: Character = {
-          id: responseData.id,
-          user: {
-            id: responseData.userDto.id
-          },
-          campaign: {
-            id: responseData.campaignDto.id
-          },
-          name: responseData.name,
-          characteristics: responseData.characteristics,
-          alignment: responseData.alignment,
-          background: responseData.background, // Note: Backend uses capital B
-          characterStats: {
-            id: responseData.charactersStats.id
-          },
-          race: {
-            id: responseData.raceDto.id,
-            name: responseData.raceDto.name // Assuming raceDto has a name field
-          }
-        }
-        
-        setCharacterData(mappedData)
-        // Update form data with character data
-        setFormData({
-          name: mappedData.name || '',
-          class: '', // We don't have this in the DTO
-          species: mappedData.race.name || '',
-          background: mappedData.background || ''
-        })
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
+    const token = localStorage.getItem('token')
+    if (token) {
+      // You might want to validate the token with your backend here
+      setIsAuthenticated(true)
     }
+    setLoading(false)
+  }, [])
 
-    fetchCharacterData()
-  }, []) // Empty dependency array means this effect runs once when component mounts
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setIsLoggingIn(true)
 
-  if (loading) {
-    return <div>Loading...</div>
+    try {
+      console.log('Attempting login...')
+      const response = await api.auth.login({
+        username: loginForm.username,
+        password: loginForm.password
+      })
+      console.log('Login response:', response)
+
+      // Assuming the API returns a token
+      if (response.token) {
+        localStorage.setItem('token', response.token)
+        setIsAuthenticated(true)
+        setLoginForm({ username: '', password: '' })
+      }
+    } catch (err) {
+      console.error('🚨 Login Error Details:', err)
+      if (err instanceof Error) {
+        if (err.message.includes('403') || err.message.includes('401')) {
+          setError('Invalid username or password')
+        } else if (err.message.includes('Failed to fetch')) {
+          setError('Unable to connect to server. Please check if the backend is running.')
+        } else if (err.message.includes('invalid JSON')) {
+          setError('Backend returned invalid data. Check browser console for details.')
+        } else {
+          setError(`Error: ${err.message}`)
+        }
+      } else {
+        setError('An unexpected error occurred')
+      }
+    } finally {
+      setIsLoggingIn(false)
+    }
   }
 
-  if (error) {
-    return <div>Error: {error}</div>
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    setIsAuthenticated(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div>Loading...</div>
+      </div>
+    )
+  }
+
+  if (isAuthenticated) {
+    return (
+      <div>
+        <header className="app-header">
+          <h1>D&D Character Sheet</h1>
+          <button onClick={handleLogout} className="logout-button">
+            Logout
+          </button>
+        </header>
+        <Characters />
+      </div>
+    )
   }
 
   return (
-    <div className="character-sheet">
-      <div className="header-section">
-        <div className="basic-info">
-          <input 
-            type="text" 
-            className="input-field" 
-            placeholder="Character Name"
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          />
-          <input 
-            type="text" 
-            className="input-field" 
-            placeholder="Class"
-            value={formData.class}
-            onChange={(e) => setFormData(prev => ({ ...prev, class: e.target.value }))}
-          />
-          <input 
-            type="text" 
-            className="input-field" 
-            placeholder="Species"
-            value={formData.species}
-            onChange={(e) => setFormData(prev => ({ ...prev, species: e.target.value }))}
-          />
-          <input 
-            type="text" 
-            className="input-field" 
-            placeholder="Background"
-            value={formData.background}
-            onChange={(e) => setFormData(prev => ({ ...prev, background: e.target.value }))}
-          />
-        </div>
-      </div>
+    <div className="login-container">
+      <div className="login-form">
+        <h1>D&D Character Manager</h1>
+        <h2>Login</h2>
+        
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
 
-      <div className="ability-scores">
-        <ScoreBox 
-          label="Strength" 
-          score={15} 
-          skills={[
-            { name: "Athletics", proficient: false }
-          ]}
-          savingProficiency={1}
-          proficiencyBonus={2}
-        />
-        <ScoreBox 
-          label="Dexterity" 
-          score={14} 
-          skills={[
-            { name: "Acrobatics", proficient: true },
-            { name: "Sleight of Hand", proficient: false },
-            { name: "Stealth", proficient: false }
-          ]}
-          savingProficiency={1}
-          proficiencyBonus={2}
-        />
-        <ScoreBox 
-          label="Constitution" 
-          score={13} 
-          skills={[]}
-          savingProficiency={1}
-          proficiencyBonus={2}
-        />
-        <ScoreBox 
-          label="Intelligence" 
-          score={12} 
-          skills={[
-            { name: "Arcana", proficient: true },
-            { name: "History", proficient: true },
-            { name: "Investigation", proficient: false },
-            { name: "Nature", proficient: false },
-            { name: "Religion", proficient: false }
-          ]}
-          savingProficiency={0}
-          proficiencyBonus={2}
-        />
-        <ScoreBox 
-          label="Wisdom" 
-          score={10} 
-          skills={[
-            { name: "Animal Handling", proficient: false },
-            { name: "Insight", proficient: false },
-            { name: "Medicine", proficient: false },
-            { name: "Perception", proficient: false },
-            { name: "Survival", proficient: false }
-          ]}
-          savingProficiency={0}
-          proficiencyBonus={2}
-        />
-        <ScoreBox 
-          label="Charisma" 
-          score={8} 
-          skills={[
-            { name: "Deception", proficient: false },
-            { name: "Intimidation", proficient: false },
-            { name: "Performance", proficient: false },
-            { name: "Persuasion", proficient: false }
-          ]}
-          savingProficiency={0}
-          proficiencyBonus={2}
-        />
-      </div>
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label htmlFor="username">Username:</label>
+            <input
+              type="text"
+              id="username"
+              value={loginForm.username}
+              onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
+              required
+              disabled={isLoggingIn}
+            />
+          </div>
 
-      <div className="stats-container">
-        <div className="stat-box">
-          <div>Armor Class</div>
-          <div className="score">15</div>
-        </div>
-        <div className="stat-box">
-          <div>Initiative</div>
-          <div className="score">+2</div>
-        </div>
-        <div className="stat-box">
-          <div>Speed</div>
-          <div className="score">30</div>
-        </div>
-      </div>
+          <div className="form-group">
+            <label htmlFor="password">Password:</label>
+            <input
+              type="password"
+              id="password"
+              value={loginForm.password}
+              onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+              required
+              disabled={isLoggingIn}
+            />
+          </div>
 
-      <div className="features-section">
-        <h3>Class Features</h3>
-        {/* Add features content here */}
-      </div>
-      <div className="features-section">
-        <h3>Character Features</h3>
-        {/* Add features content here */}
+          <button 
+            type="submit" 
+            disabled={isLoggingIn || !loginForm.username || !loginForm.password}
+            className="login-button"
+          >
+            {isLoggingIn ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+
+        <div className="register-link">
+          <p>Don't have an account? <a href="#register">Register here</a></p>
+        </div>
       </div>
     </div>
   )

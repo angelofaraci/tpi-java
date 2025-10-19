@@ -1,5 +1,6 @@
 package com.utn.javaproject.dndsheets.domain.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.utn.javaproject.dndsheets.domain.dto.CampaignDto;
 import com.utn.javaproject.dndsheets.domain.dto.CharacterStatsDto;
 import com.utn.javaproject.dndsheets.domain.dto.RaceDto;
@@ -16,8 +17,10 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class CharacterDto {
-    private Long id;;
+    private Long id;
+    @JsonIgnoreProperties("charactersDto")
     private UserDto user;
+    @JsonIgnoreProperties("characters")
     private CampaignDto campaign;
     private String name;
     private List<String> characteristics;

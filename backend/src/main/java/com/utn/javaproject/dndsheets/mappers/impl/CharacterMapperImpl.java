@@ -25,3 +25,4 @@ public class CharacterMapperImpl implements Mapper<CharacterEntity, CharacterDto
         return modelMapper.map(CharacterDto, CharacterEntity.class);
     }
 }
+
