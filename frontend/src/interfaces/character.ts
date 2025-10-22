@@ -1,21 +1,46 @@
 interface User {
     id: number;
-    // Add other user properties as needed
+    username: string;
+    email: string;
+    isDm: Campaign[]; // Campaigns where the user is a Dungeon Master
+    characters: Character[];
 }
 
 interface Campaign {
     id: number;
-    // Add other campaign properties as needed
+    dm: User;
+    name: string;
+    description: string;
+    privacy: boolean;
+    creationDate: string;
+    players: User[];
+    characters?: Character[];
 }
 
 interface CharacterStats {
     id: number;
-    // Add character stats properties as needed
+    xp: number;
+    proficiency: number;
+    abilityScores: {
+        Strength: number;
+        Dexterity: number;
+        Constitution: number;
+        Intelligence: number;
+        Wisdom: number;
+        Charisma: number;
+    };
+    velocities: number[];
+    proficiencies: {
+        [key: string]: number;
+    }
+    hp: number
 }
 
 interface Race {
     id: number;
     name: string;
+    description: string;
+    feats: string[];
     // Add race properties as needed
 }
 

@@ -49,7 +49,8 @@ public class CharacterStatsController {
         Set<String> requiredProficiencies = Set.of(
             "Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History",
             "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception",
-            "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"
+            "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival",
+            "Strength", "Dexterity", "Constitution", "Wisdom", "Intelligence", "Charisma"
         );
         if (characterStatsEntity.getProficiencies() == null ||
             !characterStatsEntity.getProficiencies().keySet().equals(requiredProficiencies)) {

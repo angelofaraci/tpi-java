@@ -3,7 +3,7 @@ export interface ScoreBoxProps {
     score: number;
     label: string;
     proficiencyBonus: number;
-    skills: Array<{ name: string; proficient: boolean }>;
+    skills: Array<{ name: string; proficient: number }>;
     savingProficiency: number;
 }
 
@@ -20,15 +20,19 @@ export function ScoreBox({ score, label, skills = [], savingProficiency, profici
             <hr></hr>
             <div className='ability-proficiency-label'>
                 <input type="checkbox" checked={savingProficiency==1} readOnly />
-                <span> Saving throw: {abilityModifier + savingProficiency*proficiencyBonus}</span>
+                <span> 
+                    Saving throw: {abilityModifier + savingProficiency*proficiencyBonus}
+                </span>
             </div>
             <hr></hr>
                 {skills.length > 0 && (
                 <div className="skills-list">
                     {skills.map((skill) => (
                         <div key={skill.name} className="skill-item">
-                            <input type="checkbox" checked={skill.proficient} readOnly />
-                            <span>{skill.name}: {abilityModifier + (skill.proficient? proficiencyBonus:0)}</span>
+                            <input type="checkbox" checked={skill.proficient>0} readOnly />
+                            <span style={{ fontWeight: skill.proficient === 2 ? 'bold' : 'normal' }}>
+                                {skill.name}: {abilityModifier + skill.proficient * proficiencyBonus}
+                            </span>
                         </div>
                     ))}
                 </div>

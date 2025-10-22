@@ -14,18 +14,28 @@
     grid-template-columns: 1fr;
     gap: 20px;
     width: 100%;
-    max-width: 1200px;
+    max-width: 2400px;
     margin: 0 auto 20px auto;
     padding: 20px;
 }
 
 .basic-info {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
+}
+.infobox {
+    margin: 0;
+    color: #000000;
+    border: #000 1px solid;
+}
+.infobox h3 {
+    margin: 5px 0;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .ability-scores {
