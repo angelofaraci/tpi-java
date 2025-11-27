@@ -48,6 +48,13 @@ export const api = {
       return handleResponse(response);
     },
 
+    async findByUserId(userId: number) {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/characters`, {
+        headers: createHeaders(),
+      });
+      return handleResponse(response);
+    },
+
     async findById(id: number) {
       const response = await fetch(`${API_BASE_URL}/character/${id}`, {
         headers: createHeaders(),
@@ -137,6 +144,14 @@ export const api = {
     async logout() {
       const response = await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
+        headers: createHeaders(),
+      });
+      return handleResponse(response);
+    }
+    ,
+
+    async me() {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: createHeaders(),
       });
       return handleResponse(response);

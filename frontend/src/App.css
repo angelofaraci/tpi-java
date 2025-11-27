@@ -112,6 +112,21 @@
   text-decoration: underline;
 }
 
+/* Link-style button used to toggle between Login and Register */
+.link-button {
+  background: transparent;
+  border: none;
+  color: #2b6cb0; /* blue */
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+}
+
+.link-button:hover {
+  color: #4299e1; /* light blue on hover */
+}
+
 /* App Header Styles */
 .app-header {
   display: flex;

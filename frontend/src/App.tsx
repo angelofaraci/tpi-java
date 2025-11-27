@@ -1,149 +1,126 @@
 import { useState, useEffect } from 'react'
-import { api } from './services/api'
-import { Characters } from './Characters'
 import './App.css'
+import { Characters } from './pages/Characters'
+import { Campaigns } from './pages/Campaigns'
+import { Login } from './pages/Login'
+import { api } from './services/api'
 
-interface LoginForm {
-  username: string
-  password: string
-}
+type View = 'home' | 'characters' | 'campaigns'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [loginForm, setLoginForm] = useState<LoginForm>({
-    username: '',
-    password: ''
-  })
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [view, setView] = useState<View>('home')
+  const [characters, setCharacters] = useState<any[]>([])
+  const [loadingCharacters, setLoadingCharacters] = useState(false)
+  const [charactersError, setCharactersError] = useState<string | null>(null)
 
-  // Check if user is already authenticated on component mount
   useEffect(() => {
     const token = localStorage.getItem('token')
-    if (token) {
-      // You might want to validate the token with your backend here
-      setIsAuthenticated(true)
-    }
-    setLoading(false)
+    setIsAuthenticated(!!token)
   }, [])
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setIsLoggingIn(true)
+  // Fetch user's characters when authenticated or when returning to home view
+  useEffect(() => {
+    if (!isAuthenticated) return
 
-    try {
-      console.log('Attempting login...')
-      const response = await api.auth.login({
-        username: loginForm.username,
-        password: loginForm.password
-      })
-      console.log('Login response:', response)
-
-      // Assuming the API returns a token
-      if (response.token) {
-        localStorage.setItem('token', response.token)
-        setIsAuthenticated(true)
-        setLoginForm({ username: '', password: '' })
-      }
-    } catch (err) {
-      console.error('🚨 Login Error Details:', err)
-      if (err instanceof Error) {
-        if (err.message.includes('403') || err.message.includes('401')) {
-          setError('Invalid username or password')
-        } else if (err.message.includes('Failed to fetch')) {
-          setError('Unable to connect to server. Please check if the backend is running.')
-        } else if (err.message.includes('invalid JSON')) {
-          setError('Backend returned invalid data. Check browser console for details.')
-        } else {
-          setError(`Error: ${err.message}`)
+    const fetchCharacters = async () => {
+      setLoadingCharacters(true)
+      setCharactersError(null)
+      try {
+        // Try to get the current user from /auth/me and then fetch their characters
+        let data: any
+        try {
+          const user = await api.auth.me()
+          console.log('Fetched user from /auth/me:', user)
+          const userIdNum = user.id
+          console.log('Extracted userId:', userIdNum)
+          if (userIdNum) {
+            data = await api.characters.findByUserId(Number(userIdNum))
+          } else {
+            // If user object doesn't include id for some reason, fallback to all
+            data = await api.characters.findAll()
+          }
+        } catch (meErr) {
+          // If /auth/me fails (unexpected), fallback to findAll so UI remains usable
+          console.warn('Failed to fetch /auth/me, falling back to characters.findAll', meErr)
+          data = await api.characters.findAll()
         }
-      } else {
-        setError('An unexpected error occurred')
+
+        setCharacters(Array.isArray(data) ? data : [])
+      } catch (err: any) {
+        setCharactersError(err?.message || 'Failed to load characters')
+      } finally {
+        setLoadingCharacters(false)
       }
-    } finally {
-      setIsLoggingIn(false)
     }
-  }
+
+    // Only fetch when on the home view so switching to the dedicated Characters page
+    // doesn't trigger duplicate work (that page may fetch on its own).
+    if (view === 'home') fetchCharacters()
+  }, [isAuthenticated, view])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
     setIsAuthenticated(false)
+    setView('home')
   }
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div>Loading...</div>
-      </div>
-    )
-  }
-
-  if (isAuthenticated) {
-    return (
-      <div>
-        <header className="app-header">
-          <h1>D&D Character Sheet</h1>
-          <button onClick={handleLogout} className="logout-button">
-            Logout
-          </button>
-        </header>
-        <Characters />
-      </div>
-    )
+  if (!isAuthenticated) {
+    return <Login onAuthSuccess={() => setIsAuthenticated(true)} />
   }
 
   return (
-    <div className="login-container">
-      <div className="login-form">
-        <h1>D&D Character Manager</h1>
-        <h2>Login</h2>
-        
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+    <div>
+      <header className="app-header">
+        <h1>D&D Manager</h1>
+        <button onClick={handleLogout} className="logout-button">Logout</button>
+      </header>
 
-        <form onSubmit={handleLogin}>
-          <div className="form-group">
-            <label htmlFor="username">Username:</label>
-            <input
-              type="text"
-              id="username"
-              value={loginForm.username}
-              onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
-              required
-              disabled={isLoggingIn}
-            />
+      {view === 'home' && (
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button className="login-button" onClick={() => setView('characters')}>Characters</button>
+            <button className="login-button" onClick={() => setView('campaigns')}>Campaigns</button>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password:</label>
-            <input
-              type="password"
-              id="password"
-              value={loginForm.password}
-              onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
-              required
-              disabled={isLoggingIn}
-            />
+          <div style={{ marginTop: '1.5rem', width: '90%', maxWidth: 800 }}>
+            <h2>Your Characters</h2>
+            {loadingCharacters && <p>Loading characters...</p>}
+            {charactersError && <p style={{ color: 'red' }}>{charactersError}</p>}
+            {!loadingCharacters && !charactersError && (
+              <>
+                {characters.length === 0 ? (
+                  <p>You don't have any characters yet.</p>
+                ) : (
+                  <ul style={{ listStyle: 'none', padding: 0 }}>
+                    {characters.map((c: any) => (
+                      <li key={c.id} style={{ borderBottom: '1px solid #eee', padding: '0.5rem 0' }}>
+                        <strong>{c.name ?? 'Unnamed'}</strong>
+                        {c.race && <span> — {c.race.name ?? c.race}</span>}
+                        {c.level && <span> (Lvl {c.level})</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
           </div>
-
-          <button 
-            type="submit" 
-            disabled={isLoggingIn || !loginForm.username || !loginForm.password}
-            className="login-button"
-          >
-            {isLoggingIn ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-
-        <div className="register-link">
-          <p>Don't have an account? <a href="#register">Register here</a></p>
         </div>
-      </div>
+      )}
+
+      {view === 'characters' && (
+        <div>
+          <button className="link-button" onClick={() => setView('home')}>← Back</button>
+          <Characters />
+        </div>
+      )}
+
+      {view === 'campaigns' && (
+        <div>
+          <button className="link-button" onClick={() => setView('home')}>← Back</button>
+          <Campaigns />
+        </div>
+      )}
     </div>
   )
 }

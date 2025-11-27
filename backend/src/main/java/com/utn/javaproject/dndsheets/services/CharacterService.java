@@ -103,4 +103,9 @@ public class CharacterService {
     public void delete(Long id) {
         characterRepository.deleteById(id);
     }
+
+    // Nuevo método: devuelve todos los personajes pertenecientes a un usuario por su id
+    public List<CharacterEntity> findByUserId(Long userId) {
+        return characterRepository.findByUserId(userId);
+    }
 }

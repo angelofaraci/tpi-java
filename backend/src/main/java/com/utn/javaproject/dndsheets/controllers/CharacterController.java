@@ -46,6 +46,12 @@ public class CharacterController {
         }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    @GetMapping(path = "/users/{userId}/characters")
+    public List<CharacterDto> getCharactersByUserId(@PathVariable("userId") Long userId) {
+        List<CharacterEntity> characters = characterService.findByUserId(userId);
+        return characters.stream().map(characterMapper::mapTo).toList();
+    }
+
     @PutMapping(path = "character/{id}")
     public ResponseEntity<CharacterDto> fullUpdateCharacter(
             @PathVariable("id") Long id,

@@ -14,6 +14,8 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -65,6 +67,19 @@ public class AuthController {
     @GetMapping(path = "/test/{id}")
     public ResponseEntity<UserDto> getUser(@PathVariable("id") Long id) {
         Optional<UserEntity> foundUser = userService.findOne(id);
+        return foundUser.map(userEntity -> {
+            UserDto userDto = mapper.mapTo(userEntity);
+            return new ResponseEntity<>(userDto, HttpStatus.OK);
+        }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @GetMapping(path = "/me")
+    public ResponseEntity<UserDto> me(@AuthenticationPrincipal UserDetails principal) {
+        if (principal == null || principal.getUsername() == null) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        Optional<UserEntity> foundUser = userService.findOneByUsername(principal.getUsername());
         return foundUser.map(userEntity -> {
             UserDto userDto = mapper.mapTo(userEntity);
             return new ResponseEntity<>(userDto, HttpStatus.OK);
