@@ -25,51 +25,34 @@ interface FormCharacterData {
   hp: number;
 }
 
-export function Characters() {
-  const [formData, setFormData] = useState<FormCharacterData>({
-    name: '',
-    class: '',
-    race: '',
-    background: '',
-    characteristics: [],
-    alignment: '',
-    proficiency: 0,
-    abilityScores: {
-      Strength: 0,
-      Dexterity: 0,
-      Constitution: 0,
-      Intelligence: 0,
-      Wisdom: 0,
-      Charisma: 0
-    },
-    proficiencies: {},
-    velocity: 0,
-    hp: 0
-  })
+interface CharactersProps {
+  characterId: number;
+  onBack: () => void;
+  onLogout: () => void;
+}
+
+export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
+  const [characterSheetData, setCharacterSheetData] = useState<FormCharacterData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchCharacterData = async () => {
+    const fetchCharacterSheet = async () => {
+      setLoading(true)
+      setError(null)
       try {
-        setLoading(true)
-        const responseData = await api.characters.findById(1)
-        console.log('Raw character response:', responseData)
+        const responseData = await api.characters.findById(characterId)
 
         if (!responseData || typeof responseData !== 'object') {
-          setError('Malformed character payload: empty or invalid response')
+          setError('Malformed character payload')
           return
         }
-        const hasUser = !!(responseData as any)?.user && typeof (responseData as any).user.id !== 'undefined'
-        const hasCampaign = !!(responseData as any)?.campaign && typeof (responseData as any).campaign.id !== 'undefined'
+
+        const hasUser = !!(responseData as any)?.user
+        const hasCampaign = !!(responseData as any)?.campaign
         const hasRace = !!(responseData as any)?.race
+
         if (!hasUser || !hasCampaign || !hasRace) {
-          console.error('Character payload missing fields', {
-            hasUser,
-            hasCampaign,
-            hasRace,
-            responseData
-          })
           setError('Malformed character payload from server')
           return
         }
@@ -85,9 +68,8 @@ export function Characters() {
           characterStats: responseData.characterStats,
           race: responseData.race,
         }
-        console.log('Mapped character data:', mappedData)
-        // Update form data with character data
-        setFormData({
+
+        setCharacterSheetData({
           name: mappedData.name || '',
           class: 'Not Specified',
           race: mappedData.race.name || '',
@@ -114,134 +96,164 @@ export function Characters() {
       }
     }
 
-    fetchCharacterData()
-  }, [])
+    fetchCharacterSheet()
+  }, [characterId])
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div className="loading-container">Loading character sheet...</div>
   }
 
   if (error) {
-    return <div>Error: {error}</div>
+    return (
+      <div>
+        <header className="app-header">
+          <h1>D&D Manager</h1>
+          <button onClick={onLogout} className="logout-button">Logout</button>
+        </header>
+        <div style={{ padding: '2rem' }}>
+          <button className="link-button" onClick={onBack}>← Back to Home</button>
+          <div className="error-message" style={{ marginTop: '1rem' }}>Error: {error}</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!characterSheetData) {
+    return null
   }
 
   return (
-    <div className="character-sheet">
-      <div className="header-section">
-        <div className="basic-info">
-          <div className='infobox'>
-            <h3>Name: </h3>
-            <p>{formData.name}</p>
-          </div>
-          <div className='infobox'>
-            <h3>Class: </h3>
-            <p>{formData.class}</p>
-          </div>
-          <div className='infobox'>
-            <h3>Race: </h3>
-            <p>{formData.race}</p>
-          </div>
-          <div className='infobox'>
-            <h3>Background: </h3>
-            <p>{formData.background}</p>
-          </div>
-          <div className='infobox'>
-            <h3>Alignment: </h3>
-            <p>{formData.alignment}</p>
-          </div>
-          <div className='infobox'>
-            <h3>Proficiency: </h3>
-            <p>{formData.proficiency}</p>
+    <div>
+      <header className="app-header">
+        <h1>D&D Manager</h1>
+        <button onClick={onLogout} className="logout-button">Logout</button>
+      </header>
+      <div style={{ padding: '1rem 2rem' }}>
+        <button className="link-button" onClick={onBack}>← Back to Home</button>
+      </div>
+      <div className="character-sheet">
+        <div className="header-section">
+          <div className="basic-info">
+            <div className='infobox'>
+              <h3>Name: </h3>
+              <p>{characterSheetData.name}</p>
+            </div>
+            <div className='infobox'>
+              <h3>Class: </h3>
+              <p>{characterSheetData.class}</p>
+            </div>
+            <div className='infobox'>
+              <h3>Race: </h3>
+              <p>{characterSheetData.race}</p>
+            </div>
+            <div className='infobox'>
+              <h3>Background: </h3>
+              <p>{characterSheetData.background}</p>
+            </div>
+            <div className='infobox'>
+              <h3>Alignment: </h3>
+              <p>{characterSheetData.alignment}</p>
+            </div>
+            <div className='infobox'>
+              <h3>Proficiency: </h3>
+              <p>{characterSheetData.proficiency}</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="ability-scores">
-        <ScoreBox
-          label="Strength"
-          score={formData.abilityScores.Strength}
-          skills={[{ name: 'Athletics', proficient: formData.proficiencies['Athletics'] }]}
-          savingProficiency={formData.proficiencies['Strength']}
-          proficiencyBonus={formData.proficiency}
-        />
-        <ScoreBox
-          label="Dexterity"
-          score={formData.abilityScores.Dexterity}
-          skills={[
-            { name: 'Acrobatics', proficient: formData.proficiencies['Acrobatics'] },
-            { name: 'Sleight of Hand', proficient: formData.proficiencies['Sleight of Hand'] },
-            { name: 'Stealth', proficient: formData.proficiencies['Stealth'] },
-          ]}
-          savingProficiency={formData.proficiencies['Dexterity']}
-          proficiencyBonus={formData.proficiency}
-        />
-        <ScoreBox label="Constitution" score={13} skills={[]} savingProficiency={formData.proficiencies['Constitution']} proficiencyBonus={formData.proficiency} />
-        <ScoreBox
-          label="Intelligence"
-          score={12}
-          skills={[
-            { name: 'Arcana', proficient: formData.proficiencies['Arcana'] },
-            { name: 'History', proficient: formData.proficiencies['History'] },
-            { name: 'Investigation', proficient: formData.proficiencies['Investigation'] },
-            { name: 'Nature', proficient: formData.proficiencies['Nature'] },
-            { name: 'Religion', proficient: formData.proficiencies['Religion'] },
-          ]}
-          savingProficiency={formData.proficiencies['Intelligence']}
-          proficiencyBonus={formData.proficiency}
-        />
-        <ScoreBox
-          label="Wisdom"
-          score={10}
-          skills={[
-            { name: 'Animal Handling', proficient: formData.proficiencies['Animal Handling'] },
-            { name: 'Insight', proficient: formData.proficiencies['Insight'] },
-            { name: 'Medicine', proficient: formData.proficiencies['Medicine'] },
-            { name: 'Perception', proficient: formData.proficiencies['Perception'] },
-            { name: 'Survival', proficient: formData.proficiencies['Survival'] },
-          ]}
-          savingProficiency={formData.proficiencies['Wisdom']}
-          proficiencyBonus={formData.proficiency}
-        />
-        <ScoreBox
-          label="Charisma"
-          score={8}
-          skills={[
-            { name: 'Deception', proficient: formData.proficiencies['Deception'] },
-            { name: 'Intimidation', proficient: formData.proficiencies['Intimidation'] },
-            { name: 'Performance', proficient: formData.proficiencies['Performance'] },
-            { name: 'Persuasion', proficient: formData.proficiencies['Persuasion'] },
-          ]}
-          savingProficiency={formData.proficiencies['Charisma']}
-          proficiencyBonus={formData.proficiency}
-        />
-      </div>
+        <div className="ability-scores">
+          <ScoreBox
+            label="Strength"
+            score={characterSheetData.abilityScores.Strength}
+            skills={[{ name: 'Athletics', proficient: characterSheetData.proficiencies['Athletics'] }]}
+            savingProficiency={characterSheetData.proficiencies['Strength']}
+            proficiencyBonus={characterSheetData.proficiency}
+          />
+          <ScoreBox
+            label="Dexterity"
+            score={characterSheetData.abilityScores.Dexterity}
+            skills={[
+              { name: 'Acrobatics', proficient: characterSheetData.proficiencies['Acrobatics'] },
+              { name: 'Sleight of Hand', proficient: characterSheetData.proficiencies['Sleight of Hand'] },
+              { name: 'Stealth', proficient: characterSheetData.proficiencies['Stealth'] },
+            ]}
+            savingProficiency={characterSheetData.proficiencies['Dexterity']}
+            proficiencyBonus={characterSheetData.proficiency}
+          />
+          <ScoreBox
+            label="Constitution"
+            score={characterSheetData.abilityScores.Constitution}
+            skills={[]}
+            savingProficiency={characterSheetData.proficiencies['Constitution']}
+            proficiencyBonus={characterSheetData.proficiency}
+          />
+          <ScoreBox
+            label="Intelligence"
+            score={characterSheetData.abilityScores.Intelligence}
+            skills={[
+              { name: 'Arcana', proficient: characterSheetData.proficiencies['Arcana'] },
+              { name: 'History', proficient: characterSheetData.proficiencies['History'] },
+              { name: 'Investigation', proficient: characterSheetData.proficiencies['Investigation'] },
+              { name: 'Nature', proficient: characterSheetData.proficiencies['Nature'] },
+              { name: 'Religion', proficient: characterSheetData.proficiencies['Religion'] },
+            ]}
+            savingProficiency={characterSheetData.proficiencies['Intelligence']}
+            proficiencyBonus={characterSheetData.proficiency}
+          />
+          <ScoreBox
+            label="Wisdom"
+            score={characterSheetData.abilityScores.Wisdom}
+            skills={[
+              { name: 'Animal Handling', proficient: characterSheetData.proficiencies['Animal Handling'] },
+              { name: 'Insight', proficient: characterSheetData.proficiencies['Insight'] },
+              { name: 'Medicine', proficient: characterSheetData.proficiencies['Medicine'] },
+              { name: 'Perception', proficient: characterSheetData.proficiencies['Perception'] },
+              { name: 'Survival', proficient: characterSheetData.proficiencies['Survival'] },
+            ]}
+            savingProficiency={characterSheetData.proficiencies['Wisdom']}
+            proficiencyBonus={characterSheetData.proficiency}
+          />
+          <ScoreBox
+            label="Charisma"
+            score={characterSheetData.abilityScores.Charisma}
+            skills={[
+              { name: 'Deception', proficient: characterSheetData.proficiencies['Deception'] },
+              { name: 'Intimidation', proficient: characterSheetData.proficiencies['Intimidation'] },
+              { name: 'Performance', proficient: characterSheetData.proficiencies['Performance'] },
+              { name: 'Persuasion', proficient: characterSheetData.proficiencies['Persuasion'] },
+            ]}
+            savingProficiency={characterSheetData.proficiencies['Charisma']}
+            proficiencyBonus={characterSheetData.proficiency}
+          />
+        </div>
 
-      <div className="stats-container">
-        <div className="stat-box">
-          <div>Armor Class</div>
-          <div className="score">{10 + Math.floor((formData.abilityScores.Dexterity - 10) / 2)}</div>
-        </div>
-        <div className="stat-box">
-          <div>Initiative</div>
-          <div className="score">{Math.floor((formData.abilityScores.Dexterity - 10) / 2)}</div>
-        </div>
-        <div className="stat-box">
-          <div>Speed</div>
-          <div className="score">{formData.velocity}</div>
-        </div>
-      </div>
-
-      <div className="features-section">
-        <h3>Class Features</h3>
-        {/* Add features content here */}
-      </div>
-      <div className="features-section">
-        <h3>Character Features</h3>
-        {formData.characteristics.map((feature, index) => (
-          <div key={index} className="feature-item">
-            {feature}
+        <div className="stats-container">
+          <div className="stat-box">
+            <div>Armor Class</div>
+            <div className="score">{10 + Math.floor((characterSheetData.abilityScores.Dexterity - 10) / 2)}</div>
           </div>
-        ))}
+          <div className="stat-box">
+            <div>Initiative</div>
+            <div className="score">{Math.floor((characterSheetData.abilityScores.Dexterity - 10) / 2)}</div>
+          </div>
+          <div className="stat-box">
+            <div>Speed</div>
+            <div className="score">{characterSheetData.velocity}</div>
+          </div>
+        </div>
+
+        <div className="features-section">
+          <h3>Class Features</h3>
+          {/* Add features content here */}
+        </div>
+        <div className="features-section">
+          <h3>Character Features</h3>
+          {characterSheetData.characteristics.map((feature, index) => (
+            <div key={index} className="feature-item">
+              {feature}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
