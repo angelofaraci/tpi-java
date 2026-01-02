@@ -6,7 +6,12 @@ import type { Character } from '../interfaces/character'
 
 interface FormCharacterData {
   name: string;
-  class: string;
+  classes: Array<{
+    classId: number;
+    description: string;
+    level: number;
+    features: Array<{ level: number; text: string }>;
+  }>;
   race: string;
   background: string;
   characteristics: string[];
@@ -41,7 +46,10 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
       setLoading(true)
       setError(null)
       try {
-        const responseData = await api.characters.findById(characterId)
+        const [responseData, levelsResponse] = await Promise.all([
+          api.characters.findById(characterId),
+          api.levels.findAll().catch(() => []),
+        ])
 
         if (!responseData || typeof responseData !== 'object') {
           setError('Malformed character payload')
@@ -62,6 +70,7 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
           user: responseData.user,
           campaign: responseData.campaign,
           name: responseData.name,
+          characterClasses: (responseData as any)?.characterClasses ?? [],
           characteristics: responseData.characteristics,
           alignment: responseData.alignment,
           background: responseData.background,
@@ -69,9 +78,34 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
           race: responseData.race,
         }
 
+        const classLevels = Array.isArray(levelsResponse)
+          ? levelsResponse
+              .filter((lvl: any) => {
+                const lvlCharacterId = lvl?.id?.characterId ?? lvl?.character?.id
+                return Number(lvlCharacterId) === Number(characterId)
+              })
+              .map((lvl: any) => {
+                const classId = Number(lvl?.id?.classId ?? lvl?.dndClass?.id ?? 0)
+                const description = String(lvl?.dndClass?.description ?? 'Unknown')
+                const level = Number(lvl?.level ?? 0)
+                const rawCharacteristics = lvl?.dndClass?.levelCharacteristics
+                const features =
+                  rawCharacteristics && typeof rawCharacteristics === 'object'
+                    ? Object.entries(rawCharacteristics)
+                        .map(([k, v]) => ({ level: Number(k), text: String(v) }))
+                        .filter((f) => Number.isFinite(f.level) && f.level > 0 && f.level <= level)
+                        .filter((f) => f.text && f.text !== 'null' && f.text !== 'undefined')
+                        .sort((a, b) => a.level - b.level)
+                    : []
+
+                return { classId, description, level, features }
+              })
+              .filter((x: any) => x.classId)
+          : []
+
         setCharacterSheetData({
           name: mappedData.name || '',
-          class: 'Not Specified',
+          classes: classLevels,
           race: mappedData.race.name || '',
           background: mappedData.background || '',
           characteristics: mappedData.characteristics || [],
@@ -140,7 +174,15 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
             </div>
             <div className='infobox'>
               <h3>Class: </h3>
-              <p>{characterSheetData.class}</p>
+              {characterSheetData.classes.length > 0 ? (
+                <div>
+                  {characterSheetData.classes.map((c) => (
+                    <p key={c.classId}>{c.description} (Level {c.level})</p>
+                  ))}
+                </div>
+              ) : (
+                <p>Not Specified</p>
+              )}
             </div>
             <div className='infobox'>
               <h3>Race: </h3>
@@ -244,7 +286,26 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
 
         <div className="features-section">
           <h3>Class Features</h3>
-          {/* Add features content here */}
+          {characterSheetData.classes.length === 0 ? (
+            <div className="feature-item">No class features</div>
+          ) : (
+            characterSheetData.classes.map((c) => (
+              <div key={c.classId}>
+                <div className="feature-item">
+                  <strong>{c.description} (Level {c.level})</strong>
+                </div>
+                {c.features.length === 0 ? (
+                  <div className="feature-item">No features unlocked</div>
+                ) : (
+                  c.features.map((f) => (
+                    <div key={`${c.classId}-${f.level}`} className="feature-item">
+                      {f.text}
+                    </div>
+                  ))
+                )}
+              </div>
+            ))
+          )}
         </div>
         <div className="features-section">
           <h3>Character Features</h3>

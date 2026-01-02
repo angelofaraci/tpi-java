@@ -27,6 +27,60 @@ public class LevelService {
         this.dndClassRepository = dndClassRepository;
     }
 
+    /**
+     * Returns all level rows associated with a character.
+     */
+    public List<LevelEntity> findByCharacterId(Long characterId) {
+        return levelRepository.findByIdCharacterId(characterId);
+    }
+
+    /**
+     * Ensures a LevelEntity exists for (characterId, classId). If missing, creates it with default level=1.
+     */
+    public LevelEntity ensureLevel(Long characterId, Long classId) {
+        LevelKey key = new LevelKey(characterId, classId);
+        return levelRepository.findById(key).orElseGet(() -> {
+            LevelEntity levelEntity = LevelEntity.builder()
+                    .id(key)
+                    .character(CharacterEntity.builder().id(characterId).build())
+                    .dndClass(DndClassEntity.builder().id(classId).build())
+                    .level((short) 1)
+                    .build();
+            return save(levelEntity);
+        });
+    }
+
+    /**
+     * Ensures a LevelEntity exists for (characterId, classId). If missing, creates it with the provided level.
+     * If it already exists, updates its level when different.
+     */
+    public LevelEntity ensureLevel(Long characterId, Long classId, Short level) {
+        if (level == null) {
+            level = 1;
+        }
+        if (level < 1) {
+            throw new IllegalArgumentException("Level must be >= 1");
+        }
+
+        LevelKey key = new LevelKey(characterId, classId);
+        LevelEntity existing = levelRepository.findById(key).orElse(null);
+        if (existing != null) {
+            if (existing.getLevel() == null || !existing.getLevel().equals(level)) {
+                existing.setLevel(level);
+                return save(existing);
+            }
+            return existing;
+        }
+
+        LevelEntity levelEntity = LevelEntity.builder()
+                .id(key)
+                .character(CharacterEntity.builder().id(characterId).build())
+                .dndClass(DndClassEntity.builder().id(classId).build())
+                .level(level)
+                .build();
+        return save(levelEntity);
+    }
+
     public LevelEntity save(LevelEntity level) {
         // Resolve and attach Character if an ID is provided
         if (level.getCharacter() != null && level.getCharacter().getId() != null) {

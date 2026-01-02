@@ -91,6 +91,22 @@ export const api = {
     }
   },
 
+  levels: {
+    async findAll() {
+      const response = await fetch(`${API_BASE_URL}/levels`, {
+        headers: createHeaders(),
+      });
+      return handleResponse(response);
+    },
+
+    async findOne(characterId: number, classId: number) {
+      const response = await fetch(`${API_BASE_URL}/level/${characterId}/${classId}`, {
+        headers: createHeaders(),
+      });
+      return handleResponse(response);
+    },
+  },
+
   // PRODUCTOS
   productos: {
     async obtenerTodos(params = {}) {

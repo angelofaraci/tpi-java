@@ -4,6 +4,7 @@ import com.utn.javaproject.dndsheets.domain.dto.CharacterDto;
 import com.utn.javaproject.dndsheets.domain.entities.CharacterEntity;
 import com.utn.javaproject.dndsheets.mappers.Mapper;
 import com.utn.javaproject.dndsheets.services.CharacterService;
+import com.utn.javaproject.dndsheets.services.LevelService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,16 +18,44 @@ public class CharacterController {
 
     private final Mapper<CharacterEntity, CharacterDto> characterMapper;
     private final CharacterService characterService;
+    private final LevelService levelService;
 
-    public CharacterController(Mapper<CharacterEntity, CharacterDto> characterMapper, CharacterService characterService) {
+    public CharacterController(Mapper<CharacterEntity, CharacterDto> characterMapper,
+                               CharacterService characterService,
+                               LevelService levelService) {
         this.characterMapper = characterMapper;
         this.characterService = characterService;
+        this.levelService = levelService;
     }
 
     @PostMapping(path = "/characters")
     public ResponseEntity<CharacterDto> createCharacter(@RequestBody CharacterDto characterDto) {
         CharacterEntity characterEntity = characterMapper.mapFrom(characterDto);
         CharacterEntity savedCharacterEntity = characterService.save(characterEntity);
+
+        // Preferred: classId + starting level
+        if (characterDto.getInitialClasses() != null) {
+            for (com.utn.javaproject.dndsheets.domain.dto.InitialClassLevelDto initial : characterDto.getInitialClasses()) {
+                if (initial == null || initial.getClassId() == null) {
+                    continue;
+                }
+                Short lvl = initial.getLevel() == null ? 1 : initial.getLevel();
+                if (lvl < 1) {
+                    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+                }
+                levelService.ensureLevel(savedCharacterEntity.getId(), initial.getClassId(), lvl);
+            }
+        }
+
+        // Backward compatible: just IDs => level 1
+        if (characterDto.getInitialClassIds() != null) {
+            for (Long classId : characterDto.getInitialClassIds()) {
+                if (classId != null) {
+                    levelService.ensureLevel(savedCharacterEntity.getId(), classId, (short) 1);
+                }
+            }
+        }
+
         CharacterDto savedCharacterDto = characterMapper.mapTo(savedCharacterEntity);
         return new ResponseEntity<>(savedCharacterDto, HttpStatus.CREATED);
     }
@@ -82,7 +111,7 @@ public class CharacterController {
     }
 
     @DeleteMapping(path = "character/{id}")
-    public ResponseEntity deleteCharacter(@PathVariable("id") Long id) {
+    public ResponseEntity<Void> deleteCharacter(@PathVariable("id") Long id) {
         characterService.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

@@ -44,11 +44,19 @@ interface Race {
     // Add race properties as needed
 }
 
+interface Class {
+    id: number;
+    description: string;
+    levelCharacteristics: [number, string][];
+    hitDie: number;
+}
+
 export interface Character {
     id: number;
     user: User;
     campaign: Campaign;
     name: string;
+    characterClasses: Class[];
     characteristics: string[];
     alignment: string;
     background: string;

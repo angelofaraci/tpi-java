@@ -1,10 +1,6 @@
 package com.utn.javaproject.dndsheets.domain.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.utn.javaproject.dndsheets.domain.dto.CampaignDto;
-import com.utn.javaproject.dndsheets.domain.dto.CharacterStatsDto;
-import com.utn.javaproject.dndsheets.domain.dto.RaceDto;
-import com.utn.javaproject.dndsheets.domain.dto.UserDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,4 +25,13 @@ public class CharacterDto {
     private CharacterStatsDto characterStats;
     private RaceDto race;
 
+    /**
+     * NEW (preferred): list of class IDs with their starting level. Lets you start any class at level > 1.
+     */
+    private List<InitialClassLevelDto> initialClasses;
+
+    /**
+     * Legacy: list of class IDs the user assigns when creating the character (created with level=1).
+     */
+    private List<Long> initialClassIds;
 }

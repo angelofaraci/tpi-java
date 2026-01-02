@@ -1,12 +1,14 @@
 package com.utn.javaproject.dndsheets.services;
 
 import com.utn.javaproject.dndsheets.domain.entities.CharacterEntity;
+import com.utn.javaproject.dndsheets.domain.entities.LevelEntity;
 import com.utn.javaproject.dndsheets.repositories.CharacterRepository;
 import com.utn.javaproject.dndsheets.repositories.UserRepository;
 import com.utn.javaproject.dndsheets.repositories.CampaignRepository;
 import com.utn.javaproject.dndsheets.repositories.RaceRepository;
 import com.utn.javaproject.dndsheets.repositories.CharacterStatsRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,19 +21,23 @@ public class CharacterService {
     private final CampaignRepository campaignRepository;
     private final RaceRepository raceRepository;
     private final CharacterStatsRepository characterStatsRepository;
+    private final LevelService levelService;
 
     public CharacterService(CharacterRepository characterRepository,
                            UserRepository userRepository,
                            CampaignRepository campaignRepository,
                            RaceRepository raceRepository,
-                            CharacterStatsRepository characterStatsRepository) {
+                           CharacterStatsRepository characterStatsRepository,
+                           LevelService levelService) {
         this.characterRepository = characterRepository;
         this.userRepository = userRepository;
         this.campaignRepository = campaignRepository;
         this.raceRepository = raceRepository;
         this.characterStatsRepository = characterStatsRepository;
+        this.levelService = levelService;
     }
 
+    @Transactional
     public CharacterEntity save(CharacterEntity character) {
         if (character.getUser() != null && character.getUser().getId() != null) {
             character.setUser(userRepository.findById(character.getUser().getId()).orElse(null));
@@ -42,8 +48,31 @@ public class CharacterService {
         if (character.getRace() != null && character.getRace().getId() != null) {
             character.setRace(raceRepository.findById(character.getRace().getId()).orElse(null));
         }
-        character.getCharacterStats().setCharacter(character);
-        return characterRepository.save(character);
+
+        if (character.getCharacterStats() != null) {
+            character.getCharacterStats().setCharacter(character);
+        }
+
+        // First persist the character so it has an ID.
+        CharacterEntity saved = characterRepository.save(character);
+
+        // If the client sent initial class levels via CharacterStats (common pattern in this codebase)
+        // or other nested structures, we can ensure every (character,class) row has id+level.
+        // Right now, the only "class assignment" entity in the model is LevelEntity itself.
+        // So: if the frontend creates level rows separately, nothing to do; but if it sent any levels
+        // (e.g., through persistence cascade in future), we ensure the key/default level here.
+        //
+        // Implementation: look for existing LevelEntity rows for this character and normalize them.
+        List<LevelEntity> existingLevels = levelService.findByCharacterId(saved.getId());
+        for (LevelEntity existing : existingLevels) {
+            if (existing.getLevel() == null) {
+                existing.setLevel((short) 1);
+            }
+            // Re-save will ensure LevelKey is created/synced in LevelService.save().
+            levelService.save(existing);
+        }
+
+        return saved;
     }
 
     public List<CharacterEntity> findAll() {
