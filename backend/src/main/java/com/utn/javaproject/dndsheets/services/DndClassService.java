@@ -17,6 +17,12 @@ public class DndClassService {
     }
 
     public DndClassEntity save(DndClassEntity dndClass) {
+        if (dndClass.getId() == null) {
+            String name = dndClass.getName();
+            if (name == null || name.isBlank()) {
+                throw new IllegalArgumentException("DndClass name is required for new records");
+            }
+        }
         return dndClassRepository.save(dndClass);
     }
 
@@ -36,6 +42,7 @@ public class DndClassService {
         dndClassEntity.setId(id);
 
         return dndClassRepository.findById(id).map(existingClass -> {
+            Optional.ofNullable(dndClassEntity.getName()).ifPresent(existingClass::setName);
             Optional.ofNullable(dndClassEntity.getDescription()).ifPresent(existingClass::setDescription);
             Optional.ofNullable(dndClassEntity.getLevelCharacteristics()).ifPresent(existingClass::setLevelCharacteristics);
             Optional.ofNullable(dndClassEntity.getHitDice()).ifPresent(existingClass::setHitDice);

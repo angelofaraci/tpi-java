@@ -13,6 +13,7 @@ import java.util.HashMap;
 @Builder
 public class DndClassDto {
     private Long id;
+    private String name;
     private String description;
     private HashMap<Short, String> levelCharacteristics;
     private Integer hitDice;

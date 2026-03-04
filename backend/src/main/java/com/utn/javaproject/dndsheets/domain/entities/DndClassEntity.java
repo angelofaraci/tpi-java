@@ -13,15 +13,38 @@ import java.util.HashMap;
 @NoArgsConstructor
 @Builder
 @Entity
-@Table(name = "Class")
+@Table(
+        name = "Class",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_class_name", columnNames = {"name"})
+        }
+)
 public class DndClassEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "class_id_seq")
     @SequenceGenerator(name = "class_id_seq", sequenceName = "class_id_seq", allocationSize = 1)
     private Long id;
 
+    /**
+     * Nullable to avoid breaking existing DBs when using spring.jpa.hibernate.ddl-auto=update.
+     * Uniqueness is enforced at the DB level for non-null values.
+     */
+    @Column(nullable = true)
+    private String name;
+
     private String description;
-    private HashMap<Short, String> levelCharacteristics;
+
+    @Builder.Default
+    private HashMap<Short, String> levelCharacteristics = new HashMap<>();
     private Integer hitDice;
+
+    @PrePersist
+    @PreUpdate
+    @PostLoad
+    void normalize() {
+        if (levelCharacteristics == null) {
+            levelCharacteristics = new HashMap<>();
+        }
+    }
 
 }

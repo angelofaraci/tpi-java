@@ -1,8 +1,10 @@
 package com.utn.javaproject.dndsheets;
 
 import com.utn.javaproject.dndsheets.domain.entities.CharacterEntity;
+import com.utn.javaproject.dndsheets.domain.entities.DndClassEntity;
 import com.utn.javaproject.dndsheets.domain.entities.LevelEntity;
 import com.utn.javaproject.dndsheets.domain.entities.LevelKey;
+import com.utn.javaproject.dndsheets.repositories.DndClassRepository;
 import com.utn.javaproject.dndsheets.services.CharacterService;
 import com.utn.javaproject.dndsheets.services.LevelService;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,9 @@ class CharacterLevelInitializationTests {
     @Autowired
     private LevelService levelService;
 
+    @Autowired
+    private DndClassRepository dndClassRepository;
+
     @Test
     void createCharacter_doesNotFailWhenNoCharacterStats() {
         CharacterEntity character = CharacterEntity.builder()
@@ -39,8 +44,9 @@ class CharacterLevelInitializationTests {
                 .build();
         CharacterEntity saved = characterService.save(character);
 
-        // classId=1 is assumed to exist in seed/test DB. If it doesn't, this test will reveal it.
-        Long classId = 1L;
+        Long classId = dndClassRepository.findByName("Barbarian")
+                .map(DndClassEntity::getId)
+                .orElseThrow(() -> new IllegalStateException("Seeded class 'Barbarian' not found"));
         LevelEntity level = levelService.ensureLevel(saved.getId(), classId);
 
         assertNotNull(level.getId());
@@ -53,4 +59,3 @@ class CharacterLevelInitializationTests {
         assertTrue(reloaded.isPresent());
     }
 }
-
