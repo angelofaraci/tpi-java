@@ -88,7 +88,7 @@ public class LevelController {
     }
 
     @DeleteMapping(path = "/level/{characterId}/{classId}")
-    public ResponseEntity deleteLevel(
+    public ResponseEntity<Void> deleteLevel(
             @PathVariable("characterId") Long characterId,
             @PathVariable("classId") Long classId) {
 

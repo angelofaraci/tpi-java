@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { api } from '../services/api'
 import '../App.css'
 
+interface AuthResponse {
+  token?: string
+}
+
 interface LoginForm {
   username: string
   password: string
@@ -44,7 +48,7 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
       const response = await api.auth.login({
         username: loginForm.username,
         password: loginForm.password
-      })
+      }) as AuthResponse
 
       if (response.token) {
         localStorage.setItem('token', response.token)
@@ -91,7 +95,7 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
         email: registerForm.email,
         username: registerForm.username,
         password: registerForm.password
-      })
+      }) as AuthResponse
 
       if (response.token) {
         localStorage.setItem('token', response.token)

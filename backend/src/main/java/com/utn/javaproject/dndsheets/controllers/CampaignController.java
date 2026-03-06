@@ -2,13 +2,14 @@ package com.utn.javaproject.dndsheets.controllers;
 
 
 import com.utn.javaproject.dndsheets.domain.dto.CampaignDto;
+import com.utn.javaproject.dndsheets.domain.dto.CampaignSummaryDto;
 import com.utn.javaproject.dndsheets.domain.entities.CampaignEntity;
 import com.utn.javaproject.dndsheets.mappers.Mapper;
-import com.utn.javaproject.dndsheets.repositories.UserRepository;
-import com.utn.javaproject.dndsheets.services.AuthService;
 import com.utn.javaproject.dndsheets.services.CampaignService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,9 +28,16 @@ public class CampaignController {
     }
 
     @PostMapping(path = "/campaigns")
-    public ResponseEntity<CampaignDto> createCampaign(@RequestBody CampaignDto campaignDto) {
+    public ResponseEntity<CampaignDto> createCampaign(
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestBody CampaignDto campaignDto
+    ) {
+        if (principal == null || principal.getUsername() == null) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
         CampaignEntity campaignEntity = campaignMapper.mapFrom(campaignDto);
-        CampaignEntity savedCampaignEntity = campaignService.save(campaignEntity);
+        CampaignEntity savedCampaignEntity = campaignService.createCampaign(principal.getUsername(), campaignEntity);
         CampaignDto savedCampaignDto = campaignMapper.mapTo(savedCampaignEntity);
         return new ResponseEntity<>(savedCampaignDto, HttpStatus.CREATED);
 
@@ -40,6 +48,15 @@ public class CampaignController {
     public List<CampaignDto> listCampaigns() {
         List<CampaignEntity> campaigns = campaignService.findAll();
         return campaigns.stream().map(campaignMapper::mapTo).toList();
+    }
+
+    @GetMapping(path = "/campaigns/mine")
+    public ResponseEntity<List<CampaignSummaryDto>> listOwnedCampaigns(@AuthenticationPrincipal UserDetails principal) {
+        if (principal == null || principal.getUsername() == null) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        return new ResponseEntity<>(campaignService.findOwnedCampaignSummaries(principal.getUsername()), HttpStatus.OK);
     }
 
     @GetMapping(path = "/campaign/{id}")

@@ -4,6 +4,24 @@ import '../styles/CharacterSheet.css'
 import { api } from '../services/api'
 import type { Character } from '../interfaces/character'
 
+type LevelResponse = {
+  id?: {
+    characterId?: number | string
+    classId?: number | string
+  }
+  character?: {
+    id?: number | string
+  }
+  dndClass?: {
+    id?: number | string
+    description?: string
+    levelCharacteristics?: Record<string, unknown>
+  }
+  level?: number | string
+}
+
+type CharacterPayload = Partial<Character> & Record<string, unknown>
+
 interface FormCharacterData {
   name: string;
   classes: Array<{
@@ -56,9 +74,11 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
           return
         }
 
-        const hasUser = !!(responseData as any)?.user
-        const hasCampaign = !!(responseData as any)?.campaign
-        const hasRace = !!(responseData as any)?.race
+        const characterPayload = responseData as CharacterPayload
+
+        const hasUser = !!characterPayload.user
+        const hasCampaign = !!characterPayload.campaign
+        const hasRace = !!characterPayload.race
 
         if (!hasUser || !hasCampaign || !hasRace) {
           setError('Malformed character payload from server')
@@ -66,29 +86,32 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
         }
 
         const mappedData: Character = {
-          id: responseData.id,
-          user: responseData.user,
-          campaign: responseData.campaign,
-          name: responseData.name,
-          characterClasses: (responseData as any)?.characterClasses ?? [],
-          characteristics: responseData.characteristics,
-          alignment: responseData.alignment,
-          background: responseData.background,
-          characterStats: responseData.characterStats,
-          race: responseData.race,
+          id: characterPayload.id ?? 0,
+          user: characterPayload.user as Character['user'],
+          campaign: characterPayload.campaign as Character['campaign'],
+          name: characterPayload.name ?? '',
+          characterClasses: Array.isArray(characterPayload.characterClasses) ? characterPayload.characterClasses : [],
+          characteristics: Array.isArray(characterPayload.characteristics) ? characterPayload.characteristics : [],
+          alignment: characterPayload.alignment ?? '',
+          background: characterPayload.background ?? '',
+          characterStats: characterPayload.characterStats as Character['characterStats'],
+          race: characterPayload.race as Character['race'],
         }
 
         const classLevels = Array.isArray(levelsResponse)
           ? levelsResponse
-              .filter((lvl: any) => {
-                const lvlCharacterId = lvl?.id?.characterId ?? lvl?.character?.id
+              .filter((lvl): lvl is LevelResponse => typeof lvl === 'object' && lvl !== null)
+              .filter((lvl) => {
+                const levelData = lvl as LevelResponse
+                const lvlCharacterId = levelData.id?.characterId ?? levelData.character?.id
                 return Number(lvlCharacterId) === Number(characterId)
               })
-              .map((lvl: any) => {
-                const classId = Number(lvl?.id?.classId ?? lvl?.dndClass?.id ?? 0)
-                const description = String(lvl?.dndClass?.description ?? 'Unknown')
-                const level = Number(lvl?.level ?? 0)
-                const rawCharacteristics = lvl?.dndClass?.levelCharacteristics
+              .map((lvl) => {
+                const levelData = lvl as LevelResponse
+                const classId = Number(levelData.id?.classId ?? levelData.dndClass?.id ?? 0)
+                const description = String(levelData.dndClass?.description ?? 'Unknown')
+                const level = Number(levelData.level ?? 0)
+                const rawCharacteristics = levelData.dndClass?.levelCharacteristics
                 const features =
                   rawCharacteristics && typeof rawCharacteristics === 'object'
                     ? Object.entries(rawCharacteristics)
@@ -100,7 +123,7 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
 
                 return { classId, description, level, features }
               })
-              .filter((x: any) => x.classId)
+              .filter((x) => x.classId)
           : []
 
         setCharacterSheetData({

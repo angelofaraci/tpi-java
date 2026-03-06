@@ -23,7 +23,7 @@ export const authUtils = {
   },
 
   // Get authorization header for API requests
-  getAuthHeader(): { Authorization: string } | {} {
+  getAuthHeader(): Partial<Record<'Authorization', string>> {
     const token = this.getToken()
     return token ? { Authorization: `Bearer ${token}` } : {}
   }

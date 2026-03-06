@@ -2,11 +2,17 @@ package com.utn.javaproject.dndsheets.repositories;
 
 import com.utn.javaproject.dndsheets.domain.entities.CampaignEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 @Repository
 public interface CampaignRepository extends JpaRepository<CampaignEntity, Long> {
 
     boolean existsByName(String name);
+
+    @Query("SELECT c FROM CampaignEntity c WHERE c.dm.id = ?1 ORDER BY c.CreationDate DESC")
+    List<CampaignEntity> findAllByDmIdOrderByCreationDateDesc(Long dmId);
 
 }
