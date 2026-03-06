@@ -38,7 +38,7 @@ public class CharacterStatsController {
 
             if(!characterStatsEntity.getAbilityScores().keySet().equals(requiredKeys)){
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            };
+            }
             for(Short value: characterStatsEntity.getAbilityScores().values()){
                 if(value<1 || value>20){
                     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -112,31 +112,36 @@ public class CharacterStatsController {
     }
 
     @DeleteMapping(path = "character-stats/{id}")
-    public ResponseEntity deleteCharacterStats(@PathVariable("id") Long id) {
+    public ResponseEntity<Void> deleteCharacterStats(@PathVariable("id") Long id) {
         characterStatsService.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @PutMapping(path = "character-stats/{id}/{classid}")
+    @PutMapping(path = "character-stats/{id}/{classId}")
     public ResponseEntity<CharacterStatsDto> updateCharacterHp(
             @PathVariable("id") Long characterStatsId,
             @PathVariable("classId") Long classId) {
         Optional<CharacterStatsEntity> foundCharacterStats = characterStatsService.findOne(characterStatsId);
-        if (!foundCharacterStats.isEmpty()) {
-
-
-            CharacterStatsEntity characterStatsEntity = foundCharacterStats.get();
-            LevelEntity characterLevel = levelService.findOne(new LevelKey(characterStatsEntity.getCharacter().getId(), classId))
-                    .orElse(null);
-            Short level = characterLevel.getLevel();
-            Short constitutionModifier = (short) Math.floor((characterStatsEntity.getAbilityScores().get("Constitution")-10)/2);
-            Integer hitDice = characterLevel.getDndClass().getHitDice();
-            characterStatsEntity.setHp((level-1)*(constitutionModifier+hitDice));
-            CharacterStatsEntity updatedCharacterStats = characterStatsService.save(characterStatsEntity);
-            return new ResponseEntity<>(characterStatsMapper.mapTo(updatedCharacterStats), HttpStatus.OK);
-        } else {
+        if (foundCharacterStats.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
+        CharacterStatsEntity characterStatsEntity = foundCharacterStats.get();
+        Optional<LevelEntity> characterLevelOptional = levelService.findOne(
+                new LevelKey(characterStatsEntity.getCharacter().getId(), classId)
+        );
+        if (characterLevelOptional.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        LevelEntity characterLevel = characterLevelOptional.get();
+        Short constitutionScore = characterStatsEntity.getAbilityScores().get("Constitution");
+        int constitutionModifier = Math.floorDiv(constitutionScore - 10, 2);
+        int level = characterLevel.getLevel();
+        int hitDice = characterLevel.getDndClass().getHitDice();
+        characterStatsEntity.setHp((level - 1) * (constitutionModifier + hitDice));
+
+        CharacterStatsEntity updatedCharacterStats = characterStatsService.save(characterStatsEntity);
+        return new ResponseEntity<>(characterStatsMapper.mapTo(updatedCharacterStats), HttpStatus.OK);
     }
 }

@@ -47,4 +47,20 @@ public class DndClassEntity {
         }
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Integer getHitDice() {
+        return hitDice;
+    }
+
+    public void setHitDice(Integer hitDice) {
+        this.hitDice = hitDice;
+    }
+
 }

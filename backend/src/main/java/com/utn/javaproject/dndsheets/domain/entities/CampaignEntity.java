@@ -39,4 +39,60 @@ public class CampaignEntity {
 
     @OneToMany(mappedBy = "id", cascade = CascadeType.ALL)
     private List<CharacterEntity> characters;
+
+    public UserEntity getDm() {
+        return dm;
+    }
+
+    public void setDm(UserEntity dm) {
+        this.dm = dm;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Boolean getPrivacy() {
+        return privacy;
+    }
+
+    public void setPrivacy(Boolean privacy) {
+        this.privacy = privacy;
+    }
+
+    public Date getCreationDate() {
+        return CreationDate;
+    }
+
+    public void setCreationDate(Date creationDate) {
+        this.CreationDate = creationDate;
+    }
+
+    public List<UserEntity> getPlayers() {
+        return players;
+    }
+
+    public void setPlayers(List<UserEntity> players) {
+        this.players = players;
+    }
+
+    public List<CharacterEntity> getCharacters() {
+        return characters;
+    }
+
+    public void setCharacters(List<CharacterEntity> characters) {
+        this.characters = characters;
+    }
 }
