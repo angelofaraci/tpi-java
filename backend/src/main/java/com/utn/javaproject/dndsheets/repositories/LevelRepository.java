@@ -10,4 +10,6 @@ import java.util.List;
 @Repository
 public interface LevelRepository extends JpaRepository<LevelEntity, LevelKey> {
     List<LevelEntity> findByIdCharacterId(Long characterId);
+
+    void deleteByIdCharacterId(Long characterId);
 }

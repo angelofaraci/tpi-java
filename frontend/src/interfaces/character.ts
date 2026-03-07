@@ -56,6 +56,18 @@ export interface CharacterStats {
   hp: number
 }
 
+export interface CharacterStatsUpdatePayload {
+  character?: {
+    id: number
+  }
+  xp?: number
+  proficiency?: number
+  abilityScores?: AbilityScores
+  velocities?: number[]
+  proficiencies?: SkillProficiencies
+  hp?: number
+}
+
 export interface Character {
   id: number
   user: CharacterUserReference
@@ -67,6 +79,106 @@ export interface Character {
   background: string
   characterStats: CharacterStats
   race: CharacterRace
+}
+
+export interface LevelRecord {
+  id?: {
+    characterId?: number | string
+    classId?: number | string
+  }
+  character?: {
+    id?: number | string
+  }
+  dndClass?: {
+    id?: number | string
+    name?: string
+    description?: string
+    hitDice?: number
+    levelCharacteristics?: Record<number, string> | Record<string, string> | Record<string, unknown>
+  }
+  level?: number | string
+}
+
+export interface LevelPayload {
+  character: {
+    id: number
+  }
+  dndClass: {
+    id: number
+  }
+  level: number
+}
+
+export interface ParsedCharacteristicDetails {
+  characteristics: string[]
+  details: CharacterDetails
+}
+
+export interface HydratedCharacterClassRow {
+  characterId: number
+  classId: number
+  name?: string
+  description: string
+  level: number
+  hitDice?: number
+  levelCharacteristics?: Record<number, string> | Record<string, string>
+}
+
+export interface HydratedCharacterEditData {
+  characterId: number
+  statsId: number | null
+  draft: CharacterDraft
+  classRows: HydratedCharacterClassRow[]
+}
+
+export interface CharacterUpdatePayload {
+  campaign?: {
+    id: number
+  }
+  name?: string
+  characteristics?: string[]
+  alignment?: string
+  background?: string
+  race?: {
+    id: number
+  }
+}
+
+export type CharacterClassUpdateOperation =
+  | {
+      type: 'create'
+      characterId: number
+      classId: number
+      nextLevel: number
+      payload: LevelPayload
+    }
+  | {
+      type: 'update'
+      characterId: number
+      classId: number
+      previousLevel: number
+      nextLevel: number
+      payload: LevelPayload
+    }
+  | {
+      type: 'delete'
+      characterId: number
+      classId: number
+      previousLevel: number
+    }
+  | {
+      type: 'noop'
+      characterId: number
+      classId: number
+      previousLevel: number
+      nextLevel: number
+    }
+
+export interface CharacterUpdatePlan {
+  characterPatch: CharacterUpdatePayload | null
+  statsPatch: CharacterStatsUpdatePayload | null
+  classOperations: CharacterClassUpdateOperation[]
+  hasChanges: boolean
 }
 
 export interface CharacterCatalogCampaignOption {
@@ -102,6 +214,11 @@ export interface InitialCharacterClassLevel {
   classId: number
   level: number
 }
+
+export type CreateCharacterInitialClass = InitialCharacterClassLevel
+
+// Create mode must submit exactly one primary class and may include one optional second class.
+export type CreateCharacterInitialClasses = [CreateCharacterInitialClass] | [CreateCharacterInitialClass, CreateCharacterInitialClass]
 
 export interface CharacterDraft {
   userId: number | null
@@ -143,8 +260,5 @@ export interface CreateCharacterPayload {
   race: {
     id: number
   }
-  initialClasses: Array<{
-    classId: number
-    level: number
-  }>
+  initialClasses: CreateCharacterInitialClasses
 }

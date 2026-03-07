@@ -129,7 +129,10 @@ public class CharacterService {
         }).orElseThrow(() -> new RuntimeException("Character does not exist"));
     }
 
+    @Transactional
     public void delete(Long id) {
+        levelService.deleteByCharacterId(id);
+        characterStatsRepository.deleteByCharacterId(id);
         characterRepository.deleteById(id);
     }
 

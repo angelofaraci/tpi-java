@@ -3,8 +3,11 @@ import {
   DEFAULT_CHARACTER_DETAILS,
   DEFAULT_PROFICIENCIES,
   buildCreateCharacterPayload,
+  buildCharacterUpdatePlan,
   createCharacterDraft,
-  DEFAULT_ABILITY_SCORES,
+   DEFAULT_ABILITY_SCORES,
+  hydrateCharacterDraft,
+  parseCharacteristicDetails,
   getCharacterCatalogSelections,
 } from './characterDraft'
 
@@ -37,7 +40,7 @@ describe('createCharacterDraft', () => {
 })
 
 describe('buildCreateCharacterPayload', () => {
-  it('builds the backend payload from a draft and trims free text fields', () => {
+  it('builds the backend payload for one valid initial class and trims free text fields', () => {
     const payload = buildCreateCharacterPayload(
       createCharacterDraft({
         userId: 4,
@@ -145,7 +148,7 @@ describe('buildCreateCharacterPayload', () => {
     )
     expect(() =>
       buildCreateCharacterPayload(createCharacterDraft({ userId: 4, campaignId: 2, raceId: 7 })),
-    ).toThrow('Character draft requires at least one class')
+    ).toThrow('Character draft requires a primary class row')
   })
 
   it('keeps the proficiencies contract complete when custom values are omitted', () => {
@@ -163,6 +166,270 @@ describe('buildCreateCharacterPayload', () => {
 
     expect(payload.initialClasses).toEqual([{ classId: 8, level: 3 }])
     expect(payload.characterStats.proficiencies).toEqual(DEFAULT_PROFICIENCIES)
+  })
+
+  it('keeps both class rows when the draft defines a valid multiclass start', () => {
+    const payload = buildCreateCharacterPayload(
+      createCharacterDraft({
+        userId: 4,
+        campaignId: 2,
+        name: 'Iria',
+        alignment: 'Neutral Good',
+        background: 'Sage',
+        raceId: 7,
+        classLevels: [
+          { classId: 8, level: 3 },
+          { classId: 5, level: 0 },
+        ],
+      }),
+    )
+
+    expect(payload.initialClasses).toEqual([
+      { classId: 8, level: 3 },
+      { classId: 5, level: 1 },
+    ])
+  })
+
+  it('rejects duplicate initial class ids', () => {
+    expect(() =>
+      buildCreateCharacterPayload({
+        ...createCharacterDraft({
+          userId: 4,
+          campaignId: 2,
+          name: 'Iria',
+          alignment: 'Neutral Good',
+          background: 'Sage',
+          raceId: 7,
+        }),
+        classLevels: [
+          { classId: 8, level: 3 },
+          { classId: 8, level: 1 },
+        ],
+      }),
+    ).toThrow('Character draft initial classes must be unique')
+  })
+
+  it('rejects a malformed optional second class row', () => {
+    expect(() =>
+      buildCreateCharacterPayload({
+        ...createCharacterDraft({
+          userId: 4,
+          campaignId: 2,
+          name: 'Iria',
+          alignment: 'Neutral Good',
+          background: 'Sage',
+          raceId: 7,
+        }),
+        classLevels: [
+          { classId: 8, level: 3 },
+          { classId: 0, level: 2 },
+        ],
+      }),
+    ).toThrow('Character draft second class row is malformed')
+  })
+
+  it('rejects drafts that still contain more than two valid class rows', () => {
+    expect(() =>
+      buildCreateCharacterPayload({
+        ...createCharacterDraft({
+          userId: 4,
+          campaignId: 2,
+          name: 'Iria',
+          alignment: 'Neutral Good',
+          background: 'Sage',
+          raceId: 7,
+        }),
+        classLevels: [
+          { classId: 8, level: 3 },
+          { classId: 5, level: 2 },
+          { classId: 3, level: 1 },
+        ],
+      }),
+    ).toThrow('Character draft cannot include more than two initial classes')
+  })
+})
+
+describe('parseCharacteristicDetails', () => {
+  it('extracts the first canonical roleplay detail entries and preserves the rest', () => {
+    const result = parseCharacteristicDetails([
+      'Darkvision',
+      'Personality Trait: Curious and patient',
+      'Ideal: Knowledge should be shared',
+      'Flaw: Overthinks every risk',
+      'Ideal: Duplicate canonical entry',
+      'Trait: Non canonical alias',
+      'Bond: Protect the archive',
+    ])
+
+    expect(result).toEqual({
+      characteristics: ['Darkvision', 'Ideal: Duplicate canonical entry', 'Trait: Non canonical alias'],
+      details: {
+        personalityTraits: 'Curious and patient',
+        ideals: 'Knowledge should be shared',
+        bonds: 'Protect the archive',
+        flaws: 'Overthinks every risk',
+      },
+    })
+  })
+})
+
+describe('hydrateCharacterDraft', () => {
+  it('hydrates edit draft fields from a fetched character and level rows', () => {
+    const result = hydrateCharacterDraft(
+      {
+        id: 21,
+        user: { id: 4, username: 'player-one' },
+        campaign: { id: 2, name: 'Open Table' },
+        name: 'Iria',
+        characteristics: [
+          'Darkvision',
+          'Personality Trait: Curious and patient',
+          'Ideal: Knowledge should be shared',
+          'Bond: Protect the archive',
+        ],
+        alignment: 'Neutral Good',
+        background: 'Sage',
+        characterStats: {
+          id: 14,
+          xp: 250,
+          proficiency: 3,
+          abilityScores: {
+            Strength: 10,
+            Dexterity: 14,
+            Constitution: 12,
+            Intelligence: 16,
+            Wisdom: 13,
+            Charisma: 8,
+          },
+          velocities: [35],
+          proficiencies: {
+            ...DEFAULT_PROFICIENCIES,
+            Arcana: 1,
+            History: 1,
+            Intelligence: 1,
+          },
+          hp: 18,
+        },
+        race: { id: 7, name: 'Elf', description: 'Fey ancestry' },
+      },
+      [
+        {
+          id: { characterId: 21, classId: 8 },
+          character: { id: 21 },
+          dndClass: { id: 8, name: 'Wizard', description: 'Arcane scholar' },
+          level: 3,
+        },
+      ],
+    )
+
+    expect(result).toEqual({
+      userId: 4,
+      campaignId: 2,
+      name: 'Iria',
+      characteristics: ['Darkvision'],
+      alignment: 'Neutral Good',
+      background: 'Sage',
+      raceId: 7,
+      classLevels: [{ classId: 8, level: 3 }],
+      xp: 250,
+      proficiency: 3,
+      abilityScores: {
+        Strength: 10,
+        Dexterity: 14,
+        Constitution: 12,
+        Intelligence: 16,
+        Wisdom: 13,
+        Charisma: 8,
+      },
+      velocities: [35],
+      proficiencies: {
+        ...DEFAULT_PROFICIENCIES,
+        Arcana: 1,
+        History: 1,
+        Intelligence: 1,
+      },
+      hp: 18,
+      details: {
+        personalityTraits: 'Curious and patient',
+        ideals: 'Knowledge should be shared',
+        bonds: 'Protect the archive',
+        flaws: '',
+      },
+    })
+  })
+})
+
+describe('buildCharacterUpdatePlan', () => {
+  it('preserves multiclass rows and emits no-op class operations when classes are unchanged', () => {
+    const initialDraft = hydrateCharacterDraft(
+      {
+        id: 21,
+        user: { id: 4 },
+        campaign: { id: 2 },
+        name: 'Iria',
+        characteristics: ['Darkvision', 'Ideal: Knowledge should be shared'],
+        alignment: 'Neutral Good',
+        background: 'Sage',
+        characterStats: {
+          id: 14,
+          xp: 250,
+          proficiency: 3,
+          abilityScores: {
+            Strength: 10,
+            Dexterity: 14,
+            Constitution: 12,
+            Intelligence: 16,
+            Wisdom: 13,
+            Charisma: 8,
+          },
+          velocities: [30],
+          proficiencies: DEFAULT_PROFICIENCIES,
+          hp: 18,
+        },
+        race: { id: 7, name: 'Elf', description: 'Fey ancestry' },
+      },
+      [
+        {
+          id: { characterId: 21, classId: 8 },
+          character: { id: 21 },
+          dndClass: { id: 8, name: 'Wizard', description: 'Arcane scholar' },
+          level: 3,
+        },
+        {
+          id: { characterId: 21, classId: 5 },
+          character: { id: 21 },
+          dndClass: { id: 5, name: 'Fighter', description: 'Martial expert' },
+          level: 2,
+        },
+      ],
+    )
+
+    const plan = buildCharacterUpdatePlan(
+      {
+        characterId: 21,
+        statsId: 14,
+        draft: initialDraft,
+        classRows: [
+          { characterId: 21, classId: 8, name: 'Wizard', description: 'Arcane scholar', level: 3 },
+          { characterId: 21, classId: 5, name: 'Fighter', description: 'Martial expert', level: 2 },
+        ],
+      },
+      createCharacterDraft({
+        ...initialDraft,
+        classLevels: [
+          { classId: 8, level: 3 },
+          { classId: 5, level: 2 },
+        ],
+      }),
+    )
+
+    expect(plan.characterPatch).toBeNull()
+    expect(plan.statsPatch).toBeNull()
+    expect(plan.classOperations).toEqual([
+      { type: 'noop', characterId: 21, classId: 8, previousLevel: 3, nextLevel: 3 },
+      { type: 'noop', characterId: 21, classId: 5, previousLevel: 2, nextLevel: 2 },
+    ])
+    expect(plan.hasChanges).toBe(false)
   })
 })
 

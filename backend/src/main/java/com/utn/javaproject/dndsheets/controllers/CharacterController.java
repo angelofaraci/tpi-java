@@ -1,8 +1,10 @@
 package com.utn.javaproject.dndsheets.controllers;
 
 import com.utn.javaproject.dndsheets.domain.dto.CharacterDto;
+import com.utn.javaproject.dndsheets.domain.dto.InitialClassLevelDto;
 import com.utn.javaproject.dndsheets.domain.entities.CharacterEntity;
 import com.utn.javaproject.dndsheets.mappers.Mapper;
+import com.utn.javaproject.dndsheets.services.CharacterCreateRequestValidator;
 import com.utn.javaproject.dndsheets.services.CharacterService;
 import com.utn.javaproject.dndsheets.services.LevelService;
 import org.springframework.http.HttpStatus;
@@ -19,41 +21,32 @@ public class CharacterController {
     private final Mapper<CharacterEntity, CharacterDto> characterMapper;
     private final CharacterService characterService;
     private final LevelService levelService;
+    private final CharacterCreateRequestValidator characterCreateRequestValidator;
 
     public CharacterController(Mapper<CharacterEntity, CharacterDto> characterMapper,
                                CharacterService characterService,
-                               LevelService levelService) {
+                               LevelService levelService,
+                               CharacterCreateRequestValidator characterCreateRequestValidator) {
         this.characterMapper = characterMapper;
         this.characterService = characterService;
         this.levelService = levelService;
+        this.characterCreateRequestValidator = characterCreateRequestValidator;
     }
 
     @PostMapping(path = "/characters")
     public ResponseEntity<CharacterDto> createCharacter(@RequestBody CharacterDto characterDto) {
+        List<InitialClassLevelDto> normalizedInitialClasses;
+        try {
+            normalizedInitialClasses = characterCreateRequestValidator.validate(characterDto);
+        } catch (IllegalArgumentException exception) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
         CharacterEntity characterEntity = characterMapper.mapFrom(characterDto);
         CharacterEntity savedCharacterEntity = characterService.save(characterEntity);
 
-        // Preferred: classId + starting level
-        if (characterDto.getInitialClasses() != null) {
-            for (com.utn.javaproject.dndsheets.domain.dto.InitialClassLevelDto initial : characterDto.getInitialClasses()) {
-                if (initial == null || initial.getClassId() == null) {
-                    continue;
-                }
-                Short lvl = initial.getLevel() == null ? 1 : initial.getLevel();
-                if (lvl < 1) {
-                    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-                }
-                levelService.ensureLevel(savedCharacterEntity.getId(), initial.getClassId(), lvl);
-            }
-        }
-
-        // Backward compatible: just IDs => level 1
-        if (characterDto.getInitialClassIds() != null) {
-            for (Long classId : characterDto.getInitialClassIds()) {
-                if (classId != null) {
-                    levelService.ensureLevel(savedCharacterEntity.getId(), classId, (short) 1);
-                }
-            }
+        for (InitialClassLevelDto initialClass : normalizedInitialClasses) {
+            levelService.ensureLevel(savedCharacterEntity.getId(), initialClass.getClassId(), initialClass.getLevel());
         }
 
         CharacterDto savedCharacterDto = characterMapper.mapTo(savedCharacterEntity);

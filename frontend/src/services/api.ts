@@ -5,7 +5,11 @@ import type {
   CharacterCatalogCampaignOption,
   CharacterCatalogClassOption,
   CharacterCatalogRaceOption,
+  CharacterStats,
+  CharacterStatsUpdatePayload,
   CreateCharacterPayload,
+  LevelPayload,
+  LevelRecord,
 } from '../interfaces/character'
 
 type JsonObject = Record<string, unknown>
@@ -117,14 +121,51 @@ export const api = {
       const response = await fetch(`${API_BASE_URL}/levels`, {
         headers: createHeaders(),
       })
-      return handleResponse<JsonObject[]>(response)
+      return handleResponse<LevelRecord[]>(response)
     },
 
     async findOne(characterId: number, classId: number) {
       const response = await fetch(`${API_BASE_URL}/level/${characterId}/${classId}`, {
         headers: createHeaders(),
       })
-      return handleResponse<JsonObject>(response)
+      return handleResponse<LevelRecord>(response)
+    },
+
+    async create(payload: LevelPayload) {
+      const response = await fetch(`${API_BASE_URL}/levels`, {
+        method: 'POST',
+        headers: createHeaders(),
+        body: JSON.stringify(payload),
+      })
+      return handleResponse<LevelRecord>(response)
+    },
+
+    async update(characterId: number, classId: number, payload: LevelPayload) {
+      const response = await fetch(`${API_BASE_URL}/level/${characterId}/${classId}`, {
+        method: 'PATCH',
+        headers: createHeaders(),
+        body: JSON.stringify(payload),
+      })
+      return handleResponse<LevelRecord>(response)
+    },
+
+    async remove(characterId: number, classId: number) {
+      const response = await fetch(`${API_BASE_URL}/level/${characterId}/${classId}`, {
+        method: 'DELETE',
+        headers: createHeaders(),
+      })
+      return handleResponse(response)
+    },
+  },
+
+  characterStats: {
+    async update(id: number, payload: CharacterStatsUpdatePayload) {
+      const response = await fetch(`${API_BASE_URL}/character-stats/${id}`, {
+        method: 'PATCH',
+        headers: createHeaders(),
+        body: JSON.stringify(payload),
+      })
+      return handleResponse<CharacterStats>(response)
     },
   },
 

@@ -26,12 +26,13 @@ public class CharacterDto {
     private RaceDto race;
 
     /**
-     * NEW (preferred): list of class IDs with their starting level. Lets you start any class at level > 1.
+     * Preferred create contract: one required primary class and one optional secondary class,
+     * each carrying its starting level. Must not be combined with initialClassIds.
      */
     private List<InitialClassLevelDto> initialClasses;
 
     /**
-     * Legacy: list of class IDs the user assigns when creating the character (created with level=1).
+     * Legacy create contract: class IDs only, translated to level 1 rows when initialClasses is absent.
      */
     private List<Long> initialClassIds;
 }

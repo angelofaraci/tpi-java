@@ -6,9 +6,12 @@ import { CreateCampaign } from './pages/CreateCampaign'
 import { CreateCharacter } from './pages/CreateCharacter'
 import { api } from './services/api'
 import type { OwnedCampaignSummary } from './interfaces/campaign'
+import type { HydratedCharacterEditData } from './interfaces/character'
 import './styles/CharacterSheet.css'
 
 type View = 'home' | 'character-sheet' | 'create-campaign' | 'create-character'
+type CharacterFormMode = 'create' | 'edit'
+type CharacterReturnView = 'home' | 'character-sheet'
 
 interface CharacterCard {
   id: number
@@ -22,6 +25,11 @@ interface CharacterCard {
 
 interface AuthenticatedUser {
   id?: number | string
+}
+
+interface DeleteDialogState {
+  characterId: number
+  characterName: string
 }
 
 function formatCampaignStartDate(creationDate?: string) {
@@ -47,9 +55,16 @@ function App() {
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null)
   const [loadingCharacters, setLoadingCharacters] = useState(false)
   const [loadingCampaigns, setLoadingCampaigns] = useState(false)
+  const [deletingCharacterId, setDeletingCharacterId] = useState<number | null>(null)
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null)
   const [charactersError, setCharactersError] = useState<string | null>(null)
   const [campaignsError, setCampaignsError] = useState<string | null>(null)
   const [campaignFeedback, setCampaignFeedback] = useState<string | null>(null)
+  const [characterSheetFeedback, setCharacterSheetFeedback] = useState<string | null>(null)
+  const [characterFormMode, setCharacterFormMode] = useState<CharacterFormMode>('create')
+  const [characterReturnView, setCharacterReturnView] = useState<CharacterReturnView>('home')
+  const [editCharacterData, setEditCharacterData] = useState<HydratedCharacterEditData | null>(null)
+  const [characterSheetRefreshToken, setCharacterSheetRefreshToken] = useState(0)
   const currentUserIdRef = useRef<number | null>(null)
   const latestCharacterRequestId = useRef(0)
   const latestCampaignRequestId = useRef(0)
@@ -161,8 +176,13 @@ function App() {
     setCharacters([])
     setCampaigns([])
     setCampaignFeedback(null)
+    setCharacterSheetFeedback(null)
     setCharactersError(null)
     setCampaignsError(null)
+    setDeleteDialog(null)
+    setCharacterFormMode('create')
+    setCharacterReturnView('home')
+    setEditCharacterData(null)
   }
 
   const handleViewCharacter = (characterId: number) => {
@@ -173,6 +193,9 @@ function App() {
   const handleBackToHome = () => {
     setView('home')
     setSelectedCharacterId(null)
+    setCharacterSheetFeedback(null)
+    setEditCharacterData(null)
+    setCharacterReturnView('home')
   }
 
   const handleOpenCreateCampaign = () => {
@@ -182,6 +205,20 @@ function App() {
 
   const handleOpenCreateCharacter = () => {
     setCampaignFeedback(null)
+    setCharacterSheetFeedback(null)
+    setCharacterFormMode('create')
+    setCharacterReturnView('home')
+    setEditCharacterData(null)
+    setView('create-character')
+  }
+
+  const handleOpenEditCharacter = (nextEditData: HydratedCharacterEditData) => {
+    setCampaignFeedback(null)
+    setCharacterSheetFeedback(null)
+    setSelectedCharacterId(nextEditData.characterId)
+    setCharacterFormMode('edit')
+    setCharacterReturnView('character-sheet')
+    setEditCharacterData(nextEditData)
     setView('create-character')
   }
 
@@ -196,17 +233,91 @@ function App() {
   }
 
   const handleCancelCreateCharacter = () => {
+    const shouldReturnToSheet = characterFormMode === 'edit' && characterReturnView === 'character-sheet' && selectedCharacterId
+
+    setCharacterFormMode('create')
+    setEditCharacterData(null)
+
+    if (shouldReturnToSheet) {
+      setView('character-sheet')
+      return
+    }
+
     setView('home')
   }
 
-  const handleCreateCharacterSuccess = (characterName: string) => {
+  const handleCreateCharacterSuccess = (result: { characterId?: number; characterName: string }) => {
+    if (characterFormMode === 'edit') {
+      const resolvedCharacterId = result.characterId ?? editCharacterData?.characterId ?? selectedCharacterId
+
+      setCharacterFormMode('create')
+      setEditCharacterData(null)
+      setCharacterSheetFeedback(`Character "${result.characterName}" updated successfully.`)
+
+      if (resolvedCharacterId) {
+        setSelectedCharacterId(resolvedCharacterId)
+      }
+
+      setCharacterSheetRefreshToken((current) => current + 1)
+      setView(characterReturnView)
+      void loadCharacters()
+      return
+    }
+
     setView('home')
-    setCampaignFeedback(`Character "${characterName}" created successfully.`)
+    setCampaignFeedback(`Character "${result.characterName}" created successfully.`)
     void loadCharacters()
   }
 
+  const handleRequestDeleteCharacter = (characterId: number, characterName?: string) => {
+    setDeleteDialog({
+      characterId,
+      characterName: characterName?.trim() || 'this character',
+    })
+    setCharactersError(null)
+  }
+
+  const handleCloseDeleteDialog = () => {
+    if (deletingCharacterId !== null) {
+      return
+    }
+
+    setDeleteDialog(null)
+  }
+
+  const handleConfirmDeleteCharacter = async () => {
+    if (!deleteDialog) {
+      return
+    }
+
+    const { characterId, characterName } = deleteDialog
+
+    setDeletingCharacterId(characterId)
+    setCharactersError(null)
+
+    try {
+      await api.characters.remove(characterId)
+      setCharacters((currentCharacters) => currentCharacters.filter((character) => character.id !== characterId))
+      setDeleteDialog(null)
+
+        if (selectedCharacterId === characterId) {
+          setSelectedCharacterId(null)
+          setView('home')
+          setCharacterSheetFeedback(null)
+        }
+
+      setCampaignFeedback(`Character "${characterName}" deleted successfully.`)
+    } catch (err: unknown) {
+      setCharactersError(err instanceof Error ? err.message : 'Failed to delete character')
+    } finally {
+      setDeletingCharacterId((currentId) => (currentId === characterId ? null : currentId))
+    }
+  }
+
+  let content
+
   if (!isAuthenticated) {
-    return (
+    content = (
       <Login
         onAuthSuccess={() => {
           setIsAuthenticated(true)
@@ -215,43 +326,43 @@ function App() {
         }}
       />
     )
-  }
-
-  // Character Sheet View
-  if (view === 'character-sheet' && selectedCharacterId) {
-    return (
+  } else if (view === 'character-sheet' && selectedCharacterId) {
+    content = (
       <Characters
         characterId={selectedCharacterId}
         onBack={handleBackToHome}
+        onEditCharacter={handleOpenEditCharacter}
         onLogout={handleLogout}
+        onDeleteCharacter={handleRequestDeleteCharacter}
+        deletingCharacterId={deletingCharacterId}
+        deleteError={charactersError}
+        feedback={characterSheetFeedback}
+        onDismissFeedback={() => setCharacterSheetFeedback(null)}
+        refreshToken={characterSheetRefreshToken}
       />
     )
-  }
-
-  if (view === 'create-campaign') {
-    return (
+  } else if (view === 'create-campaign') {
+    content = (
       <CreateCampaign
         onCancel={handleCancelCreateCampaign}
         onLogout={handleLogout}
         onSuccess={handleCreateCampaignSuccess}
       />
     )
-  }
-
-  if (view === 'create-character' && currentUserId) {
-    return (
+  } else if (view === 'create-character' && currentUserId) {
+    content = (
       <CreateCharacter
         currentUserId={currentUserId}
+        mode={characterFormMode}
+        initialEditData={editCharacterData}
         onCancel={handleCancelCreateCharacter}
         onLogout={handleLogout}
         onSuccess={handleCreateCharacterSuccess}
       />
     )
-  }
-
-  // Main Home View
-  return (
-    <div>
+  } else {
+    content = (
+      <div>
       <header className="app-header">
         <h1>D&D Manager</h1>
         <button onClick={handleLogout} className="logout-button">Logout</button>
@@ -395,22 +506,33 @@ function App() {
                         EDIT
                       </button>
                       <button
-                        onClick={(e) => e.stopPropagation()}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleRequestDeleteCharacter(character.id, character.name)
+                        }}
+                        disabled={deletingCharacterId === character.id}
+                        aria-label={`Delete ${character.name || 'character'}`}
                         style={{
                           flex: 1,
                           padding: '0.5rem',
                           backgroundColor: 'transparent',
                           color: '#ef4444',
                           border: 'none',
-                          cursor: 'pointer',
+                          cursor: deletingCharacterId === character.id ? 'wait' : 'pointer',
                           fontSize: '0.875rem',
                           fontWeight: '600',
-                          transition: 'color 0.2s'
+                          transition: 'color 0.2s',
+                          opacity: deletingCharacterId === character.id ? 0.7 : 1,
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = '#dc2626'}
+                        onMouseEnter={(e) => {
+                          if (deletingCharacterId !== character.id) {
+                            e.currentTarget.style.color = '#dc2626'
+                          }
+                        }}
                         onMouseLeave={(e) => e.currentTarget.style.color = '#ef4444'}
                       >
-                        DELETE
+                        {deletingCharacterId === character.id ? 'DELETING...' : 'DELETE'}
                       </button>
                     </div>
                   </div>
@@ -563,6 +685,42 @@ function App() {
         </section>
       </div>
     </div>
+    )
+  }
+
+  return (
+    <>
+      {content}
+      {deleteDialog && (
+        <div className="confirmation-backdrop" role="presentation">
+          <div className="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-character-title">
+            <span className="confirmation-eyebrow">Character deletion</span>
+            <h2 id="delete-character-title">Delete {deleteDialog.characterName}?</h2>
+            <p>
+              This permanently removes the character sheet and linked progression data from your roster.
+            </p>
+            <div className="confirmation-actions">
+              <button
+                type="button"
+                className="confirmation-secondary-button"
+                onClick={handleCloseDeleteDialog}
+                disabled={deletingCharacterId === deleteDialog.characterId}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirmation-danger-button"
+                onClick={() => void handleConfirmDeleteCharacter()}
+                disabled={deletingCharacterId === deleteDialog.characterId}
+              >
+                {deletingCharacterId === deleteDialog.characterId ? 'Deleting...' : 'Delete character'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

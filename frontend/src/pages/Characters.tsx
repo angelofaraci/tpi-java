@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { ScoreBox } from '../components/scoreBox'
 import '../styles/CharacterSheet.css'
 import { api } from '../services/api'
-import type { Character } from '../interfaces/character'
+import type { Character, HydratedCharacterEditData, LevelRecord } from '../interfaces/character'
+import { hydrateCharacterEditData } from '../utils/characterDraft'
 
 type LevelResponse = {
   id?: {
@@ -51,11 +52,30 @@ interface FormCharacterData {
 interface CharactersProps {
   characterId: number;
   onBack: () => void;
+  onEditCharacter: (editData: HydratedCharacterEditData) => void;
   onLogout: () => void;
+  onDeleteCharacter: (characterId: number, characterName?: string) => void;
+  deletingCharacterId: number | null;
+  deleteError: string | null;
+  feedback?: string | null;
+  onDismissFeedback?: () => void;
+  refreshToken?: number;
 }
 
-export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
+export function Characters({
+  characterId,
+  onBack,
+  onEditCharacter,
+  onLogout,
+  onDeleteCharacter,
+  deletingCharacterId,
+  deleteError,
+  feedback,
+  onDismissFeedback,
+  refreshToken,
+}: CharactersProps) {
   const [characterSheetData, setCharacterSheetData] = useState<FormCharacterData | null>(null)
+  const [characterEditData, setCharacterEditData] = useState<HydratedCharacterEditData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -98,7 +118,9 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
           race: characterPayload.race as Character['race'],
         }
 
-        const classLevels = Array.isArray(levelsResponse)
+        const normalizedLevels = Array.isArray(levelsResponse) ? (levelsResponse as LevelRecord[]) : []
+
+        const classLevels = normalizedLevels
           ? levelsResponse
               .filter((lvl): lvl is LevelResponse => typeof lvl === 'object' && lvl !== null)
               .filter((lvl) => {
@@ -146,6 +168,7 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
           velocity: mappedData.characterStats.velocities[0] || 0,
           hp: mappedData.characterStats.hp || 0
         })
+        setCharacterEditData(hydrateCharacterEditData(mappedData, normalizedLevels))
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -154,7 +177,7 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
     }
 
     fetchCharacterSheet()
-  }, [characterId])
+  }, [characterId, refreshToken])
 
   if (loading) {
     return <div className="loading-container">Loading character sheet...</div>
@@ -187,9 +210,54 @@ export function Characters({ characterId, onBack, onLogout }: CharactersProps) {
       </header>
       <div style={{ padding: '1rem 2rem' }}>
         <button className="link-button" onClick={onBack}>← Back to Home</button>
+        {feedback && (
+          <div className="status-banner success-banner" role="status" style={{ marginTop: '1rem' }}>
+            <span>{feedback}</span>
+            {onDismissFeedback && (
+              <button
+                type="button"
+                className="banner-dismiss-button"
+                onClick={onDismissFeedback}
+                aria-label="Dismiss character feedback"
+              >
+                x
+              </button>
+            )}
+          </div>
+        )}
+        {deleteError && <div className="error-message" style={{ marginTop: '1rem' }}>{deleteError}</div>}
       </div>
       <div className="character-sheet">
         <div className="header-section">
+          <div className="sheet-hero-actions">
+            <div>
+              <span className="sheet-hero-badge">Character Sheet</span>
+              <h2 className="sheet-hero-title">{characterSheetData.name || 'Unnamed Character'}</h2>
+              <p className="sheet-hero-copy">Review the current sheet, class features, and core stats before making your next table decision.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="section-action-button sheet-hero-action-button"
+                onClick={() => {
+                  if (characterEditData) {
+                    onEditCharacter(characterEditData)
+                  }
+                }}
+                disabled={!characterEditData}
+              >
+                Edit Character
+              </button>
+              <button
+                type="button"
+                className="sheet-delete-button sheet-hero-action-button"
+                onClick={() => onDeleteCharacter(characterId, characterSheetData.name)}
+                disabled={deletingCharacterId === characterId}
+              >
+                {deletingCharacterId === characterId ? 'Deleting...' : 'Delete Character'}
+              </button>
+            </div>
+          </div>
           <div className="basic-info">
             <div className='infobox'>
               <h3>Name: </h3>

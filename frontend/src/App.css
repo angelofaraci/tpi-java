@@ -155,6 +155,95 @@
   line-height: 1;
 }
 
+.confirmation-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background-color: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 20;
+}
+
+.confirmation-dialog {
+  width: min(100%, 30rem);
+  padding: 1.75rem;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at top right, rgba(248, 113, 113, 0.18), transparent 35%),
+    linear-gradient(180deg, rgba(28, 25, 23, 0.98), rgba(17, 24, 39, 0.98));
+  box-shadow: 0 28px 70px -40px rgba(15, 23, 42, 1);
+  text-align: left;
+}
+
+.confirmation-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background-color: rgba(248, 113, 113, 0.14);
+  color: #fecaca;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.confirmation-dialog h2 {
+  margin: 1rem 0 0.6rem;
+  font-size: 1.5rem;
+  color: #fff7ed;
+}
+
+.confirmation-dialog p {
+  margin: 0;
+  color: rgba(254, 226, 226, 0.82);
+  line-height: 1.6;
+}
+
+.confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.confirmation-secondary-button,
+.confirmation-danger-button {
+  border-radius: 999px;
+  padding: 0.75rem 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.confirmation-secondary-button:hover:not(:disabled),
+.confirmation-danger-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.confirmation-secondary-button:disabled,
+.confirmation-danger-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.confirmation-secondary-button {
+  border: 1px solid var(--color-border);
+  background-color: rgba(15, 23, 42, 0.65);
+  color: var(--color-foreground);
+}
+
+.confirmation-danger-button {
+  border: 1px solid rgba(248, 113, 113, 0.55);
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  color: #fff7ed;
+}
+
 /* Login Page */
 .login-container {
   display: flex;
@@ -767,5 +856,14 @@
 
   .status-banner {
     align-items: flex-start;
+  }
+
+  .confirmation-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirmation-secondary-button,
+  .confirmation-danger-button {
+    width: 100%;
   }
 }

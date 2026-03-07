@@ -6,9 +6,13 @@ import type {
   CharacterCatalogClassOption,
   CharacterCatalogRaceOption,
   CharacterDraft,
+  CharacterUpdatePlan,
+  HydratedCharacterEditData,
+  InitialCharacterClassLevel,
 } from '../interfaces/character'
 import { api } from '../services/api'
 import {
+  buildCharacterUpdatePlan,
   buildCreateCharacterPayload,
   createCharacterDraft,
   DEFAULT_ABILITY_SCORES,
@@ -17,9 +21,11 @@ import {
 
 interface CreateCharacterProps {
   currentUserId: number
+  mode?: 'create' | 'edit'
+  initialEditData?: HydratedCharacterEditData | null
   onCancel: () => void
   onLogout: () => void
-  onSuccess: (characterName: string) => void
+  onSuccess: (result: { characterId?: number; characterName: string }) => void
 }
 
 interface CharacterFormErrors {
@@ -56,6 +62,24 @@ const skillProficiencyOptions = [
   { value: 2, label: 'Expertise' },
 ]
 
+const MIN_CLASS_LEVEL = 1
+const MAX_CLASS_LEVEL = 20
+
+function createEmptyClassRow(): InitialCharacterClassLevel {
+  return {
+    classId: 0,
+    level: 1,
+  }
+}
+
+function hasSelectedClass(entry: InitialCharacterClassLevel | undefined) {
+  return Boolean(entry && Number.isFinite(entry.classId) && entry.classId > 0)
+}
+
+function isAllowedClassLevel(level: number) {
+  return Number.isFinite(level) && level >= MIN_CLASS_LEVEL && level <= MAX_CLASS_LEVEL
+}
+
 function getSubmitErrorMessage(error: unknown) {
   if (!(error instanceof Error)) {
     return 'An unexpected error occurred'
@@ -81,8 +105,23 @@ function isAbilityScoreName(value: string): value is AbilityScoreName {
   return abilityScoreOrder.includes(value as AbilityScoreName)
 }
 
-export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }: CreateCharacterProps) {
-  const [draft, setDraft] = useState<CharacterDraft>(() => createCharacterDraft({ userId: currentUserId }))
+function getInitialDraft(currentUserId: number, mode: 'create' | 'edit', initialEditData: HydratedCharacterEditData | null) {
+  if (mode === 'edit' && initialEditData) {
+    return createCharacterDraft(initialEditData.draft)
+  }
+
+  return createCharacterDraft({ userId: currentUserId, classLevels: [createEmptyClassRow()] })
+}
+
+export function CreateCharacter({
+  currentUserId,
+  mode = 'create',
+  initialEditData = null,
+  onCancel,
+  onLogout,
+  onSuccess,
+}: CreateCharacterProps) {
+  const [draft, setDraft] = useState<CharacterDraft>(() => getInitialDraft(currentUserId, mode, initialEditData))
   const [campaignCode, setCampaignCode] = useState('')
   const [characteristicsInput, setCharacteristicsInput] = useState('')
   const [campaigns, setCampaigns] = useState<CharacterCatalogCampaignOption[]>([])
@@ -93,6 +132,17 @@ export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const isEditMode = mode === 'edit'
+  const isMulticlassEdit = isEditMode && draft.classLevels.length > 1
+  const canEditSingleClass = !isMulticlassEdit
+
+  useEffect(() => {
+    setDraft(getInitialDraft(currentUserId, mode, initialEditData))
+    setCharacteristicsInput('')
+    setFieldErrors({})
+    setSubmitError(null)
+  }, [currentUserId, initialEditData, mode])
 
   useEffect(() => {
     let isMounted = true
@@ -139,8 +189,12 @@ export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }
     () => getCharacterCatalogSelections(draft, { campaigns, races, classes }),
     [campaigns, races, classes, draft],
   )
+  const editClassNameById = useMemo(
+    () => new Map((initialEditData?.classRows ?? []).map((row) => [row.classId, row.name ?? `Class ${row.classId}`])),
+    [initialEditData],
+  )
 
-  const totalLevel = draft.classLevels.reduce((sum, entry) => sum + entry.level, 0)
+  const totalLevel = selections.selectedClasses.reduce((sum, entry) => sum + entry.level, 0)
   const speed = draft.velocities[0] ?? 30
   const armorClass = 10 + Math.floor((draft.abilityScores.Dexterity - 10) / 2)
   const initiative = Math.floor((draft.abilityScores.Dexterity - 10) / 2)
@@ -155,26 +209,106 @@ export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }
     draft.details.flaws.trim() ? `Flaw: ${draft.details.flaws.trim()}` : null,
   ].filter((entry): entry is string => Boolean(entry))
 
-  const validateForm = () => {
-    const nextErrors: CharacterFormErrors = {}
+  const pageTitle = isEditMode ? 'Edit Character' : 'Create Character'
+  const pageLead = isEditMode
+    ? 'Update the existing sheet values while keeping the current backend persistence flow and class-row contract intact.'
+    : 'Shape the first pass of the sheet with class level, proficiencies, and roleplay hooks while staying inside the current backend contract.'
+  const cancelLabel = isEditMode ? 'Back to Sheet' : 'Cancel'
+  const submitLabel = isEditMode ? 'Save Changes' : 'Create Character'
+  const submittingLabel = isEditMode ? 'Saving...' : 'Creating...'
 
-    if (!draft.campaignId) {
+  const primaryCreateRow = draft.classLevels[0] ?? createEmptyClassRow()
+  const secondaryCreateRow = draft.classLevels[1]
+
+  const updateCreateClassRows = (updater: (rows: InitialCharacterClassLevel[]) => InitialCharacterClassLevel[]) => {
+    setDraft((current) => {
+      const currentRows = [current.classLevels[0] ?? createEmptyClassRow()]
+
+      if (current.classLevels[1]) {
+        currentRows.push(current.classLevels[1])
+      }
+
+      return {
+        ...current,
+        classLevels: updater(currentRows),
+      }
+    })
+  }
+
+  const handleCreateClassChange = (index: number, classId: number) => {
+    updateCreateClassRows((rows) => {
+      const nextRows = [...rows]
+      nextRows[index] = {
+        ...(nextRows[index] ?? createEmptyClassRow()),
+        classId,
+      }
+
+      return nextRows.slice(0, 2)
+    })
+    setFieldErrors((current) => ({ ...current, classId: undefined }))
+    setSubmitError(null)
+  }
+
+  const handleCreateLevelChange = (index: number, value: string) => {
+    const level = Math.min(MAX_CLASS_LEVEL, Math.max(MIN_CLASS_LEVEL, parseNumber(value, 1)))
+
+    updateCreateClassRows((rows) => {
+      const nextRows = [...rows]
+      nextRows[index] = {
+        ...(nextRows[index] ?? createEmptyClassRow()),
+        level,
+      }
+
+      return nextRows.slice(0, 2)
+    })
+    setFieldErrors((current) => ({ ...current, classId: undefined }))
+    setSubmitError(null)
+  }
+
+  const handleAddSecondaryClassRow = () => {
+    updateCreateClassRows((rows) => (rows[1] ? rows : [rows[0] ?? createEmptyClassRow(), createEmptyClassRow()]))
+    setFieldErrors((current) => ({ ...current, classId: undefined }))
+    setSubmitError(null)
+  }
+
+  const handleRemoveSecondaryClassRow = () => {
+    updateCreateClassRows((rows) => [rows[0] ?? createEmptyClassRow()])
+    setFieldErrors((current) => ({ ...current, classId: undefined }))
+    setSubmitError(null)
+  }
+
+  const validateForm = (nextDraft: CharacterDraft = draft) => {
+    const nextErrors: CharacterFormErrors = {}
+    const primaryClassRow = nextDraft.classLevels[0]
+    const secondClassRow = nextDraft.classLevels[1]
+    const hasPrimaryClass = hasSelectedClass(primaryClassRow)
+    const hasSecondRow = secondClassRow !== undefined
+    const hasSecondClass = hasSelectedClass(secondClassRow)
+    const hasInvalidLevel = nextDraft.classLevels.some((entry) => !isAllowedClassLevel(entry.level))
+
+    if (!nextDraft.campaignId) {
       nextErrors.campaignId = 'Campaign is required'
     }
-    if (!draft.name.trim()) {
+    if (!nextDraft.name.trim()) {
       nextErrors.name = 'Character name is required'
     }
-    if (!draft.alignment.trim()) {
+    if (!nextDraft.alignment.trim()) {
       nextErrors.alignment = 'Alignment is required'
     }
-    if (!draft.background.trim()) {
+    if (!nextDraft.background.trim()) {
       nextErrors.background = 'Background is required'
     }
-    if (!draft.raceId) {
+    if (!nextDraft.raceId) {
       nextErrors.raceId = 'Race is required'
     }
-    if (draft.classLevels.length === 0 || !draft.classLevels[0]?.classId) {
-      nextErrors.classId = 'Initial class is required'
+    if (!hasPrimaryClass) {
+      nextErrors.classId = 'Primary class is required'
+    } else if (hasInvalidLevel) {
+      nextErrors.classId = 'Class levels must be between 1 and 20'
+    } else if (hasSecondRow && !hasSecondClass) {
+      nextErrors.classId = 'Secondary class row is incomplete'
+    } else if (hasPrimaryClass && hasSecondClass && primaryClassRow?.classId === secondClassRow?.classId) {
+      nextErrors.classId = 'Primary and secondary classes must be different'
     }
 
     setFieldErrors(nextErrors)
@@ -226,15 +360,51 @@ export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }
         }
       : draft
 
-    if (!validateForm()) {
+    if (!validateForm(nextDraft)) {
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      await api.characters.create(buildCreateCharacterPayload(nextDraft))
-      onSuccess(nextDraft.name.trim())
+      if (!isEditMode) {
+        const createdCharacter = await api.characters.create(buildCreateCharacterPayload(nextDraft))
+        onSuccess({ characterId: createdCharacter.id, characterName: nextDraft.name.trim() })
+        return
+      }
+
+      if (!initialEditData) {
+        throw new Error('Character edit data is unavailable')
+      }
+
+      const plan: CharacterUpdatePlan = buildCharacterUpdatePlan(initialEditData, nextDraft)
+
+      if (plan.characterPatch) {
+        await api.characters.update(initialEditData.characterId, plan.characterPatch)
+      }
+
+      if (plan.statsPatch) {
+        if (!initialEditData.statsId) {
+          throw new Error('Character stats could not be updated because the stats record is missing')
+        }
+
+        await api.characterStats.update(initialEditData.statsId, plan.statsPatch)
+      }
+
+      for (const operation of plan.classOperations) {
+        if (operation.type === 'create') {
+          await api.levels.create(operation.payload)
+        } else if (operation.type === 'update') {
+          await api.levels.update(operation.characterId, operation.classId, operation.payload)
+        } else if (operation.type === 'delete') {
+          await api.levels.remove(operation.characterId, operation.classId)
+        }
+      }
+
+      onSuccess({
+        characterId: initialEditData.characterId,
+        characterName: nextDraft.name.trim(),
+      })
     } catch (error) {
       setSubmitError(getSubmitErrorMessage(error))
     } finally {
@@ -251,7 +421,7 @@ export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }
 
       <div className="page-toolbar">
         <button className="link-button" onClick={onCancel} type="button">
-          ← Cancel
+          ← {cancelLabel}
         </button>
       </div>
 
@@ -259,10 +429,8 @@ export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }
         <div className="create-character-card">
           <div className="create-character-hero">
             <div>
-              <h2 style={{ margin: 0, fontSize: '1.75rem' }}>Create Character</h2>
-              <p className="create-character-lead">
-                Shape the first pass of the sheet with class level, proficiencies, and roleplay hooks while staying inside the current backend contract.
-              </p>
+              <h2 style={{ margin: 0, fontSize: '1.75rem' }}>{pageTitle}</h2>
+              <p className="create-character-lead">{pageLead}</p>
             </div>
             <div className="create-character-summary">
               <span>Level {totalLevel || 1}</span>
@@ -391,56 +559,150 @@ export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }
                       </select>
                       {fieldErrors.raceId && <p className="field-error">{fieldErrors.raceId}</p>}
                     </div>
-
-                    <div className="form-group">
-                      <label htmlFor="character-class">Class</label>
-                      <select
-                        id="character-class"
-                        value={draft.classLevels[0]?.classId ?? ''}
-                        onChange={(event) => {
-                          const classId = event.target.value ? Number(event.target.value) : null
-                          setDraft((current) => ({
-                            ...current,
-                            classLevels: classId ? [{ classId, level: current.classLevels[0]?.level ?? 1 }] : [],
-                          }))
-                          setFieldErrors((current) => ({ ...current, classId: undefined }))
-                          setSubmitError(null)
-                        }}
-                        disabled={isSubmitting}
-                        aria-invalid={Boolean(fieldErrors.classId)}
-                      >
-                        <option value="">Select a class</option>
-                        {classes.map((dndClass) => (
-                          <option key={dndClass.id} value={dndClass.id}>{dndClass.name}</option>
-                        ))}
-                      </select>
-                      {fieldErrors.classId && <p className="field-error">{fieldErrors.classId}</p>}
-                    </div>
                   </div>
 
-                  <div className="create-character-two-column create-character-compact-stats">
-                    <div className="form-group">
-                      <label htmlFor="character-level">Level</label>
-                      <input
-                        id="character-level"
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={draft.classLevels[0]?.level ?? 1}
-                        onChange={(event) => {
-                          const level = Math.min(20, Math.max(1, parseNumber(event.target.value, 1)))
-                          setDraft((current) => ({
-                            ...current,
-                            classLevels: current.classLevels[0]
-                              ? [{ classId: current.classLevels[0].classId, level }]
-                              : current.classLevels,
-                          }))
-                          setSubmitError(null)
-                        }}
-                        disabled={isSubmitting || draft.classLevels.length === 0}
-                      />
-                    </div>
+                  <section className="create-character-subsection">
+                    <h4>{isEditMode ? 'Class Progression' : 'Class'}</h4>
+                    {isMulticlassEdit && <p className="section-subtitle">Multiclass rows are locked during editing.</p>}
+                    {isMulticlassEdit ? (
+                      <div className="create-character-skill-groups">
+                        {draft.classLevels.map((entry, index) => (
+                          <div key={`${entry.classId}-${index}`} className="skill-group-card">
+                            <div className="create-character-two-column">
+                              <div className="form-group">
+                                <label htmlFor={`character-class-${index}`}>Class</label>
+                                <input
+                                  id={`character-class-${index}`}
+                                  type="text"
+                                  value={classes.find((dndClass) => dndClass.id === entry.classId)?.name ?? editClassNameById.get(entry.classId) ?? `Class ${entry.classId}`}
+                                  disabled
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label htmlFor={`character-level-${index}`}>Level</label>
+                                <input id={`character-level-${index}`} type="number" value={entry.level} disabled />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="create-character-skill-groups">
+                          <div className="skill-group-card">
+                            <div className="create-character-two-column">
+                              <div className="form-group">
+                                <label htmlFor="character-class">{isEditMode ? 'Class' : 'Primary Class'}</label>
+                                <select
+                                  id="character-class"
+                                  value={primaryCreateRow.classId > 0 ? primaryCreateRow.classId : ''}
+                                  onChange={(event) => {
+                                    if (isEditMode) {
+                                      const classId = event.target.value ? Number(event.target.value) : 0
+                                      setDraft((current) => ({
+                                        ...current,
+                                        classLevels: [{
+                                          classId,
+                                          level: current.classLevels[0]?.level ?? 1,
+                                        }],
+                                      }))
+                                      setFieldErrors((current) => ({ ...current, classId: undefined }))
+                                      setSubmitError(null)
+                                      return
+                                    }
 
+                                    handleCreateClassChange(0, event.target.value ? Number(event.target.value) : 0)
+                                  }}
+                                  disabled={isSubmitting || !canEditSingleClass}
+                                  aria-invalid={Boolean(fieldErrors.classId)}
+                                >
+                                  <option value="">Select a class</option>
+                                  {classes.map((dndClass) => (
+                                    <option key={dndClass.id} value={dndClass.id}>{dndClass.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="form-group">
+                                <label htmlFor="character-level">{isEditMode ? 'Level' : 'Primary Level'}</label>
+                                <input
+                                  id="character-level"
+                                  type="number"
+                                  min="1"
+                                  max="20"
+                                  value={primaryCreateRow.level}
+                                  onChange={(event) => {
+                                    if (isEditMode) {
+                                      const level = Math.min(MAX_CLASS_LEVEL, Math.max(MIN_CLASS_LEVEL, parseNumber(event.target.value, 1)))
+                                      setDraft((current) => ({
+                                        ...current,
+                                        classLevels: current.classLevels[0]
+                                          ? [{ classId: current.classLevels[0].classId, level }]
+                                          : current.classLevels,
+                                      }))
+                                      setSubmitError(null)
+                                      return
+                                    }
+
+                                    handleCreateLevelChange(0, event.target.value)
+                                  }}
+                                  disabled={isSubmitting || !canEditSingleClass}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {!isEditMode && secondaryCreateRow ? (
+                            <div className="skill-group-card">
+                              <div className="create-character-two-column">
+                                <div className="form-group">
+                                  <label htmlFor="character-secondary-class">Secondary Class</label>
+                                  <select
+                                    id="character-secondary-class"
+                                    value={secondaryCreateRow.classId > 0 ? secondaryCreateRow.classId : ''}
+                                    onChange={(event) => handleCreateClassChange(1, event.target.value ? Number(event.target.value) : 0)}
+                                    disabled={isSubmitting}
+                                    aria-invalid={Boolean(fieldErrors.classId)}
+                                  >
+                                    <option value="">Select a class</option>
+                                    {classes.map((dndClass) => (
+                                      <option key={dndClass.id} value={dndClass.id}>{dndClass.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div className="form-group">
+                                  <label htmlFor="character-secondary-level">Secondary Level</label>
+                                  <input
+                                    id="character-secondary-level"
+                                    type="number"
+                                    min="1"
+                                    max="20"
+                                    value={secondaryCreateRow.level}
+                                    onChange={(event) => handleCreateLevelChange(1, event.target.value)}
+                                    disabled={isSubmitting}
+                                  />
+                                </div>
+                              </div>
+                              <button type="button" className="link-button" onClick={handleRemoveSecondaryClassRow} disabled={isSubmitting}>
+                                Remove Secondary Class
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        {!isEditMode && !secondaryCreateRow ? (
+                          <button type="button" className="link-button" onClick={handleAddSecondaryClassRow} disabled={isSubmitting}>
+                            Add Secondary Class
+                          </button>
+                        ) : null}
+
+                        {fieldErrors.classId && <p className="field-error">{fieldErrors.classId}</p>}
+                      </>
+                    )}
+                  </section>
+
+                  <div className="create-character-two-column create-character-compact-stats">
                     <div className="form-group">
                       <label htmlFor="character-hp">Hit Points</label>
                       <input
@@ -638,9 +900,7 @@ export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }
                                 <label htmlFor={`skill-${skill}`}>{skill}</label>
                                 <select
                                   id={`skill-${skill}`}
-                                  aria-label={
-                                    draft.proficiencies[skill] === 2 ? `${skill} expertise` : skill
-                                  }
+                                  aria-label={draft.proficiencies[skill] === 2 ? `${skill} expertise` : skill}
                                   value={draft.proficiencies[skill] ?? 0}
                                   onChange={(event) => {
                                     const nextValue = Number(event.target.value)
@@ -768,21 +1028,24 @@ export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }
                   <div className="sheet-preview-block">
                     <span className="sheet-preview-label">Class Features</span>
                     {selections.selectedClasses.length === 0 ? (
-                      <p>Select an initial class to preview level one features.</p>
+                      <p>Select a primary class to preview the submitted class split.</p>
                     ) : (
-                      selections.selectedClasses.map((selectedClass) => (
-                        <div key={selectedClass.id} className="sheet-preview-feature-group">
-                          <strong>{selectedClass.name}</strong>
-                          <p>{selectedClass.description}</p>
-                          <ul>
-                            {Object.entries(selectedClass.levelCharacteristics)
-                              .filter(([level]) => Number(level) <= selectedClass.level)
-                              .map(([level, feature]) => (
-                                <li key={`${selectedClass.id}-${level}`}>{feature}</li>
-                              ))}
-                          </ul>
-                        </div>
-                      ))
+                      <>
+                        <strong>Total Level {totalLevel}</strong>
+                        {selections.selectedClasses.map((selectedClass, index) => (
+                          <div key={`${selectedClass.id}-${index}`} className="sheet-preview-feature-group">
+                            <strong>{selectedClass.name} - Level {selectedClass.level}</strong>
+                            <p>{selectedClass.description}</p>
+                            <ul>
+                              {Object.entries(selectedClass.levelCharacteristics)
+                                .filter(([level]) => Number(level) <= selectedClass.level)
+                                .map(([level, feature]) => (
+                                  <li key={`${selectedClass.id}-${level}`}>{feature}</li>
+                                ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </>
                     )}
                   </div>
                   <div className="sheet-preview-block">
@@ -811,10 +1074,10 @@ export function CreateCharacter({ currentUserId, onCancel, onLogout, onSuccess }
 
               <div className="form-actions">
                 <button type="button" className="logout-button" onClick={onCancel} disabled={isSubmitting}>
-                  Cancel
+                  {cancelLabel}
                 </button>
                 <button type="submit" className="login-button form-submit-button" disabled={isSubmitting}>
-                  {isSubmitting ? 'Creating...' : 'Create Character'}
+                  {isSubmitting ? submittingLabel : submitLabel}
                 </button>
               </div>
             </form>

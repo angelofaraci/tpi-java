@@ -169,4 +169,8 @@ public class LevelService {
     public void delete(LevelKey id) {
         levelRepository.deleteById(id);
     }
+
+    public void deleteByCharacterId(Long characterId) {
+        levelRepository.deleteByIdCharacterId(characterId);
+    }
 }
