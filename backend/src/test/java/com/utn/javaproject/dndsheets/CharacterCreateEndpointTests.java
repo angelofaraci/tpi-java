@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -72,6 +73,7 @@ class CharacterCreateEndpointTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user))
                         .content(createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                                "Neutral Good",
                                 """
                                         [
                                           { "classId": %d, "level": 3 }
@@ -102,6 +104,7 @@ class CharacterCreateEndpointTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user))
                         .content(createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                                "Neutral Good",
                                 """
                                         [
                                           { "classId": %d, "level": 3 },
@@ -134,6 +137,7 @@ class CharacterCreateEndpointTests {
                 user,
                 characterName,
                 createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                        "Neutral Good",
                         """
                                 [
                                   { "classId": %d, "level": 2 }
@@ -157,6 +161,7 @@ class CharacterCreateEndpointTests {
                 user,
                 characterName,
                 createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                        "Neutral Good",
                         """
                                 [
                                   { "classId": %d, "level": 3 },
@@ -180,6 +185,7 @@ class CharacterCreateEndpointTests {
                 user,
                 characterName,
                 createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                        "Neutral Good",
                         """
                                 [
                                   { "classId": %d, "level": 3 },
@@ -202,6 +208,7 @@ class CharacterCreateEndpointTests {
                 user,
                 characterName,
                 createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                        "Neutral Good",
                         """
                                 [
                                   { "classId": %d, "level": 0 }
@@ -222,7 +229,9 @@ class CharacterCreateEndpointTests {
         mockMvc.perform(post("/characters")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user))
-                        .content(createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(), null,
+                        .content(createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                                "Neutral Good",
+                                null,
                                 """
                                         [%d, %d]
                                         """.formatted(wizardClassId, fighterClassId))))
@@ -233,6 +242,190 @@ class CharacterCreateEndpointTests {
         CharacterEntity persistedCharacter = persistedCharacterNamed(characterName);
         assertEquals((short) 1, levelRepository.findById(new LevelKey(persistedCharacter.getId(), wizardClassId)).orElseThrow().getLevel());
         assertEquals((short) 1, levelRepository.findById(new LevelKey(persistedCharacter.getId(), fighterClassId)).orElseThrow().getLevel());
+    }
+
+    @Test
+    void createCharacter_rejectsNonCanonicalAlignment() throws Exception {
+        UserEntity user = createUser("bad-alignment-user");
+        CampaignEntity campaign = createCampaign(user, "bad-alignment-campaign");
+        RaceEntity race = createRace("bad-alignment-race");
+        Long wizardClassId = classIdByName("Wizard");
+        String characterName = "bad-alignment-character";
+
+        assertRejectedWithoutPersistence(
+                user,
+                characterName,
+                createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                        "Neutral Heroic",
+                        """
+                                [
+                                  { "classId": %d, "level": 2 }
+                                ]
+                                """.formatted(wizardClassId),
+                        null)
+        );
+    }
+
+    @Test
+    void createCharacter_rejectsAbilityScoresAboveTwenty() throws Exception {
+        UserEntity user = createUser("bad-scores-user");
+        CampaignEntity campaign = createCampaign(user, "bad-scores-campaign");
+        RaceEntity race = createRace("bad-scores-race");
+        Long wizardClassId = classIdByName("Wizard");
+        String characterName = "bad-scores-character";
+
+        assertRejectedWithoutPersistence(
+                user,
+                characterName,
+                createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                        "Neutral Good",
+                        """
+                                [
+                                  { "classId": %d, "level": 2 }
+                                ]
+                                """.formatted(wizardClassId),
+                        null,
+                        """
+                                {
+                                  "xp": 250,
+                                  "proficiency": 2,
+                                  "abilityScores": {
+                                    "Strength": 10,
+                                    "Dexterity": 21,
+                                    "Constitution": 12,
+                                    "Intelligence": 14,
+                                    "Wisdom": 10,
+                                    "Charisma": 8
+                                  },
+                                  "velocities": [30],
+                                  "proficiencies": {
+                                    "Acrobatics": 0,
+                                    "Animal Handling": 0,
+                                    "Arcana": 0,
+                                    "Athletics": 0,
+                                    "Deception": 0,
+                                    "History": 0,
+                                    "Insight": 0,
+                                    "Intimidation": 0,
+                                    "Investigation": 0,
+                                    "Medicine": 0,
+                                    "Nature": 0,
+                                    "Perception": 0,
+                                    "Performance": 0,
+                                    "Persuasion": 0,
+                                    "Religion": 0,
+                                    "Sleight of Hand": 0,
+                                    "Stealth": 0,
+                                    "Survival": 0,
+                                    "Strength": 0,
+                                    "Dexterity": 0,
+                                    "Constitution": 0,
+                                    "Intelligence": 0,
+                                    "Wisdom": 0,
+                                    "Charisma": 0
+                                  },
+                                  "hp": 10
+                                }
+                                """)
+        );
+    }
+
+    @Test
+    void createCharacter_acceptsCanonicalAlignmentFromApprovedList() throws Exception {
+        UserEntity user = createUser("canonical-alignment-user");
+        CampaignEntity campaign = createCampaign(user, "canonical-alignment-campaign");
+        RaceEntity race = createRace("canonical-alignment-race");
+        Long wizardClassId = classIdByName("Wizard");
+        String characterName = "canonical-alignment-character";
+
+        mockMvc.perform(post("/characters")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user))
+                        .content(createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                                "Lawful Good",
+                                """
+                                        [
+                                          { "classId": %d, "level": 2 }
+                                        ]
+                                        """.formatted(wizardClassId),
+                                null)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value(characterName));
+    }
+
+    @Test
+    void patchCharacterStats_rejectsAbilityScoresAboveTwenty() throws Exception {
+        UserEntity user = createUser("stats-patch-user");
+        CampaignEntity campaign = createCampaign(user, "stats-patch-campaign");
+        RaceEntity race = createRace("stats-patch-race");
+        Long wizardClassId = classIdByName("Wizard");
+        String characterName = "stats-patch-character";
+
+        mockMvc.perform(post("/characters")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user))
+                        .content(createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                                "Neutral Good",
+                                """
+                                        [
+                                          { "classId": %d, "level": 2 }
+                                        ]
+                                        """.formatted(wizardClassId),
+                                null,
+                                minimalCharacterStatsJson())))
+                .andExpect(status().isCreated());
+
+        CharacterEntity persistedCharacter = persistedCharacterNamed(characterName);
+        Long statsId = persistedCharacter.getCharacterStats().getId();
+
+        mockMvc.perform(patch("/character-stats/{id}", statsId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user))
+                        .content("""
+                                {
+                                  "abilityScores": {
+                                    "Strength": 10,
+                                    "Dexterity": 10,
+                                    "Constitution": 10,
+                                    "Intelligence": 22,
+                                    "Wisdom": 10,
+                                    "Charisma": 10
+                                  }
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void patchCharacter_rejectsNonCanonicalAlignment() throws Exception {
+        UserEntity user = createUser("alignment-patch-user");
+        CampaignEntity campaign = createCampaign(user, "alignment-patch-campaign");
+        RaceEntity race = createRace("alignment-patch-race");
+        Long wizardClassId = classIdByName("Wizard");
+        String characterName = "alignment-patch-character";
+
+        mockMvc.perform(post("/characters")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user))
+                        .content(createCharacterRequest(characterName, user.getId(), campaign.getId(), race.getId(),
+                                "Neutral Good",
+                                """
+                                        [
+                                          { "classId": %d, "level": 2 }
+                                        ]
+                                        """.formatted(wizardClassId),
+                                null)))
+                .andExpect(status().isCreated());
+
+        CharacterEntity persistedCharacter = persistedCharacterNamed(characterName);
+
+        mockMvc.perform(patch("/character/{id}", persistedCharacter.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user))
+                        .content("""
+                                { "alignment": "Neutral Heroic" }
+                                """))
+                .andExpect(status().isBadRequest());
     }
 
     private void assertRejectedWithoutPersistence(UserEntity user, String characterName, String body) throws Exception {
@@ -254,10 +447,23 @@ class CharacterCreateEndpointTests {
                                           Long userId,
                                           Long campaignId,
                                           Long raceId,
+                                          String alignment,
                                           String initialClassesJson,
                                           String initialClassIdsJson) {
+        return createCharacterRequest(characterName, userId, campaignId, raceId, alignment, initialClassesJson, initialClassIdsJson, null);
+    }
+
+    private String createCharacterRequest(String characterName,
+                                          Long userId,
+                                          Long campaignId,
+                                          Long raceId,
+                                          String alignment,
+                                          String initialClassesJson,
+                                          String initialClassIdsJson,
+                                          String characterStatsJson) {
         String initialClassesSection = initialClassesJson == null ? "" : ",\n  \"initialClasses\": " + initialClassesJson;
         String initialClassIdsSection = initialClassIdsJson == null ? "" : ",\n  \"initialClassIds\": " + initialClassIdsJson;
+        String characterStatsSection = characterStatsJson == null ? "" : ",\n  \"characterStats\": " + characterStatsJson;
 
         return """
                 {
@@ -265,11 +471,33 @@ class CharacterCreateEndpointTests {
                   "campaign": { "id": %d },
                   "name": "%s",
                   "characteristics": ["Darkvision"],
-                  "alignment": "Neutral Good",
+                  "alignment": "%s",
                   "background": "Sage",
-                  "race": { "id": %d }%s%s
+                  "race": { "id": %d }%s%s%s
                 }
-                """.formatted(userId, campaignId, characterName, raceId, initialClassesSection, initialClassIdsSection);
+                """.formatted(userId, campaignId, characterName, alignment, raceId, initialClassesSection, initialClassIdsSection, characterStatsSection);
+    }
+
+    private String minimalCharacterStatsJson() {
+        return """
+                {
+                  "xp": 0,
+                  "proficiency": 2,
+                  "abilityScores": {
+                    "Strength": 10,
+                    "Dexterity": 10,
+                    "Constitution": 10,
+                    "Intelligence": 10,
+                    "Wisdom": 10,
+                    "Charisma": 10
+                  },
+                  "velocities": [30],
+                  "proficiencies": {
+                    "Strength": 0
+                  },
+                  "hp": 8
+                }
+                """;
     }
 
     private UserEntity createUser(String prefix) {

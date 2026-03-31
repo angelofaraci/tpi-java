@@ -5,7 +5,11 @@ import {
   buildCreateCharacterPayload,
   buildCharacterUpdatePlan,
   createCharacterDraft,
-   DEFAULT_ABILITY_SCORES,
+  DEFAULT_ABILITY_SCORES,
+  deriveProficiencyFromLevel,
+  deriveSavingThrowDefaults,
+  deriveXpFromLevel,
+  resolveDrivingClass,
   hydrateCharacterDraft,
   parseCharacteristicDetails,
   getCharacterCatalogSelections,
@@ -476,6 +480,61 @@ describe('getCharacterCatalogSelections', () => {
           level: 1,
         },
       ],
+    })
+  })
+})
+
+describe('resolveDrivingClass', () => {
+  it('chooses the highest-level class and breaks ties by first selected', () => {
+    expect(resolveDrivingClass([
+      { classId: 8, level: 4 },
+      { classId: 5, level: 4 },
+    ])).toEqual({ classId: 8, level: 4 })
+
+    expect(resolveDrivingClass([
+      { classId: 8, level: 2 },
+      { classId: 5, level: 5 },
+    ])).toEqual({ classId: 5, level: 5 })
+  })
+})
+
+describe('deriveProficiencyFromLevel', () => {
+  it('maps levels to expected 5e proficiency bands', () => {
+    expect(deriveProficiencyFromLevel(1)).toBe(2)
+    expect(deriveProficiencyFromLevel(5)).toBe(3)
+    expect(deriveProficiencyFromLevel(9)).toBe(4)
+    expect(deriveProficiencyFromLevel(13)).toBe(5)
+    expect(deriveProficiencyFromLevel(17)).toBe(6)
+  })
+})
+
+describe('deriveXpFromLevel', () => {
+  it('returns canonical XP thresholds and clamps invalid levels', () => {
+    expect(deriveXpFromLevel(1)).toBe(0)
+    expect(deriveXpFromLevel(3)).toBe(900)
+    expect(deriveXpFromLevel(20)).toBe(355000)
+    expect(deriveXpFromLevel(0)).toBe(0)
+    expect(deriveXpFromLevel(99)).toBe(355000)
+  })
+})
+
+describe('deriveSavingThrowDefaults', () => {
+  it('returns defaults for driving class and keeps tie-break on first class', () => {
+    const classes = [
+      { id: 8, name: 'Wizard', description: 'Arcane scholar', hitDice: 6, levelCharacteristics: { 1: 'Spellcasting' } },
+      { id: 5, name: 'Fighter', description: 'Martial expert', hitDice: 10, levelCharacteristics: { 1: 'Fighting Style' } },
+    ]
+
+    expect(deriveSavingThrowDefaults([
+      { classId: 8, level: 4 },
+      { classId: 5, level: 4 },
+    ], classes)).toEqual({
+      Strength: 0,
+      Dexterity: 0,
+      Constitution: 0,
+      Intelligence: 1,
+      Wisdom: 1,
+      Charisma: 0,
     })
   })
 })

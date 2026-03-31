@@ -6,6 +6,7 @@ import com.utn.javaproject.dndsheets.mappers.Mapper;
 import com.utn.javaproject.dndsheets.services.RaceService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class RaceController {
         this.raceService = raceService;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(path = "/races")
     public ResponseEntity<RaceDto> createRace(@RequestBody RaceDto raceDto) {
         RaceEntity raceEntity = raceMapper.mapFrom(raceDto);
@@ -45,6 +47,7 @@ public class RaceController {
         }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(path = "race/{id}")
     public ResponseEntity<RaceDto> fullUpdateRace(
             @PathVariable("id") Long id,
@@ -60,6 +63,7 @@ public class RaceController {
         return new ResponseEntity<>(raceMapper.mapTo(savedEntity), HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping(path = "race/{id}")
     public ResponseEntity<RaceDto> partialUpdate(
             @PathVariable("id") Long id,
@@ -74,6 +78,7 @@ public class RaceController {
         return new ResponseEntity<>(raceMapper.mapTo(updatedRace), HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping(path = "race/{id}")
     public ResponseEntity deleteRace(@PathVariable("id") Long id) {
         raceService.delete(id);

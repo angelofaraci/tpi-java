@@ -4,6 +4,7 @@ import com.utn.javaproject.dndsheets.domain.dto.CharacterStatsDto;
 import com.utn.javaproject.dndsheets.domain.entities.CharacterStatsEntity;
 import com.utn.javaproject.dndsheets.mappers.Mapper;
 import com.utn.javaproject.dndsheets.services.CharacterStatsService;
+import com.utn.javaproject.dndsheets.services.CharacterCreateRequestValidator;
 import com.utn.javaproject.dndsheets.services.LevelService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,31 +21,28 @@ public class CharacterStatsController {
 
     private final Mapper<CharacterStatsEntity, CharacterStatsDto> characterStatsMapper;
     private final CharacterStatsService characterStatsService;
+    private final CharacterCreateRequestValidator characterCreateRequestValidator;
     private final LevelService levelService;
 
     public CharacterStatsController(Mapper<CharacterStatsEntity, CharacterStatsDto> characterStatsMapper,
-                                    CharacterStatsService characterStatsService, LevelService levelService) {
+                                    CharacterStatsService characterStatsService,
+                                    CharacterCreateRequestValidator characterCreateRequestValidator,
+                                    LevelService levelService) {
         this.characterStatsMapper = characterStatsMapper;
         this.characterStatsService = characterStatsService;
+        this.characterCreateRequestValidator = characterCreateRequestValidator;
         this.levelService = levelService;
     }
 
     @PostMapping(path = "/character-stats")
     public ResponseEntity<CharacterStatsDto> createCharacterStats(@RequestBody CharacterStatsDto characterStatsDto) {
-        CharacterStatsEntity characterStatsEntity = characterStatsMapper.mapFrom(characterStatsDto);
-        if (!(characterStatsEntity.getAbilityScores().size() == 6)) {
-            Set<String> requiredKeys = Set.of("Strength", "Dexterity", "Constitution",
-                    "Intelligence", "Wisdom", "Charisma");
-
-            if(!characterStatsEntity.getAbilityScores().keySet().equals(requiredKeys)){
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-            for(Short value: characterStatsEntity.getAbilityScores().values()){
-                if(value<1 || value>20){
-                    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-                }
-            }
+        try {
+            characterCreateRequestValidator.validateAbilityScores(characterStatsDto.getAbilityScores());
+        } catch (IllegalArgumentException exception) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+
+        CharacterStatsEntity characterStatsEntity = characterStatsMapper.mapFrom(characterStatsDto);
 
         Set<String> requiredProficiencies = Set.of(
             "Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History",
@@ -104,6 +102,14 @@ public class CharacterStatsController {
 
         if (!characterStatsService.isExists(id)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (characterStatsDto.getAbilityScores() != null) {
+            try {
+                characterCreateRequestValidator.validateAbilityScores(characterStatsDto.getAbilityScores());
+            } catch (IllegalArgumentException exception) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
         }
 
         CharacterStatsEntity characterStatsEntity = characterStatsMapper.mapFrom(characterStatsDto);

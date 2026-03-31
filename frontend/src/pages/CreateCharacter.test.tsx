@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CharacterCatalogClassOption, CreateCharacterPayload } from '../interfaces/character'
+import { CANONICAL_ALIGNMENTS, type CharacterCatalogClassOption, type CreateCharacterPayload } from '../interfaces/character'
 import { api } from '../services/api'
 import { DEFAULT_PROFICIENCIES } from '../utils/characterDraft'
 import { CreateCharacter } from './CreateCharacter'
@@ -160,13 +160,12 @@ describe('CreateCharacter', () => {
 
     fireEvent.change(screen.getByLabelText('Campaign'), { target: { value: '2' } })
     fireEvent.change(screen.getByLabelText('Character Name'), { target: { value: ' Iria ' } })
-    fireEvent.change(screen.getByLabelText('Alignment'), { target: { value: ' Neutral Good ' } })
+    fireEvent.change(screen.getByLabelText('Alignment'), { target: { value: 'Neutral Good' } })
     fireEvent.change(screen.getByLabelText('Background'), { target: { value: ' Sage ' } })
     fireEvent.change(screen.getByLabelText('Race'), { target: { value: '7' } })
     fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '3' } })
     fireEvent.change(screen.getByLabelText('Hit Points'), { target: { value: '8' } })
-    fireEvent.change(screen.getByLabelText('Proficiency Bonus'), { target: { value: '3' } })
     fireEvent.change(screen.getByLabelText('Characteristics'), { target: { value: 'Darkvision\nArcane Recovery' } })
     fireEvent.blur(screen.getByLabelText('Characteristics'))
     fireEvent.change(screen.getByLabelText('Dexterity', { selector: '#ability-Dexterity' }), { target: { value: '14' } })
@@ -197,8 +196,8 @@ describe('CreateCharacter', () => {
       alignment: 'Neutral Good',
       background: 'Sage',
       characterStats: {
-        xp: 0,
-        proficiency: 3,
+        xp: 900,
+        proficiency: 2,
         abilityScores: {
           Strength: 10,
           Dexterity: 14,
@@ -212,7 +211,7 @@ describe('CreateCharacter', () => {
           ...DEFAULT_PROFICIENCIES,
           Arcana: 1,
           History: 2,
-          Wisdom: 1,
+          Intelligence: 1,
         },
         hp: 8,
       },
@@ -261,7 +260,7 @@ describe('CreateCharacter', () => {
     )
   })
 
-  it('renders advanced sheet fields and updates the live snapshot', async () => {
+  it('renders advanced sheet fields and tracks derived summary counters', async () => {
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
@@ -272,10 +271,8 @@ describe('CreateCharacter', () => {
     fireEvent.change(screen.getByLabelText('Personality Traits'), { target: { value: 'Strategic thinker' } })
 
     expect(screen.getByText((_, element) => element?.textContent === 'Level 2')).toBeInTheDocument()
-    expect(screen.getByText('Spellcasting')).toBeInTheDocument()
-    expect(screen.getByText('1 skill selections')).toBeInTheDocument()
-    expect(screen.getByText((_, element) => element?.textContent === '1 saving throw')).toBeInTheDocument()
-    expect(screen.getByText('Personality Trait: Strategic thinker')).toBeInTheDocument()
+    expect(screen.getAllByText('Saving Throws').length).toBeGreaterThan(0)
+    expect(screen.getByText('Skill Selections')).toBeInTheDocument()
   })
 
   it('preserves the filled draft and shows submit feedback when creation fails', async () => {
@@ -322,15 +319,17 @@ describe('CreateCharacter', () => {
     expect(screen.getByLabelText('Hit Points')).toHaveValue(18)
     expect(screen.getByLabelText('Speed')).toHaveValue(35)
     expect(screen.getByLabelText('XP')).toHaveValue(250)
-    expect(screen.getByLabelText('Proficiency Bonus')).toHaveValue(3)
+    expect(screen.getByLabelText('Proficiency Bonus')).toHaveValue(2)
     expect(screen.getByLabelText('Strength', { selector: '#ability-Strength' })).toHaveValue(10)
     expect(screen.getByLabelText('Dexterity', { selector: '#ability-Dexterity' })).toHaveValue(14)
     expect(screen.getByLabelText('Constitution', { selector: '#ability-Constitution' })).toHaveValue(12)
     expect(screen.getByLabelText('Intelligence', { selector: '#ability-Intelligence' })).toHaveValue(16)
     expect(screen.getByLabelText('Wisdom', { selector: '#ability-Wisdom' })).toHaveValue(13)
     expect(screen.getByLabelText('Charisma', { selector: '#ability-Charisma' })).toHaveValue(8)
-    expect(screen.getByRole('checkbox', { name: 'Intelligence saving throw' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Wisdom saving throw' })).not.toBeChecked()
+    await waitFor(() => {
+      expect(screen.getByRole('checkbox', { name: 'Intelligence saving throw' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Wisdom saving throw' })).toBeChecked()
+    })
     expect(screen.getByLabelText('Arcana')).toHaveValue('1')
     expect(screen.getByLabelText('History')).toHaveValue('2')
     expect(screen.getByLabelText('Personality Traits')).toHaveValue('Curious and patient')
@@ -409,7 +408,7 @@ describe('CreateCharacter', () => {
     })
   })
 
-  it('previews both classes and the combined level in create mode', async () => {
+  it('shows combined level summary in create mode with multiclass rows', async () => {
     const user = userEvent.setup()
 
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
@@ -422,10 +421,8 @@ describe('CreateCharacter', () => {
     fireEvent.change(screen.getByLabelText('Secondary Level'), { target: { value: '2' } })
 
     expect(screen.getByText((_, element) => element?.textContent === 'Level 5')).toBeInTheDocument()
-    expect(screen.getByText('Wizard - Level 3')).toBeInTheDocument()
-    expect(screen.getByText('Fighter - Level 2')).toBeInTheDocument()
-    expect(screen.getByText('Arcane Recovery')).toBeInTheDocument()
-    expect(screen.getByText('Second Wind')).toBeInTheDocument()
+    expect(screen.getByLabelText('Primary Class')).toHaveValue('8')
+    expect(screen.getByLabelText('Secondary Class')).toHaveValue('5')
   })
 
   it('preserves the edit draft and shows submit feedback when an update call fails', async () => {
@@ -454,7 +451,7 @@ describe('CreateCharacter', () => {
     expect(screen.getByLabelText('Level')).toHaveValue(4)
     expect(screen.getByLabelText('Hit Points')).toHaveValue(20)
     expect(api.characters.update).toHaveBeenCalledWith(21, { name: 'Iria Stormborn' })
-    expect(api.characterStats.update).toHaveBeenCalledWith(14, { hp: 20 })
+    expect(api.characterStats.update).toHaveBeenCalledWith(14, expect.objectContaining({ hp: 20 }))
     expect(api.levels.update).not.toHaveBeenCalled()
     expect(onSuccess).not.toHaveBeenCalled()
   })
@@ -484,7 +481,7 @@ describe('CreateCharacter', () => {
     expect(screen.getByLabelText('Hit Points')).toHaveValue(18)
     expect(screen.getByLabelText('Speed')).toHaveValue(35)
     expect(screen.getByLabelText('XP')).toHaveValue(250)
-    expect(screen.getByLabelText('Proficiency Bonus')).toHaveValue(3)
+    expect(screen.getByLabelText('Proficiency Bonus')).toHaveValue(2)
     expect(screen.getByLabelText('Personality Traits')).toHaveValue('Curious and patient')
     expect(screen.getByText('Darkvision x')).toBeInTheDocument()
 
@@ -495,7 +492,7 @@ describe('CreateCharacter', () => {
 
     await waitFor(() => {
       expect(api.characters.update).toHaveBeenCalledWith(21, { name: 'Iria Stormborn' })
-      expect(api.characterStats.update).toHaveBeenCalledWith(14, { hp: 20 })
+      expect(api.characterStats.update).toHaveBeenCalledWith(14, expect.objectContaining({ hp: 20 }))
       expect(api.levels.update).toHaveBeenCalledWith(21, 8, {
         character: { id: 21 },
         dndClass: { id: 8 },
@@ -584,7 +581,7 @@ describe('CreateCharacter', () => {
     fireEvent.change(screen.getByLabelText('XP'), { target: { value: '300' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
 
-    await waitFor(() => expect(api.characterStats.update).toHaveBeenCalledWith(14, { xp: 300 }))
+    await waitFor(() => expect(api.characterStats.update).toHaveBeenCalledWith(14, expect.objectContaining({ xp: 300 })))
     expect(api.levels.update).not.toHaveBeenCalled()
     expect(api.levels.create).not.toHaveBeenCalled()
     expect(api.levels.remove).not.toHaveBeenCalled()
@@ -592,5 +589,94 @@ describe('CreateCharacter', () => {
       characterId: 21,
       characterName: 'Iria',
     })
+  })
+
+  it('renders alignment as canonical picklist with exact options', async () => {
+    render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
+
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+    const alignmentSelect = screen.getByLabelText('Alignment')
+    expect(alignmentSelect.tagName).toBe('SELECT')
+
+    const options = screen.getAllByRole('option').map((option) => option.textContent)
+    expect(options).toContain('Select alignment')
+    CANONICAL_ALIGNMENTS.forEach((alignment) => {
+      expect(options).toContain(alignment)
+    })
+  })
+
+  it('keeps proficiency bonus non-editable and auto-derived from highest class level', async () => {
+    render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
+
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+    const proficiencyInput = screen.getByLabelText('Proficiency Bonus')
+    expect(proficiencyInput).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '6' } })
+    expect(proficiencyInput).toHaveValue(3)
+  })
+
+  it('sets defaults using first selected class when highest level tie occurs', async () => {
+    const user = userEvent.setup()
+    render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
+
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '4' } })
+    await user.click(screen.getByRole('button', { name: 'Add Secondary Class' }))
+    fireEvent.change(screen.getByLabelText('Secondary Class'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Secondary Level'), { target: { value: '4' } })
+
+    expect(screen.getByRole('checkbox', { name: 'Intelligence saving throw' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Wisdom saving throw' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Strength saving throw' })).not.toBeChecked()
+  })
+
+  it('allows manual saving throw override after auto defaults', async () => {
+    render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
+
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+
+    const intelligenceSavingThrow = screen.getByRole('checkbox', { name: 'Intelligence saving throw' })
+    expect(intelligenceSavingThrow).toBeChecked()
+
+    fireEvent.click(intelligenceSavingThrow)
+    expect(intelligenceSavingThrow).not.toBeChecked()
+  })
+
+  it('initializes XP once in create mode and does not auto-overwrite manual XP', async () => {
+    render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
+
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '3' } })
+
+    const xpInput = await screen.findByLabelText('XP')
+    expect(xpInput).toHaveValue(900)
+
+    fireEvent.change(xpInput, { target: { value: '1200' } })
+    expect(xpInput).toHaveValue(1200)
+
+    fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '4' } })
+    expect(xpInput).toHaveValue(1200)
+  })
+
+  it('clamps ability scores to 20', async () => {
+    render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
+
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+    const dexterityInput = screen.getByLabelText('Dexterity', { selector: '#ability-Dexterity' })
+
+    fireEvent.change(dexterityInput, { target: { value: '25' } })
+    expect(dexterityInput).toHaveValue(20)
+  })
+
+  it('does not render sheet snapshot panel', async () => {
+    render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
+
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+    expect(screen.queryByRole('heading', { level: 3, name: 'Sheet Snapshot' })).not.toBeInTheDocument()
   })
 })

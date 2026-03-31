@@ -11,9 +11,12 @@ import java.util.Optional;
 @Service
 public class CharacterStatsService {
     private CharacterStatsRepository characterStatsRepository;
+    private final CharacterCreateRequestValidator characterCreateRequestValidator;
 
-    public CharacterStatsService(CharacterStatsRepository characterStatsRepository) {
+    public CharacterStatsService(CharacterStatsRepository characterStatsRepository,
+                                 CharacterCreateRequestValidator characterCreateRequestValidator) {
         this.characterStatsRepository = characterStatsRepository;
+        this.characterCreateRequestValidator = characterCreateRequestValidator;
     }
 
     public CharacterStatsEntity save(CharacterStatsEntity characterStats) {
@@ -34,6 +37,10 @@ public class CharacterStatsService {
 
     public CharacterStatsEntity partialUpdate(Long id, CharacterStatsEntity characterStatsEntity) {
         characterStatsEntity.setId(id);
+
+        if (characterStatsEntity.getAbilityScores() != null) {
+            characterCreateRequestValidator.validateAbilityScores(characterStatsEntity.getAbilityScores());
+        }
 
         return characterStatsRepository.findById(id).map(existingStats -> {
             Optional.ofNullable(characterStatsEntity.getCharacter()).ifPresent(existingStats::setCharacter);

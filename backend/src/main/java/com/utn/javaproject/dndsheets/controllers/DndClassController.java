@@ -6,6 +6,7 @@ import com.utn.javaproject.dndsheets.mappers.Mapper;
 import com.utn.javaproject.dndsheets.services.DndClassService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class DndClassController {
         this.dndClassService = dndClassService;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(path = "/dnd-classes")
     public ResponseEntity<DndClassDto> createDndClass(@RequestBody DndClassDto dndClassDto) {
         DndClassEntity dndClassEntity = dndClassMapper.mapFrom(dndClassDto);
@@ -46,6 +48,7 @@ public class DndClassController {
         }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(path = "dnd-class/{id}")
     public ResponseEntity<DndClassDto> fullUpdateDndClass(
             @PathVariable("id") Long id,

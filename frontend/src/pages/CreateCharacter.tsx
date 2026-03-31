@@ -16,8 +16,12 @@ import {
   buildCreateCharacterPayload,
   createCharacterDraft,
   DEFAULT_ABILITY_SCORES,
-  getCharacterCatalogSelections,
+  deriveProficiencyFromLevel,
+  deriveSavingThrowDefaults,
+  deriveXpFromLevel,
+  resolveDrivingClass,
 } from '../utils/characterDraft'
+import { CANONICAL_ALIGNMENTS as canonicalAlignments } from '../interfaces/character'
 
 interface CreateCharacterProps {
   currentUserId: number
@@ -46,8 +50,6 @@ const abilityScoreOrder: AbilityScoreName[] = [
   'Charisma',
 ]
 
-const savingThrowOrder: AbilityScoreName[] = [...abilityScoreOrder]
-
 const skillGroups: Array<{ ability: AbilityScoreName; skills: string[] }> = [
   { ability: 'Strength', skills: ['Athletics'] },
   { ability: 'Dexterity', skills: ['Acrobatics', 'Sleight of Hand', 'Stealth'] },
@@ -56,14 +58,49 @@ const skillGroups: Array<{ ability: AbilityScoreName; skills: string[] }> = [
   { ability: 'Charisma', skills: ['Deception', 'Intimidation', 'Performance', 'Persuasion'] },
 ]
 
-const skillProficiencyOptions = [
-  { value: 0, label: 'None' },
-  { value: 1, label: 'Proficient' },
-  { value: 2, label: 'Expertise' },
-]
-
 const MIN_CLASS_LEVEL = 1
 const MAX_CLASS_LEVEL = 20
+
+function getFixedHpGainPerLevel(hitDice: number) {
+  return Math.floor(hitDice / 2) + 1
+}
+
+function calculateAutoHp(draft: CharacterDraft, classes: CharacterCatalogClassOption[]) {
+  const classById = new Map(classes.map((entry) => [entry.id, entry]))
+  const selectedRows = draft.classLevels.filter((entry) => hasSelectedClass(entry) && isAllowedClassLevel(entry.level))
+
+  if (selectedRows.length === 0) {
+    return null
+  }
+
+  const constitutionModifier = Math.floor((draft.abilityScores.Constitution - 10) / 2)
+  let totalHp = 0
+
+  selectedRows.forEach((entry, index) => {
+    const classData = classById.get(entry.classId)
+
+    if (!classData?.hitDice) {
+      return
+    }
+
+    const levelCount = Math.max(1, Math.trunc(entry.level))
+    const perLevelGain = Math.max(1, getFixedHpGainPerLevel(classData.hitDice) + constitutionModifier)
+
+    if (index === 0) {
+      totalHp += Math.max(1, classData.hitDice + constitutionModifier)
+
+      if (levelCount > 1) {
+        totalHp += (levelCount - 1) * perLevelGain
+      }
+
+      return
+    }
+
+    totalHp += levelCount * perLevelGain
+  })
+
+  return Math.max(1, totalHp)
+}
 
 function createEmptyClassRow(): InitialCharacterClassLevel {
   return {
@@ -101,10 +138,6 @@ function parseNumber(value: string, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
-function isAbilityScoreName(value: string): value is AbilityScoreName {
-  return abilityScoreOrder.includes(value as AbilityScoreName)
-}
-
 function getInitialDraft(currentUserId: number, mode: 'create' | 'edit', initialEditData: HydratedCharacterEditData | null) {
   if (mode === 'edit' && initialEditData) {
     return createCharacterDraft(initialEditData.draft)
@@ -132,6 +165,9 @@ export function CreateCharacter({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [autoCalculateHp, setAutoCalculateHp] = useState(false)
+  const [hasUserEditedXp, setHasUserEditedXp] = useState(false)
+  const [lastAutoSavingThrowsKey, setLastAutoSavingThrowsKey] = useState<string | null>(null)
 
   const isEditMode = mode === 'edit'
   const isMulticlassEdit = isEditMode && draft.classLevels.length > 1
@@ -142,6 +178,9 @@ export function CreateCharacter({
     setCharacteristicsInput('')
     setFieldErrors({})
     setSubmitError(null)
+    setAutoCalculateHp(false)
+    setHasUserEditedXp(false)
+    setLastAutoSavingThrowsKey(null)
   }, [currentUserId, initialEditData, mode])
 
   useEffect(() => {
@@ -185,29 +224,85 @@ export function CreateCharacter({
     }
   }, [])
 
-  const selections = useMemo(
-    () => getCharacterCatalogSelections(draft, { campaigns, races, classes }),
-    [campaigns, races, classes, draft],
+  const drivingClass = useMemo(() => resolveDrivingClass(draft.classLevels), [draft.classLevels])
+  const derivedProficiency = useMemo(
+    () => deriveProficiencyFromLevel(drivingClass?.level ?? 1),
+    [drivingClass?.level],
+  )
+  const classSavingThrowDefaults = useMemo(
+    () => deriveSavingThrowDefaults(draft.classLevels, classes),
+    [classes, draft.classLevels],
   )
   const editClassNameById = useMemo(
     () => new Map((initialEditData?.classRows ?? []).map((row) => [row.classId, row.name ?? `Class ${row.classId}`])),
     [initialEditData],
   )
 
-  const totalLevel = selections.selectedClasses.reduce((sum, entry) => sum + entry.level, 0)
+  const totalLevel = draft.classLevels.reduce((sum, entry) => sum + (Number.isFinite(entry.level) ? entry.level : 0), 0)
   const speed = draft.velocities[0] ?? 30
   const armorClass = 10 + Math.floor((draft.abilityScores.Dexterity - 10) / 2)
-  const initiative = Math.floor((draft.abilityScores.Dexterity - 10) / 2)
-  const selectedSkillCount = Object.entries(draft.proficiencies).filter(
-    ([name, value]) => !isAbilityScoreName(name) && value > 0,
-  ).length
-  const selectedSavingThrowCount = savingThrowOrder.filter((name) => (draft.proficiencies[name] ?? 0) > 0).length
-  const detailPreview = [
-    draft.details.personalityTraits.trim() ? `Personality Trait: ${draft.details.personalityTraits.trim()}` : null,
-    draft.details.ideals.trim() ? `Ideal: ${draft.details.ideals.trim()}` : null,
-    draft.details.bonds.trim() ? `Bond: ${draft.details.bonds.trim()}` : null,
-    draft.details.flaws.trim() ? `Flaw: ${draft.details.flaws.trim()}` : null,
-  ].filter((entry): entry is string => Boolean(entry))
+  useEffect(() => {
+    if (draft.proficiency === derivedProficiency) {
+      return
+    }
+
+    setDraft((current) => ({
+      ...current,
+      proficiency: derivedProficiency,
+    }))
+  }, [derivedProficiency, draft.proficiency])
+
+  useEffect(() => {
+    const drivingClassName = drivingClass ? classes.find((entry) => entry.id === drivingClass.classId)?.name ?? 'unknown' : 'none'
+    const drivingKey = drivingClass ? `${drivingClass.classId}:${drivingClass.level}:${drivingClassName}` : 'none'
+
+    if (drivingKey === lastAutoSavingThrowsKey) {
+      return
+    }
+
+    setDraft((current) => ({
+      ...current,
+      proficiencies: {
+        ...current.proficiencies,
+        ...classSavingThrowDefaults,
+      },
+    }))
+    setLastAutoSavingThrowsKey(drivingKey)
+  }, [classSavingThrowDefaults, classes, draft.classLevels, drivingClass, lastAutoSavingThrowsKey])
+
+  useEffect(() => {
+    if (isEditMode || hasUserEditedXp || !drivingClass) {
+      return
+    }
+
+    const derivedXp = deriveXpFromLevel(drivingClass.level)
+
+    if (draft.xp === derivedXp) {
+      return
+    }
+
+    setDraft((current) => ({
+      ...current,
+      xp: derivedXp,
+    }))
+  }, [drivingClass, draft.xp, hasUserEditedXp, isEditMode])
+
+  useEffect(() => {
+    if (!autoCalculateHp) {
+      return
+    }
+
+    const autoHp = calculateAutoHp(draft, classes)
+
+    if (!autoHp || draft.hp === autoHp) {
+      return
+    }
+
+    setDraft((current) => ({
+      ...current,
+      hp: autoHp,
+    }))
+  }, [autoCalculateHp, classes, draft])
 
   const pageTitle = isEditMode ? 'Edit Character' : 'Create Character'
   const pageLead = isEditMode
@@ -294,6 +389,8 @@ export function CreateCharacter({
     }
     if (!nextDraft.alignment.trim()) {
       nextErrors.alignment = 'Alignment is required'
+    } else if (!canonicalAlignments.includes(nextDraft.alignment.trim() as (typeof canonicalAlignments)[number])) {
+      nextErrors.alignment = 'Alignment must be a canonical D&D alignment'
     }
     if (!nextDraft.background.trim()) {
       nextErrors.background = 'Background is required'
@@ -353,12 +450,20 @@ export function CreateCharacter({
       .map((entry) => entry.trim())
       .filter(Boolean)
 
-    const nextDraft = pendingCharacteristics.length
+    const draftWithCharacteristics = pendingCharacteristics.length
       ? {
           ...draft,
           characteristics: [...draft.characteristics, ...pendingCharacteristics.filter((token) => !draft.characteristics.includes(token))],
         }
       : draft
+
+    const createDrivingClass = resolveDrivingClass(draftWithCharacteristics.classLevels)
+    const nextDraft = !isEditMode && !hasUserEditedXp && createDrivingClass
+      ? {
+          ...draftWithCharacteristics,
+          xp: deriveXpFromLevel(createDrivingClass.level),
+        }
+      : draftWithCharacteristics
 
     if (!validateForm(nextDraft)) {
       return
@@ -504,9 +609,8 @@ export function CreateCharacter({
                   <div className="create-character-two-column">
                     <div className="form-group">
                       <label htmlFor="character-alignment">Alignment</label>
-                      <input
+                      <select
                         id="character-alignment"
-                        type="text"
                         value={draft.alignment}
                         onChange={(event) => {
                           setDraft((current) => ({ ...current, alignment: event.target.value }))
@@ -515,7 +619,12 @@ export function CreateCharacter({
                         }}
                         disabled={isSubmitting}
                         aria-invalid={Boolean(fieldErrors.alignment)}
-                      />
+                      >
+                        <option value="">Select alignment</option>
+                        {canonicalAlignments.map((alignment) => (
+                          <option key={alignment} value={alignment}>{alignment}</option>
+                        ))}
+                      </select>
                       {fieldErrors.alignment && <p className="field-error">{fieldErrors.alignment}</p>}
                     </div>
 
@@ -562,13 +671,13 @@ export function CreateCharacter({
                   </div>
 
                   <section className="create-character-subsection">
-                    <h4>{isEditMode ? 'Class Progression' : 'Class'}</h4>
+                    <h4>{isEditMode ? 'Level For Class' : 'Class'}</h4>
                     {isMulticlassEdit && <p className="section-subtitle">Multiclass rows are locked during editing.</p>}
                     {isMulticlassEdit ? (
                       <div className="create-character-skill-groups">
                         {draft.classLevels.map((entry, index) => (
                           <div key={`${entry.classId}-${index}`} className="skill-group-card">
-                            <div className="create-character-two-column">
+                            <div className="create-character-two-column create-character-class-row">
                               <div className="form-group">
                                 <label htmlFor={`character-class-${index}`}>Class</label>
                                 <input
@@ -590,7 +699,7 @@ export function CreateCharacter({
                       <>
                         <div className="create-character-skill-groups">
                           <div className="skill-group-card">
-                            <div className="create-character-two-column">
+                            <div className="create-character-two-column create-character-class-row">
                               <div className="form-group">
                                 <label htmlFor="character-class">{isEditMode ? 'Class' : 'Primary Class'}</label>
                                 <select
@@ -654,7 +763,7 @@ export function CreateCharacter({
 
                           {!isEditMode && secondaryCreateRow ? (
                             <div className="skill-group-card">
-                              <div className="create-character-two-column">
+                              <div className="create-character-two-column create-character-class-row">
                                 <div className="form-group">
                                   <label htmlFor="character-secondary-class">Secondary Class</label>
                                   <select
@@ -714,8 +823,32 @@ export function CreateCharacter({
                           setDraft((current) => ({ ...current, hp: Math.max(1, parseNumber(event.target.value, 1)) }))
                           setSubmitError(null)
                         }}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || autoCalculateHp}
                       />
+                      <label className="create-character-inline-checkbox" htmlFor="character-hp-auto">
+                        <input
+                          id="character-hp-auto"
+                          type="checkbox"
+                          checked={autoCalculateHp}
+                          onChange={(event) => {
+                            const nextChecked = event.target.checked
+                            setAutoCalculateHp(nextChecked)
+
+                            if (nextChecked) {
+                              const autoHp = calculateAutoHp(draft, classes)
+
+                              if (autoHp) {
+                                setDraft((current) => ({
+                                  ...current,
+                                  hp: autoHp,
+                                }))
+                              }
+                            }
+                          }}
+                          disabled={isSubmitting}
+                        />
+                        <span>Auto-calculate (D&D fixed HP average)</span>
+                      </label>
                     </div>
 
                     <div className="form-group">
@@ -743,6 +876,9 @@ export function CreateCharacter({
                         value={draft.xp}
                         onChange={(event) => {
                           setDraft((current) => ({ ...current, xp: Math.max(0, parseNumber(event.target.value, 0)) }))
+                          if (!isEditMode) {
+                            setHasUserEditedXp(true)
+                          }
                           setSubmitError(null)
                         }}
                         disabled={isSubmitting}
@@ -755,14 +891,10 @@ export function CreateCharacter({
                         id="character-proficiency"
                         type="number"
                         min="1"
-                        max="10"
+                        max="6"
                         value={draft.proficiency}
-                        onChange={(event) => {
-                          const nextBonus = Math.min(10, Math.max(1, parseNumber(event.target.value, 2)))
-                          setDraft((current) => ({ ...current, proficiency: nextBonus }))
-                          setSubmitError(null)
-                        }}
-                        disabled={isSubmitting}
+                        disabled
+                        readOnly
                       />
                     </div>
                   </div>
@@ -778,10 +910,10 @@ export function CreateCharacter({
                           id={`ability-${ability}`}
                           type="number"
                           min="1"
-                          max="30"
+                          max="20"
                           value={draft.abilityScores[ability]}
                           onChange={(event) => {
-                            const nextValue = Math.min(30, Math.max(1, parseNumber(event.target.value, DEFAULT_ABILITY_SCORES[ability])))
+                            const nextValue = Math.min(20, Math.max(1, parseNumber(event.target.value, DEFAULT_ABILITY_SCORES[ability])))
                             setDraft((current) => ({
                               ...current,
                               abilityScores: {
@@ -796,34 +928,30 @@ export function CreateCharacter({
                         <span className="ability-draft-modifier">
                           Mod {Math.floor((draft.abilityScores[ability] - 10) / 2)}
                         </span>
+                        <label htmlFor={`saving-${ability}`} className="ability-save-row">
+                          <input
+                            id={`saving-${ability}`}
+                            type="checkbox"
+                            checked={(draft.proficiencies[ability] ?? 0) > 0}
+                            onChange={(event) => {
+                              setDraft((current) => ({
+                                ...current,
+                                proficiencies: {
+                                  ...current.proficiencies,
+                                  [ability]: event.target.checked ? 1 : 0,
+                                },
+                              }))
+                              setSubmitError(null)
+                            }}
+                            disabled={isSubmitting}
+                          />
+                          <span>Saving Throw Proficiency</span>
+                          {classSavingThrowDefaults[ability] > 0 && (
+                            <span className="ability-save-granted">Class</span>
+                          )}
+                        </label>
                       </div>
                     ))}
-                  </div>
-
-                  <div className="create-character-sheet-strip">
-                    <div>
-                      <span className="sheet-strip-label">Proficiency</span>
-                      <strong>+{draft.proficiency}</strong>
-                    </div>
-                    <div>
-                      <span className="sheet-strip-label">Initiative</span>
-                      <strong>{initiative >= 0 ? `+${initiative}` : initiative}</strong>
-                    </div>
-                    <div>
-                      <span className="sheet-strip-label">XP</span>
-                      <strong>{draft.xp}</strong>
-                    </div>
-                  </div>
-
-                  <div className="sheet-mini-grid">
-                    <div className="sheet-mini-card">
-                      <span className="sheet-strip-label">Saving Throws</span>
-                      <strong>{selectedSavingThrowCount}</strong>
-                    </div>
-                    <div className="sheet-mini-card">
-                      <span className="sheet-strip-label">Skill Selections</span>
-                      <strong>{selectedSkillCount}</strong>
-                    </div>
                   </div>
 
                   <div className="form-group">
@@ -860,74 +988,6 @@ export function CreateCharacter({
                       </div>
                     )}
                   </div>
-
-                  <section className="create-character-subsection">
-                    <h4>Saving Throws</h4>
-                    <div className="create-character-saving-grid">
-                      {savingThrowOrder.map((ability) => (
-                        <label key={ability} className="toggle-card">
-                          <input
-                            type="checkbox"
-                            checked={(draft.proficiencies[ability] ?? 0) > 0}
-                            onChange={(event) => {
-                              setDraft((current) => ({
-                                ...current,
-                                proficiencies: {
-                                  ...current.proficiencies,
-                                  [ability]: event.target.checked ? 1 : 0,
-                                },
-                              }))
-                              setSubmitError(null)
-                            }}
-                            disabled={isSubmitting}
-                            aria-label={`${ability} saving throw`}
-                          />
-                          <span>{ability}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="create-character-subsection">
-                    <h4>Skill Proficiencies</h4>
-                    <div className="create-character-skill-groups">
-                      {skillGroups.map((group) => (
-                        <div key={group.ability} className="skill-group-card">
-                          <span className="sheet-strip-label">{group.ability}</span>
-                          <div className="skill-group-list">
-                            {group.skills.map((skill) => (
-                              <div key={skill} className="skill-select-row">
-                                <label htmlFor={`skill-${skill}`}>{skill}</label>
-                                <select
-                                  id={`skill-${skill}`}
-                                  aria-label={draft.proficiencies[skill] === 2 ? `${skill} expertise` : skill}
-                                  value={draft.proficiencies[skill] ?? 0}
-                                  onChange={(event) => {
-                                    const nextValue = Number(event.target.value)
-                                    setDraft((current) => ({
-                                      ...current,
-                                      proficiencies: {
-                                        ...current.proficiencies,
-                                        [skill]: nextValue,
-                                      },
-                                    }))
-                                    setSubmitError(null)
-                                  }}
-                                  disabled={isSubmitting}
-                                >
-                                  {skillProficiencyOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
 
                   <section className="create-character-subsection">
                     <h4>Roleplay Details</h4>
@@ -1007,70 +1067,76 @@ export function CreateCharacter({
                   </section>
                 </section>
 
-                <aside className="create-character-panel create-character-sidebar">
-                  <h3>Sheet Snapshot</h3>
-                  <div className="sheet-preview-block">
-                    <span className="sheet-preview-label">Selected Campaign</span>
-                    <strong>{selections.selectedCampaign?.name ?? 'Choose a campaign'}</strong>
-                  </div>
-                  <div className="sheet-preview-block">
-                    <span className="sheet-preview-label">Race Notes</span>
-                    <strong>{selections.selectedRace?.name ?? 'Choose a race'}</strong>
-                    <p>{selections.selectedRace?.description ?? 'Racial description will appear here.'}</p>
-                    {selections.selectedRace?.racialFeats?.length ? (
-                      <ul>
-                        {selections.selectedRace.racialFeats.map((feat) => (
-                          <li key={feat}>{feat}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                  <div className="sheet-preview-block">
-                    <span className="sheet-preview-label">Class Features</span>
-                    {selections.selectedClasses.length === 0 ? (
-                      <p>Select a primary class to preview the submitted class split.</p>
-                    ) : (
-                      <>
-                        <strong>Total Level {totalLevel}</strong>
-                        {selections.selectedClasses.map((selectedClass, index) => (
-                          <div key={`${selectedClass.id}-${index}`} className="sheet-preview-feature-group">
-                            <strong>{selectedClass.name} - Level {selectedClass.level}</strong>
-                            <p>{selectedClass.description}</p>
-                            <ul>
-                              {Object.entries(selectedClass.levelCharacteristics)
-                                .filter(([level]) => Number(level) <= selectedClass.level)
-                                .map(([level, feature]) => (
-                                  <li key={`${selectedClass.id}-${level}`}>{feature}</li>
-                                ))}
-                            </ul>
+              </div>
+
+              <section className="create-character-panel create-character-panel-wide">
+                <h3>Skill Proficiencies</h3>
+                <div className="create-character-skill-groups">
+                  {skillGroups.map((group) => (
+                    <div
+                      key={group.ability}
+                      className={`skill-group-card ${group.ability === 'Charisma' ? 'skill-group-card-centered' : ''}`}
+                    >
+                      <span className="sheet-strip-label">{group.ability}</span>
+                      <div className="skill-group-list">
+                        {group.skills.map((skill) => (
+                          <div key={skill} className="skill-select-row">
+                            <label htmlFor={`skill-${skill}`}>{skill}</label>
+                            <div className="skill-checkbox-grid">
+                              <label htmlFor={`skill-${skill}-proficient`} className="skill-checkbox-inline">
+                                <input
+                                  id={`skill-${skill}-proficient`}
+                                  type="checkbox"
+                                  checked={(draft.proficiencies[skill] ?? 0) > 0}
+                                  onChange={(event) => {
+                                    const isChecked = event.target.checked
+                                    setDraft((current) => {
+                                      const currentValue = current.proficiencies[skill] ?? 0
+                                      return {
+                                        ...current,
+                                        proficiencies: {
+                                          ...current.proficiencies,
+                                          [skill]: isChecked ? (currentValue === 2 ? 2 : 1) : 0,
+                                        },
+                                      }
+                                    })
+                                    setSubmitError(null)
+                                  }}
+                                  disabled={isSubmitting}
+                                />
+                                <span>Proficiency</span>
+                              </label>
+
+                              {(draft.proficiencies[skill] ?? 0) > 0 && (
+                                <label htmlFor={`skill-${skill}-expertise`} className="skill-checkbox-inline">
+                                  <input
+                                    id={`skill-${skill}-expertise`}
+                                    type="checkbox"
+                                    checked={(draft.proficiencies[skill] ?? 0) === 2}
+                                    onChange={(event) => {
+                                      const isChecked = event.target.checked
+                                      setDraft((current) => ({
+                                        ...current,
+                                        proficiencies: {
+                                          ...current.proficiencies,
+                                          [skill]: isChecked ? 2 : 1,
+                                        },
+                                      }))
+                                      setSubmitError(null)
+                                    }}
+                                    disabled={isSubmitting}
+                                  />
+                                  <span>Expertise</span>
+                                </label>
+                              )}
+                            </div>
                           </div>
                         ))}
-                      </>
-                    )}
-                  </div>
-                  <div className="sheet-preview-block">
-                    <span className="sheet-preview-label">Prepared Training</span>
-                    <strong>{selectedSkillCount} skill selections</strong>
-                    <p>{selectedSavingThrowCount} saving throw{selectedSavingThrowCount === 1 ? '' : 's'}</p>
-                  </div>
-                  <div className="sheet-preview-block">
-                    <span className="sheet-preview-label">Roleplay Notes</span>
-                    {detailPreview.length > 0 ? (
-                      <ul>
-                        {detailPreview.map((entry) => (
-                          <li key={entry}>{entry}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>Add traits, ideals, bonds, or flaws to preview them here.</p>
-                    )}
-                  </div>
-                  <div className="sheet-preview-block sheet-preview-block-muted">
-                    <span className="sheet-preview-label">Still Pending</span>
-                    <p>Equipment, spell lists, currencies, and other sheet sections still need backend-backed persistence before they can join this form safely.</p>
-                  </div>
-                </aside>
-              </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
               <div className="form-actions">
                 <button type="button" className="logout-button" onClick={onCancel} disabled={isSubmitting}>

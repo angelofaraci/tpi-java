@@ -4,12 +4,14 @@ import { Login } from './pages/Login'
 import { Characters } from './pages/Characters'
 import { CreateCampaign } from './pages/CreateCampaign'
 import { CreateCharacter } from './pages/CreateCharacter'
+import { AdminPanel } from './pages/AdminPanel'
 import { api } from './services/api'
 import type { OwnedCampaignSummary } from './interfaces/campaign'
 import type { HydratedCharacterEditData } from './interfaces/character'
+import type { User } from './interfaces/user'
 import './styles/CharacterSheet.css'
 
-type View = 'home' | 'character-sheet' | 'create-campaign' | 'create-character'
+type View = 'home' | 'character-sheet' | 'create-campaign' | 'create-character' | 'admin'
 type CharacterFormMode = 'create' | 'edit'
 type CharacterReturnView = 'home' | 'character-sheet'
 
@@ -21,10 +23,6 @@ interface CharacterCard {
   race?: {
     name?: string
   }
-}
-
-interface AuthenticatedUser {
-  id?: number | string
 }
 
 interface DeleteDialogState {
@@ -49,6 +47,7 @@ function formatCampaignStartDate(creationDate?: string) {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [userRole, setUserRole] = useState<'ROLE_USER' | 'ROLE_ADMIN' | null>(null)
   const [view, setView] = useState<View>('home')
   const [characters, setCharacters] = useState<CharacterCard[]>([])
   const [campaigns, setCampaigns] = useState<OwnedCampaignSummary[]>([])
@@ -90,12 +89,13 @@ function App() {
 
       if (!resolvedUserId) {
         try {
-          const user = await api.auth.me() as AuthenticatedUser
+          const user = await api.auth.me() as User
           const userIdNum = user.id ? Number(user.id) : null
 
           if (userIdNum) {
             resolvedUserId = userIdNum
             setCurrentUserId(userIdNum)
+            setUserRole(user.role)
           }
         } catch (meErr) {
           console.warn('Failed to resolve authenticated user, falling back to all characters', meErr)
@@ -171,6 +171,7 @@ function App() {
     latestCampaignRequestId.current += 1
     setIsAuthenticated(false)
     setCurrentUserId(null)
+    setUserRole(null)
     setView('home')
     setSelectedCharacterId(null)
     setCharacters([])
@@ -210,6 +211,12 @@ function App() {
     setCharacterReturnView('home')
     setEditCharacterData(null)
     setView('create-character')
+  }
+
+  const handleOpenAdminPanel = () => {
+    setCampaignFeedback(null)
+    setCharacterSheetFeedback(null)
+    setView('admin')
   }
 
   const handleOpenEditCharacter = (nextEditData: HydratedCharacterEditData) => {
@@ -349,6 +356,13 @@ function App() {
         onSuccess={handleCreateCampaignSuccess}
       />
     )
+  } else if (view === 'admin') {
+    content = (
+      <AdminPanel
+        onBack={handleBackToHome}
+        onLogout={handleLogout}
+      />
+    )
   } else if (view === 'create-character' && currentUserId) {
     content = (
       <CreateCharacter
@@ -365,7 +379,14 @@ function App() {
       <div>
       <header className="app-header">
         <h1>D&D Manager</h1>
-        <button onClick={handleLogout} className="logout-button">Logout</button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          {userRole === 'ROLE_ADMIN' && (
+            <button onClick={handleOpenAdminPanel} className="section-action-button">
+              Admin Panel
+            </button>
+          )}
+          <button onClick={handleLogout} className="logout-button">Logout</button>
+        </div>
       </header>
 
       <div className="app-shell">

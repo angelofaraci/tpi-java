@@ -1,5 +1,6 @@
 import type {
   AbilityScores,
+  AbilityScoreName,
   CharacterCatalogClassOption,
   CharacterCatalogData,
   CharacterDetails,
@@ -84,6 +85,113 @@ export const DEFAULT_CHARACTER_DRAFT: CharacterDraft = {
   proficiencies: DEFAULT_PROFICIENCIES,
   hp: 1,
   details: DEFAULT_CHARACTER_DETAILS,
+}
+
+export function resolveDrivingClass(classLevels: InitialCharacterClassLevel[]): InitialCharacterClassLevel | null {
+  let winner: InitialCharacterClassLevel | null = null
+
+  classLevels.forEach((entry) => {
+    const normalized = normalizeClassLevelEntry(entry)
+
+    if (!normalized) {
+      return
+    }
+
+    if (!winner || normalized.level > winner.level) {
+      winner = normalized
+    }
+  })
+
+  return winner
+}
+
+export function deriveProficiencyFromLevel(level: number) {
+  if (level >= 17) return 6
+  if (level >= 13) return 5
+  if (level >= 9) return 4
+  if (level >= 5) return 3
+  return 2
+}
+
+const XP_BY_LEVEL: Record<number, number> = {
+  1: 0,
+  2: 300,
+  3: 900,
+  4: 2700,
+  5: 6500,
+  6: 14000,
+  7: 23000,
+  8: 34000,
+  9: 48000,
+  10: 64000,
+  11: 85000,
+  12: 100000,
+  13: 120000,
+  14: 140000,
+  15: 165000,
+  16: 195000,
+  17: 225000,
+  18: 265000,
+  19: 305000,
+  20: 355000,
+}
+
+export function deriveXpFromLevel(level: number) {
+  const normalizedLevel = Math.min(20, Math.max(1, Math.trunc(level)))
+  return XP_BY_LEVEL[normalizedLevel] ?? 0
+}
+
+const SAVING_THROW_BY_CLASS_NAME: Record<string, [AbilityScoreName, AbilityScoreName]> = {
+  Artificer: ['Constitution', 'Intelligence'],
+  Barbarian: ['Strength', 'Constitution'],
+  Bard: ['Dexterity', 'Charisma'],
+  Cleric: ['Wisdom', 'Charisma'],
+  Druid: ['Intelligence', 'Wisdom'],
+  Fighter: ['Strength', 'Constitution'],
+  Monk: ['Strength', 'Dexterity'],
+  Paladin: ['Wisdom', 'Charisma'],
+  Ranger: ['Strength', 'Dexterity'],
+  Rogue: ['Dexterity', 'Intelligence'],
+  Sorcerer: ['Constitution', 'Charisma'],
+  Warlock: ['Wisdom', 'Charisma'],
+  Wizard: ['Intelligence', 'Wisdom'],
+}
+
+export function deriveSavingThrowDefaults(
+  classLevels: InitialCharacterClassLevel[],
+  classes: CharacterCatalogClassOption[],
+): Record<AbilityScoreName, number> {
+  const defaults: Record<AbilityScoreName, number> = {
+    Strength: 0,
+    Dexterity: 0,
+    Constitution: 0,
+    Intelligence: 0,
+    Wisdom: 0,
+    Charisma: 0,
+  }
+
+  const drivingClass = resolveDrivingClass(classLevels)
+
+  if (!drivingClass) {
+    return defaults
+  }
+
+  const className = classes.find((entry) => entry.id === drivingClass.classId)?.name
+
+  if (!className) {
+    return defaults
+  }
+
+  const savingThrows = SAVING_THROW_BY_CLASS_NAME[className]
+
+  if (!savingThrows) {
+    return defaults
+  }
+
+  defaults[savingThrows[0]] = 1
+  defaults[savingThrows[1]] = 1
+
+  return defaults
 }
 
 function cloneAbilityScores(scores: AbilityScores): AbilityScores {

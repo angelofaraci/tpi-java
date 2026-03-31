@@ -13,4 +13,3 @@ public class InitialClassLevelDto {
     private Long classId;
     private Short level;
 }
-

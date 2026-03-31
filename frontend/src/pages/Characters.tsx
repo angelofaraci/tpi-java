@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { ScoreBox } from '../components/scoreBox'
 import '../styles/CharacterSheet.css'
 import { api } from '../services/api'
-import type { Character, HydratedCharacterEditData, LevelRecord } from '../interfaces/character'
+import type { Character, CharacterCatalogClassOption, HydratedCharacterEditData, LevelRecord } from '../interfaces/character'
 import { hydrateCharacterEditData } from '../utils/characterDraft'
 
 type LevelResponse = {
@@ -15,6 +15,7 @@ type LevelResponse = {
   }
   dndClass?: {
     id?: number | string
+    name?: string
     description?: string
     levelCharacteristics?: Record<string, unknown>
   }
@@ -32,6 +33,7 @@ interface FormCharacterData {
     features: Array<{ level: number; text: string }>;
   }>;
   race: string;
+  racialFeats: string[];
   background: string;
   characteristics: string[];
   alignment: string;
@@ -84,9 +86,10 @@ export function Characters({
       setLoading(true)
       setError(null)
       try {
-        const [responseData, levelsResponse] = await Promise.all([
+        const [responseData, levelsResponse, classesResponse] = await Promise.all([
           api.characters.findById(characterId),
           api.levels.findAll().catch(() => []),
+          api.classes.findAll().catch(() => []),
         ])
 
         if (!responseData || typeof responseData !== 'object') {
@@ -119,9 +122,11 @@ export function Characters({
         }
 
         const normalizedLevels = Array.isArray(levelsResponse) ? (levelsResponse as LevelRecord[]) : []
+        const classCatalog = Array.isArray(classesResponse) ? (classesResponse as CharacterCatalogClassOption[]) : []
+        const classCatalogById = new Map(classCatalog.map((entry) => [Number(entry.id), entry]))
 
-        const classLevels = normalizedLevels
-          ? levelsResponse
+        const classLevels = normalizedLevels.length > 0
+          ? normalizedLevels
               .filter((lvl): lvl is LevelResponse => typeof lvl === 'object' && lvl !== null)
               .filter((lvl) => {
                 const levelData = lvl as LevelResponse
@@ -131,9 +136,16 @@ export function Characters({
               .map((lvl) => {
                 const levelData = lvl as LevelResponse
                 const classId = Number(levelData.id?.classId ?? levelData.dndClass?.id ?? 0)
-                const description = String(levelData.dndClass?.description ?? 'Unknown')
+                const classCatalogEntry = classCatalogById.get(classId)
+                const description = String(
+                  levelData.dndClass?.name
+                    ?? classCatalogEntry?.name
+                    ?? levelData.dndClass?.description
+                    ?? classCatalogEntry?.description
+                    ?? 'Unknown',
+                )
                 const level = Number(levelData.level ?? 0)
-                const rawCharacteristics = levelData.dndClass?.levelCharacteristics
+                const rawCharacteristics = levelData.dndClass?.levelCharacteristics ?? classCatalogEntry?.levelCharacteristics
                 const features =
                   rawCharacteristics && typeof rawCharacteristics === 'object'
                     ? Object.entries(rawCharacteristics)
@@ -152,6 +164,7 @@ export function Characters({
           name: mappedData.name || '',
           classes: classLevels,
           race: mappedData.race.name || '',
+          racialFeats: mappedData.race.racialFeats || [],
           background: mappedData.background || '',
           characteristics: mappedData.characteristics || [],
           alignment: mappedData.alignment || '',
@@ -202,6 +215,8 @@ export function Characters({
     return null
   }
 
+  const dexterityModifier = Math.floor((characterSheetData.abilityScores.Dexterity - 10) / 2)
+
   return (
     <div>
       <header className="app-header">
@@ -228,36 +243,53 @@ export function Characters({
         {deleteError && <div className="error-message" style={{ marginTop: '1rem' }}>{deleteError}</div>}
       </div>
       <div className="character-sheet">
+        <div className="sheet-actions-row">
+          <button
+            type="button"
+            className="section-action-button sheet-hero-action-button"
+            onClick={() => {
+              if (characterEditData) {
+                onEditCharacter(characterEditData)
+              }
+            }}
+            disabled={!characterEditData}
+          >
+            Edit Character
+          </button>
+          <button
+            type="button"
+            className="sheet-delete-button sheet-hero-action-button"
+            onClick={() => onDeleteCharacter(characterId, characterSheetData.name)}
+            disabled={deletingCharacterId === characterId}
+          >
+            {deletingCharacterId === characterId ? 'Deleting...' : 'Delete Character'}
+          </button>
+        </div>
+
         <div className="header-section">
           <div className="sheet-hero-actions">
-            <div>
+            <div className="sheet-hero-content">
               <span className="sheet-hero-badge">Character Sheet</span>
               <h2 className="sheet-hero-title">{characterSheetData.name || 'Unnamed Character'}</h2>
               <p className="sheet-hero-copy">Review the current sheet, class features, and core stats before making your next table decision.</p>
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="section-action-button sheet-hero-action-button"
-                onClick={() => {
-                  if (characterEditData) {
-                    onEditCharacter(characterEditData)
-                  }
-                }}
-                disabled={!characterEditData}
-              >
-                Edit Character
-              </button>
-              <button
-                type="button"
-                className="sheet-delete-button sheet-hero-action-button"
-                onClick={() => onDeleteCharacter(characterId, characterSheetData.name)}
-                disabled={deletingCharacterId === characterId}
-              >
-                {deletingCharacterId === characterId ? 'Deleting...' : 'Delete Character'}
-              </button>
+          </div>
+
+          <div className="stats-container sheet-top-stats">
+            <div className="stat-box">
+              <div>Armor Class</div>
+              <div className="score">{10 + dexterityModifier}</div>
+            </div>
+            <div className="stat-box">
+              <div>Initiative</div>
+              <div className="score">{dexterityModifier}</div>
+            </div>
+            <div className="stat-box">
+              <div>Speed</div>
+              <div className="score">{characterSheetData.velocity}</div>
             </div>
           </div>
+
           <div className="basic-info">
             <div className='infobox'>
               <h3>Name: </h3>
@@ -291,120 +323,138 @@ export function Characters({
               <h3>Proficiency: </h3>
               <p>{characterSheetData.proficiency}</p>
             </div>
+            <div className='infobox'>
+              <h3>HP: </h3>
+              <p>{characterSheetData.hp}</p>
+            </div>
           </div>
         </div>
 
-        <div className="ability-scores">
-          <ScoreBox
-            label="Strength"
-            score={characterSheetData.abilityScores.Strength}
-            skills={[{ name: 'Athletics', proficient: characterSheetData.proficiencies['Athletics'] }]}
-            savingProficiency={characterSheetData.proficiencies['Strength']}
-            proficiencyBonus={characterSheetData.proficiency}
-          />
-          <ScoreBox
-            label="Dexterity"
-            score={characterSheetData.abilityScores.Dexterity}
-            skills={[
-              { name: 'Acrobatics', proficient: characterSheetData.proficiencies['Acrobatics'] },
-              { name: 'Sleight of Hand', proficient: characterSheetData.proficiencies['Sleight of Hand'] },
-              { name: 'Stealth', proficient: characterSheetData.proficiencies['Stealth'] },
-            ]}
-            savingProficiency={characterSheetData.proficiencies['Dexterity']}
-            proficiencyBonus={characterSheetData.proficiency}
-          />
-          <ScoreBox
-            label="Constitution"
-            score={characterSheetData.abilityScores.Constitution}
-            skills={[]}
-            savingProficiency={characterSheetData.proficiencies['Constitution']}
-            proficiencyBonus={characterSheetData.proficiency}
-          />
-          <ScoreBox
-            label="Intelligence"
-            score={characterSheetData.abilityScores.Intelligence}
-            skills={[
-              { name: 'Arcana', proficient: characterSheetData.proficiencies['Arcana'] },
-              { name: 'History', proficient: characterSheetData.proficiencies['History'] },
-              { name: 'Investigation', proficient: characterSheetData.proficiencies['Investigation'] },
-              { name: 'Nature', proficient: characterSheetData.proficiencies['Nature'] },
-              { name: 'Religion', proficient: characterSheetData.proficiencies['Religion'] },
-            ]}
-            savingProficiency={characterSheetData.proficiencies['Intelligence']}
-            proficiencyBonus={characterSheetData.proficiency}
-          />
-          <ScoreBox
-            label="Wisdom"
-            score={characterSheetData.abilityScores.Wisdom}
-            skills={[
-              { name: 'Animal Handling', proficient: characterSheetData.proficiencies['Animal Handling'] },
-              { name: 'Insight', proficient: characterSheetData.proficiencies['Insight'] },
-              { name: 'Medicine', proficient: characterSheetData.proficiencies['Medicine'] },
-              { name: 'Perception', proficient: characterSheetData.proficiencies['Perception'] },
-              { name: 'Survival', proficient: characterSheetData.proficiencies['Survival'] },
-            ]}
-            savingProficiency={characterSheetData.proficiencies['Wisdom']}
-            proficiencyBonus={characterSheetData.proficiency}
-          />
-          <ScoreBox
-            label="Charisma"
-            score={characterSheetData.abilityScores.Charisma}
-            skills={[
-              { name: 'Deception', proficient: characterSheetData.proficiencies['Deception'] },
-              { name: 'Intimidation', proficient: characterSheetData.proficiencies['Intimidation'] },
-              { name: 'Performance', proficient: characterSheetData.proficiencies['Performance'] },
-              { name: 'Persuasion', proficient: characterSheetData.proficiencies['Persuasion'] },
-            ]}
-            savingProficiency={characterSheetData.proficiencies['Charisma']}
-            proficiencyBonus={characterSheetData.proficiency}
-          />
-        </div>
+        <div className="sheet-columns">
+          <div className="sheet-column-left">
+            <div className="features-section">
+              <h3>Abilities & Proficiencies</h3>
+              <div className="ability-scores ability-scores-sidebar">
+                <ScoreBox
+                  label="Strength"
+                  score={characterSheetData.abilityScores.Strength}
+                  skills={[{ name: 'Athletics', proficient: characterSheetData.proficiencies['Athletics'] }]}
+                  savingProficiency={characterSheetData.proficiencies['Strength']}
+                  proficiencyBonus={characterSheetData.proficiency}
+                />
+                <ScoreBox
+                  label="Dexterity"
+                  score={characterSheetData.abilityScores.Dexterity}
+                  skills={[
+                    { name: 'Acrobatics', proficient: characterSheetData.proficiencies['Acrobatics'] },
+                    { name: 'Sleight of Hand', proficient: characterSheetData.proficiencies['Sleight of Hand'] },
+                    { name: 'Stealth', proficient: characterSheetData.proficiencies['Stealth'] },
+                  ]}
+                  savingProficiency={characterSheetData.proficiencies['Dexterity']}
+                  proficiencyBonus={characterSheetData.proficiency}
+                />
+                <ScoreBox
+                  label="Constitution"
+                  score={characterSheetData.abilityScores.Constitution}
+                  skills={[]}
+                  savingProficiency={characterSheetData.proficiencies['Constitution']}
+                  proficiencyBonus={characterSheetData.proficiency}
+                />
+                <ScoreBox
+                  label="Intelligence"
+                  score={characterSheetData.abilityScores.Intelligence}
+                  skills={[
+                    { name: 'Arcana', proficient: characterSheetData.proficiencies['Arcana'] },
+                    { name: 'History', proficient: characterSheetData.proficiencies['History'] },
+                    { name: 'Investigation', proficient: characterSheetData.proficiencies['Investigation'] },
+                    { name: 'Nature', proficient: characterSheetData.proficiencies['Nature'] },
+                    { name: 'Religion', proficient: characterSheetData.proficiencies['Religion'] },
+                  ]}
+                  savingProficiency={characterSheetData.proficiencies['Intelligence']}
+                  proficiencyBonus={characterSheetData.proficiency}
+                />
+                <ScoreBox
+                  label="Wisdom"
+                  score={characterSheetData.abilityScores.Wisdom}
+                  skills={[
+                    { name: 'Animal Handling', proficient: characterSheetData.proficiencies['Animal Handling'] },
+                    { name: 'Insight', proficient: characterSheetData.proficiencies['Insight'] },
+                    { name: 'Medicine', proficient: characterSheetData.proficiencies['Medicine'] },
+                    { name: 'Perception', proficient: characterSheetData.proficiencies['Perception'] },
+                    { name: 'Survival', proficient: characterSheetData.proficiencies['Survival'] },
+                  ]}
+                  savingProficiency={characterSheetData.proficiencies['Wisdom']}
+                  proficiencyBonus={characterSheetData.proficiency}
+                />
+                <ScoreBox
+                  label="Charisma"
+                  score={characterSheetData.abilityScores.Charisma}
+                  skills={[
+                    { name: 'Deception', proficient: characterSheetData.proficiencies['Deception'] },
+                    { name: 'Intimidation', proficient: characterSheetData.proficiencies['Intimidation'] },
+                    { name: 'Performance', proficient: characterSheetData.proficiencies['Performance'] },
+                    { name: 'Persuasion', proficient: characterSheetData.proficiencies['Persuasion'] },
+                  ]}
+                  savingProficiency={characterSheetData.proficiencies['Charisma']}
+                  proficiencyBonus={characterSheetData.proficiency}
+                />
+              </div>
+            </div>
+          </div>
 
-        <div className="stats-container">
-          <div className="stat-box">
-            <div>Armor Class</div>
-            <div className="score">{10 + Math.floor((characterSheetData.abilityScores.Dexterity - 10) / 2)}</div>
-          </div>
-          <div className="stat-box">
-            <div>Initiative</div>
-            <div className="score">{Math.floor((characterSheetData.abilityScores.Dexterity - 10) / 2)}</div>
-          </div>
-          <div className="stat-box">
-            <div>Speed</div>
-            <div className="score">{characterSheetData.velocity}</div>
-          </div>
-        </div>
+          <div className="sheet-column-right">
+            <div className="features-section">
+              <h3>Class Features</h3>
+              {characterSheetData.classes.length === 0 ? (
+                <div className="feature-item">No class features</div>
+              ) : (
+                characterSheetData.classes.map((c) => (
+                  <div key={c.classId}>
+                    <div className="feature-item">
+                      <strong>{c.description} (Level {c.level})</strong>
+                    </div>
+                    {c.features.length === 0 ? (
+                      <div className="feature-item">No features unlocked</div>
+                    ) : (
+                      c.features.map((f) => (
+                        <div key={`${c.classId}-${f.level}`} className="feature-item">
+                          {f.text}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
 
-        <div className="features-section">
-          <h3>Class Features</h3>
-          {characterSheetData.classes.length === 0 ? (
-            <div className="feature-item">No class features</div>
-          ) : (
-            characterSheetData.classes.map((c) => (
-              <div key={c.classId}>
-                <div className="feature-item">
-                  <strong>{c.description} (Level {c.level})</strong>
-                </div>
-                {c.features.length === 0 ? (
-                  <div className="feature-item">No features unlocked</div>
+            <div className="feature-duo-grid">
+              <div className="features-section">
+                <h3>Race Features</h3>
+                {!characterSheetData.racialFeats || characterSheetData.racialFeats.length === 0 ? (
+                  <div className="feature-item">No racial features</div>
                 ) : (
-                  c.features.map((f) => (
-                    <div key={`${c.classId}-${f.level}`} className="feature-item">
-                      {f.text}
+                  characterSheetData.racialFeats.map((feat, index) => (
+                    <div key={index} className="feature-item">
+                      {feat}
                     </div>
                   ))
                 )}
               </div>
-            ))
-          )}
-        </div>
-        <div className="features-section">
-          <h3>Character Features</h3>
-          {characterSheetData.characteristics.map((feature, index) => (
-            <div key={index} className="feature-item">
-              {feature}
+
+              <div className="features-section">
+                <h3>Character Features</h3>
+                {characterSheetData.characteristics.length === 0 ? (
+                  <div className="feature-item">No character features</div>
+                ) : (
+                  characterSheetData.characteristics.map((feature, index) => (
+                    <div key={index} className="feature-item">
+                      {feature}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </div>

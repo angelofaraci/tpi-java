@@ -84,9 +84,13 @@ public class CharacterController {
         }
 
         characterDto.setId(id);
-        CharacterEntity characterEntity = characterMapper.mapFrom(characterDto);
-        CharacterEntity savedEntity = characterService.save(characterEntity);
-        return new ResponseEntity<>(characterMapper.mapTo(savedEntity), HttpStatus.OK);
+        try {
+            CharacterEntity characterEntity = characterMapper.mapFrom(characterDto);
+            CharacterEntity savedEntity = characterService.save(characterEntity);
+            return new ResponseEntity<>(characterMapper.mapTo(savedEntity), HttpStatus.OK);
+        } catch (IllegalArgumentException exception) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 
     @PatchMapping(path = "character/{id}")
@@ -98,9 +102,13 @@ public class CharacterController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        CharacterEntity characterEntity = characterMapper.mapFrom(characterDto);
-        CharacterEntity updatedCharacter = characterService.partialUpdate(id, characterEntity);
-        return new ResponseEntity<>(characterMapper.mapTo(updatedCharacter), HttpStatus.OK);
+        try {
+            CharacterEntity characterEntity = characterMapper.mapFrom(characterDto);
+            CharacterEntity updatedCharacter = characterService.partialUpdate(id, characterEntity);
+            return new ResponseEntity<>(characterMapper.mapTo(updatedCharacter), HttpStatus.OK);
+        } catch (IllegalArgumentException exception) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 
     @DeleteMapping(path = "character/{id}")

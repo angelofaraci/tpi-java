@@ -11,6 +11,7 @@ import type {
   LevelPayload,
   LevelRecord,
 } from '../interfaces/character'
+import type { User } from '../interfaces/user'
 
 type JsonObject = Record<string, unknown>
 
@@ -18,8 +19,19 @@ interface AuthTokenResponse {
   token?: string
 }
 
-interface AuthUserResponse {
-  id?: number | string
+export interface DndClassDto {
+  id?: number
+  name: string
+  description: string
+  levelCharacteristics: Record<number, string>
+  hitDice: number
+}
+
+export interface RaceDto {
+  id?: number
+  name: string
+  description: string
+  racialFeats: string[]
 }
 
 // Configuración base
@@ -282,7 +294,66 @@ export const api = {
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: createHeaders(),
       })
-      return handleResponse<AuthUserResponse>(response)
+      return handleResponse<User>(response)
+    },
+  },
+
+  // ADMIN
+  admin: {
+    races: {
+      async create(race: RaceDto) {
+        const response = await fetch(`${API_BASE_URL}/races`, {
+          method: 'POST',
+          headers: createHeaders(),
+          body: JSON.stringify(race),
+        })
+        return handleResponse<RaceDto>(response)
+      },
+
+      async update(id: number, race: RaceDto) {
+        const response = await fetch(`${API_BASE_URL}/race/${id}`, {
+          method: 'PUT',
+          headers: createHeaders(),
+          body: JSON.stringify(race),
+        })
+        return handleResponse<RaceDto>(response)
+      },
+
+      async delete(id: number) {
+        const response = await fetch(`${API_BASE_URL}/race/${id}`, {
+          method: 'DELETE',
+          headers: createHeaders(),
+        })
+        return handleResponse(response)
+      },
+    },
+
+    classes: {
+      async create(dndClass: DndClassDto) {
+        const response = await fetch(`${API_BASE_URL}/dnd-classes`, {
+          method: 'POST',
+          headers: createHeaders(),
+          body: JSON.stringify(dndClass),
+        })
+        return handleResponse<DndClassDto>(response)
+      },
+
+      async update(id: number, dndClass: DndClassDto) {
+        const response = await fetch(`${API_BASE_URL}/dnd-class/${id}`, {
+          method: 'PUT',
+          headers: createHeaders(),
+          body: JSON.stringify(dndClass),
+        })
+        return handleResponse<DndClassDto>(response)
+      },
+
+      async delete(id: number) {
+        const response = await fetch(`${API_BASE_URL}/dnd-class/${id}`, {
+          method: 'DELETE',
+          headers: createHeaders(),
+        })
+        return handleResponse(response)
+      },
     },
   },
 }

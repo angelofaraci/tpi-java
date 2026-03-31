@@ -1,12 +1,15 @@
 package com.utn.javaproject.dndsheets.services;
 
 import com.utn.javaproject.dndsheets.domain.dto.CharacterDto;
+import com.utn.javaproject.dndsheets.domain.dto.CharacterStatsDto;
 import com.utn.javaproject.dndsheets.domain.dto.InitialClassLevelDto;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Component
@@ -14,8 +17,27 @@ public class CharacterCreateRequestValidator {
 
     private static final short DEFAULT_INITIAL_LEVEL = 1;
     private static final int MAX_INITIAL_CLASSES = 2;
+    private static final short MIN_ABILITY_SCORE = 1;
+    private static final short MAX_ABILITY_SCORE = 20;
+
+    private static final Set<String> CANONICAL_ALIGNMENTS = Set.of(
+            "Lawful Good", "Neutral Good", "Chaotic Good",
+            "Lawful Neutral", "True Neutral", "Chaotic Neutral",
+            "Lawful Evil", "Neutral Evil", "Chaotic Evil"
+    );
+
+    private static final Set<String> REQUIRED_ABILITY_SCORE_KEYS = Set.of(
+            "Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"
+    );
 
     public List<InitialClassLevelDto> validate(CharacterDto characterDto) {
+        validateAlignment(characterDto.getAlignment());
+
+        CharacterStatsDto stats = characterDto.getCharacterStats();
+        if (stats != null && stats.getAbilityScores() != null) {
+            validateAbilityScores(stats.getAbilityScores());
+        }
+
         List<InitialClassLevelDto> preferredInitialClasses = characterDto.getInitialClasses();
         List<Long> legacyInitialClassIds = characterDto.getInitialClassIds();
 
@@ -89,5 +111,23 @@ public class CharacterCreateRequestValidator {
         }
 
         return normalized;
+    }
+
+    public void validateAlignment(String alignment) {
+        if (alignment == null || !CANONICAL_ALIGNMENTS.contains(alignment.trim())) {
+            throw new IllegalArgumentException("Alignment must be one of the canonical D&D values");
+        }
+    }
+
+    public void validateAbilityScores(Map<String, Short> abilityScores) {
+        if (abilityScores == null || !new HashSet<>(abilityScores.keySet()).equals(REQUIRED_ABILITY_SCORE_KEYS)) {
+            throw new IllegalArgumentException("Ability scores must contain exactly the six canonical abilities");
+        }
+
+        for (Short value : abilityScores.values()) {
+            if (value == null || value < MIN_ABILITY_SCORE || value > MAX_ABILITY_SCORE) {
+                throw new IllegalArgumentException("Ability scores must be between 1 and 20");
+            }
+        }
     }
 }

@@ -1,6 +1,7 @@
 /* Root */
 #root {
-  max-width: 80rem;
+  max-width: none;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
@@ -352,6 +353,7 @@
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
+  margin-top: 1.25rem;
 }
 
 .form-submit-button {
@@ -362,6 +364,20 @@
   margin: 0.5rem 0 0;
   color: #fca5a5;
   font-size: 0.875rem;
+}
+
+.create-character-inline-checkbox {
+  margin-top: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-foreground-muted);
+}
+
+.create-character-inline-checkbox input {
+  width: auto;
+  margin: 0;
 }
 
 /* Buttons */
@@ -560,7 +576,7 @@
 
 .create-character-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(18rem, 0.9fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   gap: 1.25rem;
 }
 
@@ -569,6 +585,10 @@
   border: 1px solid var(--color-border);
   border-radius: 0.9rem;
   padding: 1.5rem;
+}
+
+.create-character-panel-wide {
+  margin-top: 1.25rem;
 }
 
 .create-character-panel h3 {
@@ -592,6 +612,10 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+}
+
+.create-character-class-row {
+  grid-template-columns: 1fr auto;
 }
 
 .create-character-compact-stats {
@@ -619,16 +643,41 @@
   font-weight: 700;
 }
 
+.ability-draft-card input {
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
 .ability-draft-modifier {
   color: var(--color-foreground-muted);
   font-size: 0.85rem;
 }
 
-.create-character-sheet-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin: 1.25rem 0;
+.ability-save-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+  margin-top: 0.15rem;
+}
+
+.ability-save-row input {
+  width: auto;
+  margin: 0;
+}
+
+.ability-save-granted {
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background-color: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  color: #bfdbfe;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .create-character-sheet-strip div,
@@ -636,16 +685,6 @@
   border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   background-color: rgba(9, 9, 11, 0.7);
-}
-
-.create-character-sheet-strip div {
-  padding: 0.9rem;
-}
-
-.create-character-sheet-strip strong {
-  display: block;
-  margin-top: 0.4rem;
-  font-size: 1.15rem;
 }
 
 .sheet-mini-grid {
@@ -736,6 +775,12 @@
   background-color: rgba(9, 9, 11, 0.55);
 }
 
+.skill-group-card-centered {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: min(100%, 32rem);
+}
+
 .skill-group-list {
   display: grid;
   gap: 0.75rem;
@@ -747,15 +792,29 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 0.45rem;
   align-items: start;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid rgba(63, 63, 70, 0.55);
+}
+
+.skill-group-list .skill-select-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .skill-select-row label {
   margin: 0;
 }
 
-.skill-select-row select {
-  width: 100%;
-  min-width: 0;
+.skill-checkbox-grid {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.skill-checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
 }
 
 .create-character-sidebar {

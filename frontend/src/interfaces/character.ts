@@ -6,6 +6,20 @@ export type AbilityScoreName =
   | 'Wisdom'
   | 'Charisma'
 
+export const CANONICAL_ALIGNMENTS = [
+  'Lawful Good',
+  'Neutral Good',
+  'Chaotic Good',
+  'Lawful Neutral',
+  'True Neutral',
+  'Chaotic Neutral',
+  'Lawful Evil',
+  'Neutral Evil',
+  'Chaotic Evil',
+] as const
+
+export type CanonicalAlignment = (typeof CANONICAL_ALIGNMENTS)[number]
+
 export type AbilityScores = Record<AbilityScoreName, number>
 
 export type SkillProficiencies = Record<string, number>

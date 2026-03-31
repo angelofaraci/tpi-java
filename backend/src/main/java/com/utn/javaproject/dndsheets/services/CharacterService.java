@@ -22,23 +22,35 @@ public class CharacterService {
     private final RaceRepository raceRepository;
     private final CharacterStatsRepository characterStatsRepository;
     private final LevelService levelService;
+    private final CharacterCreateRequestValidator characterCreateRequestValidator;
 
     public CharacterService(CharacterRepository characterRepository,
                            UserRepository userRepository,
                            CampaignRepository campaignRepository,
                            RaceRepository raceRepository,
                            CharacterStatsRepository characterStatsRepository,
-                           LevelService levelService) {
+                           LevelService levelService,
+                           CharacterCreateRequestValidator characterCreateRequestValidator) {
         this.characterRepository = characterRepository;
         this.userRepository = userRepository;
         this.campaignRepository = campaignRepository;
         this.raceRepository = raceRepository;
         this.characterStatsRepository = characterStatsRepository;
         this.levelService = levelService;
+        this.characterCreateRequestValidator = characterCreateRequestValidator;
     }
 
     @Transactional
     public CharacterEntity save(CharacterEntity character) {
+        if (character.getAlignment() != null) {
+            characterCreateRequestValidator.validateAlignment(character.getAlignment());
+            character.setAlignment(character.getAlignment().trim());
+        }
+
+        if (character.getCharacterStats() != null && character.getCharacterStats().getAbilityScores() != null) {
+            characterCreateRequestValidator.validateAbilityScores(character.getCharacterStats().getAbilityScores());
+        }
+
         if (character.getUser() != null && character.getUser().getId() != null) {
             character.setUser(userRepository.findById(character.getUser().getId()).orElse(null));
         }
@@ -112,7 +124,10 @@ public class CharacterService {
             }
             Optional.ofNullable(characterEntity.getName()).ifPresent(existingCharacter::setName);
             Optional.ofNullable(characterEntity.getCharacteristics()).ifPresent(existingCharacter::setCharacteristics);
-            Optional.ofNullable(characterEntity.getAlignment()).ifPresent(existingCharacter::setAlignment);
+            Optional.ofNullable(characterEntity.getAlignment()).ifPresent(alignment -> {
+                characterCreateRequestValidator.validateAlignment(alignment);
+                existingCharacter.setAlignment(alignment.trim());
+            });
             Optional.ofNullable(characterEntity.getBackground()).ifPresent(existingCharacter::setBackground);
             Optional.ofNullable(characterEntity.getCharacterStats()).ifPresent(existingCharacter::setCharacterStats);
             if (characterEntity.getRace() != null) {
