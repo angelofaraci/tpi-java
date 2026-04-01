@@ -17,6 +17,7 @@ import java.util.List;
 @Builder
 public class CampaignDto {
     private Long id;
+    private String joinCode;
     @JsonIgnore
     private UserDto dm;
     private String name;

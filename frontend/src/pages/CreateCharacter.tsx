@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import '../App.css'
 import type {
   AbilityScoreName,
-  CharacterCatalogCampaignOption,
   CharacterCatalogClassOption,
   CharacterCatalogRaceOption,
   CharacterDraft,
@@ -156,8 +155,11 @@ export function CreateCharacter({
 }: CreateCharacterProps) {
   const [draft, setDraft] = useState<CharacterDraft>(() => getInitialDraft(currentUserId, mode, initialEditData))
   const [campaignCode, setCampaignCode] = useState('')
+  const [campaignCodeError, setCampaignCodeError] = useState<string | null>(null)
+  const [campaignCodeStatus, setCampaignCodeStatus] = useState<'idle' | 'loading' | 'valid' | 'invalid'>('idle')
+  const [resolvedCampaignName, setResolvedCampaignName] = useState<string | null>(null)
+  const campaignCodeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [characteristicsInput, setCharacteristicsInput] = useState('')
-  const [campaigns, setCampaigns] = useState<CharacterCatalogCampaignOption[]>([])
   const [races, setRaces] = useState<CharacterCatalogRaceOption[]>([])
   const [classes, setClasses] = useState<CharacterCatalogClassOption[]>([])
   const [catalogError, setCatalogError] = useState<string | null>(null)
@@ -181,6 +183,10 @@ export function CreateCharacter({
     setAutoCalculateHp(false)
     setHasUserEditedXp(false)
     setLastAutoSavingThrowsKey(null)
+    setCampaignCode('')
+    setCampaignCodeError(null)
+    setCampaignCodeStatus('idle')
+    setResolvedCampaignName(null)
   }, [currentUserId, initialEditData, mode])
 
   useEffect(() => {
@@ -191,8 +197,7 @@ export function CreateCharacter({
       setCatalogError(null)
 
       try {
-        const [loadedCampaigns, loadedRaces, loadedClasses] = await Promise.all([
-          api.campaigns.findAll(),
+        const [loadedRaces, loadedClasses] = await Promise.all([
           api.races.findAll(),
           api.classes.findAll(),
         ])
@@ -201,7 +206,6 @@ export function CreateCharacter({
           return
         }
 
-        setCampaigns(Array.isArray(loadedCampaigns) ? loadedCampaigns : [])
         setRaces(Array.isArray(loadedRaces) ? loadedRaces : [])
         setClasses(Array.isArray(loadedClasses) ? loadedClasses : [])
       } catch (error) {
@@ -370,6 +374,41 @@ export function CreateCharacter({
     updateCreateClassRows((rows) => [rows[0] ?? createEmptyClassRow()])
     setFieldErrors((current) => ({ ...current, classId: undefined }))
     setSubmitError(null)
+  }
+
+  const handleCampaignCodeChange = (value: string) => {
+    setCampaignCode(value)
+    setCampaignCodeError(null)
+    setResolvedCampaignName(null)
+    setCampaignCodeStatus('idle')
+    setDraft((current) => ({ ...current, campaignId: null }))
+    setFieldErrors((current) => ({ ...current, campaignId: undefined }))
+
+    if (campaignCodeDebounceRef.current) {
+      clearTimeout(campaignCodeDebounceRef.current)
+    }
+
+    const trimmed = value.trim().toUpperCase()
+    if (!trimmed) return
+
+    setCampaignCodeStatus('loading')
+    campaignCodeDebounceRef.current = setTimeout(async () => {
+      try {
+        const campaign = await api.campaigns.findByCode(trimmed)
+        if (campaign) {
+          setCampaignCodeStatus('valid')
+          setResolvedCampaignName(campaign.name)
+          setCampaignCodeError(null)
+          setDraft((current) => ({ ...current, campaignId: campaign.id }))
+        } else {
+          setCampaignCodeStatus('invalid')
+          setCampaignCodeError('Campaign code not found. Check the code with your DM.')
+        }
+      } catch {
+        setCampaignCodeStatus('invalid')
+        setCampaignCodeError('Could not validate campaign code. Try again.')
+      }
+    }, 600)
   }
 
   const validateForm = (nextDraft: CharacterDraft = draft) => {
@@ -556,36 +595,29 @@ export function CreateCharacter({
                   <h3>Identity</h3>
 
                   <div className="form-group">
-                    <label htmlFor="character-campaign">Campaign</label>
-                    <select
-                      id="character-campaign"
-                      value={draft.campaignId ?? ''}
-                      onChange={(event) => {
-                        const campaignId = event.target.value ? Number(event.target.value) : null
-                        setDraft((current) => ({ ...current, campaignId }))
-                        setFieldErrors((current) => ({ ...current, campaignId: undefined }))
-                      }}
-                      disabled={isSubmitting}
-                      aria-invalid={Boolean(fieldErrors.campaignId)}
-                    >
-                      <option value="">Select a campaign</option>
-                      {campaigns.map((campaign) => (
-                        <option key={campaign.id} value={campaign.id}>{campaign.name}</option>
-                      ))}
-                    </select>
-                    {fieldErrors.campaignId && <p className="field-error">{fieldErrors.campaignId}</p>}
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="character-campaign-code">Campaign Code (Coming Soon)</label>
+                    <label htmlFor="character-campaign-code">Campaign Code</label>
                     <input
                       id="character-campaign-code"
                       type="text"
                       value={campaignCode}
-                      onChange={(event) => setCampaignCode(event.target.value)}
-                      placeholder="Reserved for invite-based joining"
-                      disabled
+                      onChange={(event) => handleCampaignCodeChange(event.target.value)}
+                      placeholder="Ask your DM for the code — e.g. A3F9-B72C"
+                      disabled={isSubmitting}
+                      aria-invalid={Boolean(fieldErrors.campaignId) || campaignCodeStatus === 'invalid'}
+                      style={{ textTransform: 'uppercase' }}
                     />
+                    {campaignCodeStatus === 'loading' && (
+                      <p className="field-hint">Validating code...</p>
+                    )}
+                    {campaignCodeStatus === 'valid' && resolvedCampaignName && (
+                      <p className="field-success">✓ Campaign: <strong>{resolvedCampaignName}</strong></p>
+                    )}
+                    {campaignCodeStatus === 'invalid' && campaignCodeError && (
+                      <p className="field-error">{campaignCodeError}</p>
+                    )}
+                    {fieldErrors.campaignId && campaignCodeStatus === 'idle' && (
+                      <p className="field-error">{fieldErrors.campaignId}</p>
+                    )}
                   </div>
 
                   <div className="form-group">
@@ -932,6 +964,7 @@ export function CreateCharacter({
                           <input
                             id={`saving-${ability}`}
                             type="checkbox"
+                            aria-label={`${ability} saving throw`}
                             checked={(draft.proficiencies[ability] ?? 0) > 0}
                             onChange={(event) => {
                               setDraft((current) => ({
@@ -1081,7 +1114,7 @@ export function CreateCharacter({
                       <div className="skill-group-list">
                         {group.skills.map((skill) => (
                           <div key={skill} className="skill-select-row">
-                            <label htmlFor={`skill-${skill}`}>{skill}</label>
+                            <label htmlFor={`skill-${skill}-proficient`}>{skill}</label>
                             <div className="skill-checkbox-grid">
                               <label htmlFor={`skill-${skill}-proficient`} className="skill-checkbox-inline">
                                 <input

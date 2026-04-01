@@ -1,8 +1,10 @@
 package com.utn.javaproject.dndsheets.services;
 
 import com.utn.javaproject.dndsheets.domain.dto.CampaignSummaryDto;
+import com.utn.javaproject.dndsheets.domain.dto.PlayerCampaignSummaryDto;
 import com.utn.javaproject.dndsheets.domain.entities.CampaignEntity;
 import com.utn.javaproject.dndsheets.repositories.CampaignRepository;
+import com.utn.javaproject.dndsheets.repositories.CharacterRepository;
 import com.utn.javaproject.dndsheets.repositories.UserRepository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
@@ -10,19 +12,23 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class CampaignService {
     private final CampaignRepository campaignRepository;
     private final UserRepository userRepository;
+    private final CharacterRepository characterRepository;
 
-    public CampaignService(CampaignRepository campaignRepository, UserRepository userRepository) {
+    public CampaignService(CampaignRepository campaignRepository, UserRepository userRepository, CharacterRepository characterRepository) {
         this.campaignRepository = campaignRepository;
         this.userRepository = userRepository;
+        this.characterRepository = characterRepository;
     }
 
     public CampaignEntity createCampaign(String username, CampaignEntity campaign) {
         campaign.setDm(resolveDmByUsername(username));
+        campaign.setJoinCode(generateUniqueJoinCode());
         return campaignRepository.save(campaign);
     }
 
@@ -82,15 +88,51 @@ public class CampaignService {
         campaignRepository.deleteById(id);
     }
 
+    @Transactional(readOnly = true)
+    public List<PlayerCampaignSummaryDto> findPlayerCampaignSummaries(String username) {
+        return userRepository.findByUsername(username)
+                .map(user -> characterRepository.findByUserId(user.getId())
+                        .stream()
+                        .filter(character -> character.getCampaign() != null)
+                        .map(character -> {
+                            PlayerCampaignSummaryDto dto = new PlayerCampaignSummaryDto();
+                            dto.setCampaignId(character.getCampaign().getId());
+                            dto.setCampaignName(character.getCampaign().getName());
+                            dto.setCampaignDescription(character.getCampaign().getDescription());
+                            dto.setPrivacy(character.getCampaign().getPrivacy());
+                            dto.setCreationDate(character.getCampaign().getCreationDate());
+                            dto.setCharacterId(character.getId());
+                            dto.setCharacterName(character.getName());
+                            return dto;
+                        })
+                        .toList())
+                .orElse(List.of());
+    }
+
+    public Optional<CampaignEntity> findByCode(String code) {
+        return campaignRepository.findByJoinCode(code.trim().toUpperCase());
+    }
+
     private CampaignSummaryDto mapToSummary(CampaignEntity campaignEntity) {
         CampaignSummaryDto summaryDto = new CampaignSummaryDto();
         summaryDto.setId(campaignEntity.getId());
+        summaryDto.setJoinCode(campaignEntity.getJoinCode());
         summaryDto.setName(campaignEntity.getName());
         summaryDto.setDescription(campaignEntity.getDescription());
         summaryDto.setPrivacy(campaignEntity.getPrivacy());
         summaryDto.setCreationDate(campaignEntity.getCreationDate());
         summaryDto.setPlayerCount(campaignEntity.getPlayers() == null ? 0 : campaignEntity.getPlayers().size());
         return summaryDto;
+    }
+
+    private String generateUniqueJoinCode() {
+        String code;
+        do {
+            // Genera algo como "A3F9-B72C" — 8 caracteres en dos grupos
+            String raw = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+            code = raw.substring(0, 4) + "-" + raw.substring(4, 8);
+        } while (campaignRepository.findByJoinCode(code).isPresent());
+        return code;
     }
 
     private com.utn.javaproject.dndsheets.domain.entities.UserEntity resolveDmById(Long dmId) {

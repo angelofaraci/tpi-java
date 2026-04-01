@@ -28,8 +28,12 @@ vi.mock('./services/api', () => ({
     },
     campaigns: {
       create: vi.fn(),
+      findById: vi.fn(),
       findMine: vi.fn(),
+      findAsPlayer: vi.fn(),
       findAll: vi.fn(),
+      findByCode: vi.fn(),
+      remove: vi.fn(),
     },
     races: {
       findAll: vi.fn(),
@@ -88,6 +92,7 @@ describe('App create campaign flow', () => {
       privacy: false,
     })
     vi.mocked(api.campaigns.findMine).mockResolvedValue([])
+    vi.mocked(api.campaigns.findAsPlayer).mockResolvedValue([])
     vi.mocked(api.campaigns.findAll).mockResolvedValue([
       { id: 3, name: 'Open Table', description: 'Shared campaign', privacy: false },
     ])
@@ -114,10 +119,19 @@ describe('App create campaign flow', () => {
     await user.click(screen.getByRole('button', { name: '+ Create Character' }))
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Create Character' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Campaign')).toBeInTheDocument()
+    expect(screen.getByLabelText('Campaign Code')).toBeInTheDocument()
   })
 
   it('returns home and refreshes characters after creating a character', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
+    vi.mocked(api.campaigns.findByCode).mockResolvedValueOnce({
+      id: 3,
+      name: 'Open Table',
+      description: 'Shared campaign',
+      privacy: false,
+    } as never)
+
     vi.mocked(api.characters.findByUserId)
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
@@ -135,17 +149,20 @@ describe('App create campaign flow', () => {
     await screen.findByRole('button', { name: '+ Create Character' })
     fireEvent.click(screen.getByRole('button', { name: '+ Create Character' }))
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fireEvent.change(screen.getByLabelText('Campaign'), { target: { value: '3' } })
+    fireEvent.change(screen.getByLabelText('Campaign Code'), { target: { value: 'OPEN-TABL' } })
+    await vi.runAllTimersAsync()
     fireEvent.change(screen.getByLabelText('Character Name'), { target: { value: 'Iria' } })
     fireEvent.change(screen.getByLabelText('Alignment'), { target: { value: 'Neutral Good' } })
     fireEvent.change(screen.getByLabelText('Background'), { target: { value: 'Sage' } })
     fireEvent.change(screen.getByLabelText('Race'), { target: { value: '7' } })
     fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '2' } })
-    fireEvent.change(screen.getByLabelText('Arcana'), { target: { value: '1' } })
+    fireEvent.click(screen.getByLabelText('Arcana'))
     fireEvent.change(screen.getByLabelText('Personality Traits'), { target: { value: 'Careful planner' } })
     fireEvent.change(screen.getByLabelText('Hit Points'), { target: { value: '8' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create Character' }))
+
+    vi.useRealTimers()
 
     expect(await screen.findByText('Character "Iria" created successfully.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '+ Create Character' })).toBeInTheDocument()
@@ -332,10 +349,10 @@ describe('App create campaign flow', () => {
 
     expect(await screen.findByText('Character "Iria Stormborn" updated successfully.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: 'Iria Stormborn' })).toBeInTheDocument()
-    expect(screen.getAllByText('Arcane scholar (Level 2)').length).toBeGreaterThan(0)
+    expect(screen.getAllByText((_, element) => element?.textContent === 'Wizard (Level 2)').length).toBeGreaterThan(0)
     await waitFor(() => expect(api.characters.findByUserId).toHaveBeenCalledTimes(2))
     expect(api.characters.update).toHaveBeenCalledWith(31, { name: 'Iria Stormborn' })
-    expect(api.characterStats.update).toHaveBeenCalledWith(18, { hp: 12 })
+    expect(api.characterStats.update).toHaveBeenCalledWith(18, expect.objectContaining({ hp: 12 }))
     expect(api.levels.update).toHaveBeenCalledWith(31, 8, {
       character: { id: 31 },
       dndClass: { id: 8 },
@@ -505,5 +522,212 @@ describe('App create campaign flow', () => {
     await waitFor(() => expect(api.characters.remove).toHaveBeenCalledWith(31))
     expect(await screen.findByText('Character "Iria" deleted successfully.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '+ Create Character' })).toBeInTheDocument()
+  })
+})
+
+describe('App view campaign flow', () => {
+  const mockCampaignDetail = {
+    id: 11,
+    name: 'Intro to Stormwreck Isle',
+    description: 'Starter set adventure',
+    privacy: false,
+    creationDate: '2025-11-29T00:00:00.000+00:00',
+    players: [
+      { id: 3, username: 'alice', email: 'alice@example.com' },
+      { id: 4, username: 'bob', email: 'bob@example.com' },
+    ],
+    characters: [
+      { id: 31 },
+      { id: 44 },
+    ],
+  }
+
+  beforeEach(() => {
+    vi.resetAllMocks()
+    localStorage.setItem('token', 'test-token')
+
+    vi.mocked(api.auth.me).mockResolvedValue({ id: 7 })
+    vi.mocked(api.characters.findByUserId).mockResolvedValue([])
+    vi.mocked(api.characters.findAll).mockResolvedValue([])
+    vi.mocked(api.characters.findById).mockResolvedValue({} as never)
+    vi.mocked(api.characters.create).mockResolvedValue({} as never)
+    vi.mocked(api.characters.remove).mockResolvedValue(null as never)
+    vi.mocked(api.characters.update).mockResolvedValue({} as never)
+    vi.mocked(api.characterStats.update).mockResolvedValue({} as never)
+    vi.mocked(api.levels.create).mockResolvedValue({} as never)
+    vi.mocked(api.levels.findAll).mockResolvedValue([])
+    vi.mocked(api.levels.remove).mockResolvedValue(null as never)
+    vi.mocked(api.levels.update).mockResolvedValue({} as never)
+    vi.mocked(api.campaigns.create).mockResolvedValue({} as never)
+    vi.mocked(api.campaigns.findMine).mockResolvedValue([
+      {
+        id: 11,
+        name: 'Intro to Stormwreck Isle',
+        description: 'Starter set adventure',
+        privacy: false,
+        creationDate: '2025-11-29T00:00:00.000+00:00',
+        playerCount: 2,
+      },
+    ])
+    vi.mocked(api.campaigns.findAll).mockResolvedValue([])
+    vi.mocked(api.campaigns.findById).mockResolvedValue(mockCampaignDetail as never)
+    vi.mocked(api.campaigns.remove).mockResolvedValue(null as never)
+    vi.mocked(api.races.findAll).mockResolvedValue([])
+    vi.mocked(api.classes.findAll).mockResolvedValue([])
+  })
+
+  it('navigates to the campaign detail view when VIEW CAMPAIGN is clicked', async () => {
+    render(<App />)
+
+    expect(await screen.findByText('VIEW CAMPAIGN')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'VIEW CAMPAIGN' }))
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
+    await waitFor(() => expect(api.campaigns.findById).toHaveBeenCalledWith(11))
+  })
+
+  it('renders campaign name, privacy badge, date, description, and stats in the detail view', async () => {
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
+    expect(screen.getByText('Public')).toBeInTheDocument()
+    expect(screen.getByText('November 29, 2025')).toBeInTheDocument()
+    expect(screen.getByText('Starter set adventure')).toBeInTheDocument()
+    expect(screen.getByText('PLAYERS')).toBeInTheDocument()
+    expect(screen.getByText('CHARACTERS')).toBeInTheDocument()
+  })
+
+  it('renders the players list in the campaign detail view', async () => {
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+
+    expect(await screen.findByText('alice')).toBeInTheDocument()
+    expect(screen.getByText('alice@example.com')).toBeInTheDocument()
+    expect(screen.getByText('bob')).toBeInTheDocument()
+    expect(screen.getByText('bob@example.com')).toBeInTheDocument()
+  })
+
+  it('renders the characters list in the campaign detail view', async () => {
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+
+    expect(await screen.findByText('Character #31')).toBeInTheDocument()
+    expect(screen.getByText('Character #44')).toBeInTheDocument()
+  })
+
+  it('shows empty state messages when there are no players or characters', async () => {
+    vi.mocked(api.campaigns.findById).mockResolvedValueOnce({
+      ...mockCampaignDetail,
+      players: [],
+      characters: [],
+    } as never)
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+
+    expect(await screen.findByText('No players have joined this campaign yet.')).toBeInTheDocument()
+    expect(screen.getByText('No characters assigned to this campaign yet.')).toBeInTheDocument()
+  })
+
+  it('shows loading state while fetching campaign details', async () => {
+    let resolveCampaign: ((value: unknown) => void) | undefined
+    vi.mocked(api.campaigns.findById).mockImplementationOnce(
+      () => new Promise((resolve) => { resolveCampaign = resolve }),
+    )
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+
+    expect(await screen.findByText('Loading campaign...')).toBeInTheDocument()
+
+    resolveCampaign?.(mockCampaignDetail)
+    expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
+  })
+
+  it('shows an error state when fetching campaign details fails', async () => {
+    vi.mocked(api.campaigns.findById).mockRejectedValueOnce(new Error('Error 503: Service unavailable'))
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+
+    expect(await screen.findByText('Error: Error 503: Service unavailable')).toBeInTheDocument()
+  })
+
+  it('returns to home when Back to Home is clicked from campaign detail', async () => {
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '← Back to Home' }))
+
+    expect(await screen.findByRole('button', { name: '+ Create Campaign' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).not.toBeInTheDocument()
+  })
+
+  it('opens the delete campaign confirmation dialog from the campaign detail view', async () => {
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    expect(await screen.findByRole('button', { name: 'Delete Campaign' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Campaign' }))
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Delete Intro to Stormwreck Isle?' })).toBeInTheDocument()
+  })
+
+  it('closes the delete campaign dialog when Cancel is clicked', async () => {
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    expect(await screen.findByRole('button', { name: 'Delete Campaign' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Campaign' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
+  })
+
+  it('confirms delete campaign, returns to home, and shows success feedback', async () => {
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    expect(await screen.findByRole('button', { name: 'Delete Campaign' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Campaign' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete campaign' }))
+
+    await waitFor(() => expect(api.campaigns.remove).toHaveBeenCalledWith(11))
+    expect(await screen.findByRole('button', { name: '+ Create Campaign' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).not.toBeInTheDocument()
+    expect(screen.getByText('Campaign "Intro to Stormwreck Isle" deleted successfully.')).toBeInTheDocument()
+  })
+
+  it('removes the deleted campaign card from the home list after deletion', async () => {
+    render(<App />)
+
+    expect(await screen.findByText('Intro to Stormwreck Isle')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'VIEW CAMPAIGN' }))
+    expect(await screen.findByRole('button', { name: 'Delete Campaign' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Campaign' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete campaign' }))
+
+    await waitFor(() => expect(api.campaigns.remove).toHaveBeenCalledWith(11))
+    await screen.findByRole('button', { name: '+ Create Campaign' })
+    expect(screen.queryByText('Intro to Stormwreck Isle')).not.toBeInTheDocument()
   })
 })

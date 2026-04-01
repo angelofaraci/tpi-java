@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CANONICAL_ALIGNMENTS, type CharacterCatalogClassOption, type CreateCharacterPayload } from '../interfaces/character'
 import { api } from '../services/api'
 import { DEFAULT_PROFICIENCIES } from '../utils/characterDraft'
@@ -10,6 +10,7 @@ vi.mock('../services/api', () => ({
   api: {
     campaigns: {
       findAll: vi.fn(),
+      findByCode: vi.fn(),
     },
     races: {
       findAll: vi.fn(),
@@ -57,8 +58,9 @@ const catalogClasses: CharacterCatalogClassOption[] = [
   },
 ]
 
-function fillRequiredCreateFields() {
-  fireEvent.change(screen.getByLabelText('Campaign'), { target: { value: '2' } })
+async function fillRequiredCreateFields() {
+  fireEvent.change(screen.getByLabelText('Campaign Code'), { target: { value: 'OPEN-TABL' } })
+  await vi.runAllTimersAsync()
   fireEvent.change(screen.getByLabelText('Character Name'), { target: { value: 'Iria' } })
   fireEvent.change(screen.getByLabelText('Alignment'), { target: { value: 'Neutral Good' } })
   fireEvent.change(screen.getByLabelText('Background'), { target: { value: 'Sage' } })
@@ -125,9 +127,20 @@ describe('CreateCharacter', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useRealTimers()
     vi.mocked(api.campaigns.findAll).mockResolvedValue(catalogCampaigns)
+    vi.mocked(api.campaigns.findByCode).mockResolvedValue({
+      id: 2,
+      name: 'Open Table',
+      description: 'Shared campaign',
+      privacy: false,
+    } as never)
     vi.mocked(api.races.findAll).mockResolvedValue(catalogRaces)
     vi.mocked(api.classes.findAll).mockResolvedValue(catalogClasses)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('shows required validation when core fields are blank', async () => {
@@ -148,6 +161,8 @@ describe('CreateCharacter', () => {
   })
 
   it('submits the typed payload after loading the creation catalogs', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
     vi.mocked(api.characters.create).mockResolvedValueOnce({
       id: 21,
       name: 'Iria',
@@ -155,10 +170,11 @@ describe('CreateCharacter', () => {
 
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
-    expect(await screen.findByText('Open Table')).toBeInTheDocument()
-    expect(screen.getByLabelText('Campaign Code (Coming Soon)')).toBeDisabled()
+    expect(await screen.findByRole('heading', { level: 2, name: 'Create Character' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Campaign Code')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('Campaign'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Campaign Code'), { target: { value: 'OPEN-TABL' } })
+    await vi.runAllTimersAsync()
     fireEvent.change(screen.getByLabelText('Character Name'), { target: { value: ' Iria ' } })
     fireEvent.change(screen.getByLabelText('Alignment'), { target: { value: 'Neutral Good' } })
     fireEvent.change(screen.getByLabelText('Background'), { target: { value: ' Sage ' } })
@@ -174,10 +190,13 @@ describe('CreateCharacter', () => {
     fireEvent.change(screen.getByLabelText('Ideals'), { target: { value: ' Knowledge should be shared ' } })
     fireEvent.change(screen.getByLabelText('Bonds'), { target: { value: ' Protect the academy archive ' } })
     fireEvent.change(screen.getByLabelText('Flaws'), { target: { value: ' Overthinks every risk ' } })
-    fireEvent.change(screen.getByLabelText('Arcana'), { target: { value: '1' } })
-    fireEvent.change(screen.getByLabelText('History'), { target: { value: '2' } })
+    fireEvent.click(screen.getByLabelText('Arcana'))
+    fireEvent.click(screen.getByLabelText('History'))
+    fireEvent.click(document.getElementById('skill-History-expertise')!)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Wisdom saving throw' }))
     fireEvent.click(screen.getByRole('button', { name: 'Create Character' }))
+
+    vi.useRealTimers()
 
     await waitFor(() => expect(api.characters.create).toHaveBeenCalledTimes(1))
 
@@ -226,6 +245,8 @@ describe('CreateCharacter', () => {
   })
 
   it('rejects out-of-range class levels in create mode by clamping them before submit', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
     vi.mocked(api.characters.create).mockResolvedValueOnce({
       id: 21,
       name: 'Iria',
@@ -242,12 +263,14 @@ describe('CreateCharacter', () => {
     fireEvent.change(primaryLevelInput, { target: { value: '0' } })
     expect(primaryLevelInput).toHaveValue(1)
 
-    fillRequiredCreateFields()
+    await fillRequiredCreateFields()
     fireEvent.click(screen.getByRole('button', { name: 'Add Secondary Class' }))
     fireEvent.change(screen.getByLabelText('Secondary Class'), { target: { value: '5' } })
     fireEvent.change(screen.getByLabelText(secondaryLevelInputName), { target: { value: '99' } })
     expect(screen.getByLabelText(secondaryLevelInputName)).toHaveValue(20)
     fireEvent.click(screen.getByRole('button', { name: 'Create Character' }))
+
+    vi.useRealTimers()
 
     await waitFor(() => expect(api.characters.create).toHaveBeenCalledTimes(1))
     expect(vi.mocked(api.characters.create).mock.calls[0]?.[0]).toEqual(
@@ -266,22 +289,24 @@ describe('CreateCharacter', () => {
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
     fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '2' } })
-    fireEvent.change(screen.getByLabelText('Arcana'), { target: { value: '1' } })
+    fireEvent.click(screen.getByLabelText('Arcana'))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Intelligence saving throw' }))
     fireEvent.change(screen.getByLabelText('Personality Traits'), { target: { value: 'Strategic thinker' } })
 
     expect(screen.getByText((_, element) => element?.textContent === 'Level 2')).toBeInTheDocument()
-    expect(screen.getAllByText('Saving Throws').length).toBeGreaterThan(0)
-    expect(screen.getByText('Skill Selections')).toBeInTheDocument()
+    expect(screen.getAllByText('Saving Throw Proficiency').length).toBeGreaterThan(0)
+    expect(screen.getByText('Skill Proficiencies')).toBeInTheDocument()
   })
 
   it('preserves the filled draft and shows submit feedback when creation fails', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.mocked(api.characters.create).mockRejectedValueOnce(new Error('Error 500: Backend failed'))
 
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fireEvent.change(screen.getByLabelText('Campaign'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Campaign Code'), { target: { value: 'OPEN-TABL' } })
+    await vi.runAllTimersAsync()
     fireEvent.change(screen.getByLabelText('Character Name'), { target: { value: 'Mira' } })
     fireEvent.change(screen.getByLabelText('Alignment'), { target: { value: 'Chaotic Good' } })
     fireEvent.change(screen.getByLabelText('Background'), { target: { value: 'Urchin' } })
@@ -289,12 +314,14 @@ describe('CreateCharacter', () => {
     fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create Character' }))
 
+    vi.useRealTimers()
+
     const errorMessages = await screen.findAllByText('Error: Error 500: Backend failed')
     expect(errorMessages[0]).toBeInTheDocument()
     expect(screen.getByLabelText('Character Name')).toHaveValue('Mira')
     expect(screen.getByLabelText('Alignment')).toHaveValue('Chaotic Good')
     expect(screen.getByLabelText('Background')).toHaveValue('Urchin')
-    expect(screen.getByLabelText('Campaign')).toHaveValue('2')
+    expect(screen.getByLabelText('Campaign Code')).toHaveValue('OPEN-TABL')
     expect(onSuccess).not.toHaveBeenCalled()
   })
 
@@ -312,7 +339,6 @@ describe('CreateCharacter', () => {
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Edit Character' })).toBeInTheDocument()
     expect(screen.getByLabelText('Character Name')).toHaveValue('Iria')
-    expect(screen.getByLabelText('Campaign')).toHaveValue('2')
     expect(screen.getByLabelText('Race')).toHaveValue('7')
     expect(screen.getByLabelText('Class')).toHaveValue('8')
     expect(screen.getByLabelText('Level')).toHaveValue(3)
@@ -330,8 +356,9 @@ describe('CreateCharacter', () => {
       expect(screen.getByRole('checkbox', { name: 'Intelligence saving throw' })).toBeChecked()
       expect(screen.getByRole('checkbox', { name: 'Wisdom saving throw' })).toBeChecked()
     })
-    expect(screen.getByLabelText('Arcana')).toHaveValue('1')
-    expect(screen.getByLabelText('History')).toHaveValue('2')
+    expect(screen.getByLabelText('Arcana')).toBeChecked()
+    expect(screen.getByLabelText('History')).toBeChecked()
+    expect(document.getElementById('skill-History-expertise')).toBeChecked()
     expect(screen.getByLabelText('Personality Traits')).toHaveValue('Curious and patient')
     expect(screen.getByLabelText('Ideals')).toHaveValue('Knowledge should be shared')
     expect(screen.getByLabelText('Bonds')).toHaveValue('Protect the archive')
@@ -356,32 +383,42 @@ describe('CreateCharacter', () => {
   })
 
   it('blocks duplicate classes across both create rows', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fillRequiredCreateFields()
+    await fillRequiredCreateFields()
     fireEvent.click(screen.getByRole('button', { name: 'Add Secondary Class' }))
     fireEvent.change(screen.getByLabelText('Secondary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Secondary Level'), { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create Character' }))
+
+    vi.useRealTimers()
 
     expect(await screen.findByText('Primary and secondary classes must be different')).toBeInTheDocument()
     expect(api.characters.create).not.toHaveBeenCalled()
   })
 
   it('blocks an incomplete optional second class row', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fillRequiredCreateFields()
+    await fillRequiredCreateFields()
     fireEvent.click(screen.getByRole('button', { name: 'Add Secondary Class' }))
     fireEvent.click(screen.getByRole('button', { name: 'Create Character' }))
+
+    vi.useRealTimers()
 
     expect(await screen.findByText('Secondary class row is incomplete')).toBeInTheDocument()
     expect(api.characters.create).not.toHaveBeenCalled()
   })
 
   it('submits exactly two class rows in create mode', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
     vi.mocked(api.characters.create).mockResolvedValueOnce({
       id: 21,
       name: 'Iria',
@@ -390,11 +427,13 @@ describe('CreateCharacter', () => {
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fillRequiredCreateFields()
+    await fillRequiredCreateFields()
     fireEvent.click(screen.getByRole('button', { name: 'Add Secondary Class' }))
     fireEvent.change(screen.getByLabelText('Secondary Class'), { target: { value: '5' } })
     fireEvent.change(screen.getByLabelText('Secondary Level'), { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create Character' }))
+
+    vi.useRealTimers()
 
     await waitFor(() => {
       expect(api.characters.create).toHaveBeenCalledWith(
@@ -474,7 +513,6 @@ describe('CreateCharacter', () => {
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Edit Character' })).toBeInTheDocument()
     expect(screen.getByLabelText('Character Name')).toHaveValue('Iria')
-    expect(screen.getByLabelText('Campaign')).toHaveValue('2')
     expect(screen.getByLabelText('Race')).toHaveValue('7')
     expect(screen.getByLabelText('Class')).toHaveValue('8')
     expect(screen.getByLabelText('Level')).toHaveValue(3)

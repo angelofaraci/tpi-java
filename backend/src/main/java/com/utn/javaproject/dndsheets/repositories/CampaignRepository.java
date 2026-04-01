@@ -6,11 +6,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CampaignRepository extends JpaRepository<CampaignEntity, Long> {
 
     boolean existsByName(String name);
+
+    Optional<CampaignEntity> findByJoinCode(String joinCode);
 
     @Query("SELECT c FROM CampaignEntity c WHERE c.dm.id = ?1 ORDER BY c.CreationDate DESC")
     List<CampaignEntity> findAllByDmIdOrderByCreationDateDesc(Long dmId);

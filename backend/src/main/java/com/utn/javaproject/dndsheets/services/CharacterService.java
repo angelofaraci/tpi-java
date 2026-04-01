@@ -47,7 +47,8 @@ public class CharacterService {
             character.setAlignment(character.getAlignment().trim());
         }
 
-        if (character.getCharacterStats() != null && character.getCharacterStats().getAbilityScores() != null) {
+        if (character.getCharacterStats() != null && character.getCharacterStats().getAbilityScores() != null
+                && !character.getCharacterStats().getAbilityScores().isEmpty()) {
             characterCreateRequestValidator.validateAbilityScores(character.getCharacterStats().getAbilityScores());
         }
 

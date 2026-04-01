@@ -4,6 +4,7 @@ import java.util.Date;
 
 public class CampaignSummaryDto {
     private Long id;
+    private String joinCode;
     private String name;
     private String description;
     private Boolean privacy;
@@ -16,6 +17,14 @@ public class CampaignSummaryDto {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getJoinCode() {
+        return joinCode;
+    }
+
+    public void setJoinCode(String joinCode) {
+        this.joinCode = joinCode;
     }
 
     public String getName() {

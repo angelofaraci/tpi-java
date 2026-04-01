@@ -3,6 +3,7 @@ package com.utn.javaproject.dndsheets.controllers;
 
 import com.utn.javaproject.dndsheets.domain.dto.CampaignDto;
 import com.utn.javaproject.dndsheets.domain.dto.CampaignSummaryDto;
+import com.utn.javaproject.dndsheets.domain.dto.PlayerCampaignSummaryDto;
 import com.utn.javaproject.dndsheets.domain.entities.CampaignEntity;
 import com.utn.javaproject.dndsheets.mappers.Mapper;
 import com.utn.javaproject.dndsheets.services.CampaignService;
@@ -57,6 +58,22 @@ public class CampaignController {
         }
 
         return new ResponseEntity<>(campaignService.findOwnedCampaignSummaries(principal.getUsername()), HttpStatus.OK);
+    }
+
+    @GetMapping(path = "/campaigns/by-code/{code}")
+    public ResponseEntity<CampaignDto> getCampaignByCode(@PathVariable("code") String code) {
+        return campaignService.findByCode(code)
+                .map(entity -> new ResponseEntity<>(campaignMapper.mapTo(entity), HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @GetMapping(path = "/campaigns/as-player")
+    public ResponseEntity<List<PlayerCampaignSummaryDto>> listPlayerCampaigns(@AuthenticationPrincipal UserDetails principal) {
+        if (principal == null || principal.getUsername() == null) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        return new ResponseEntity<>(campaignService.findPlayerCampaignSummaries(principal.getUsername()), HttpStatus.OK);
     }
 
     @GetMapping(path = "/campaign/{id}")

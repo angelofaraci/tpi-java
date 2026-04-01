@@ -4,14 +4,15 @@ import { Login } from './pages/Login'
 import { Characters } from './pages/Characters'
 import { CreateCampaign } from './pages/CreateCampaign'
 import { CreateCharacter } from './pages/CreateCharacter'
+import { ViewCampaign } from './pages/ViewCampaign'
 import { AdminPanel } from './pages/AdminPanel'
 import { api } from './services/api'
-import type { OwnedCampaignSummary } from './interfaces/campaign'
+import type { OwnedCampaignSummary, PlayerCampaignSummary } from './interfaces/campaign'
 import type { HydratedCharacterEditData } from './interfaces/character'
 import type { User } from './interfaces/user'
 import './styles/CharacterSheet.css'
 
-type View = 'home' | 'character-sheet' | 'create-campaign' | 'create-character' | 'admin'
+type View = 'home' | 'character-sheet' | 'create-campaign' | 'create-character' | 'view-campaign' | 'admin'
 type CharacterFormMode = 'create' | 'edit'
 type CharacterReturnView = 'home' | 'character-sheet'
 
@@ -28,6 +29,11 @@ interface CharacterCard {
 interface DeleteDialogState {
   characterId: number
   characterName: string
+}
+
+interface DeleteCampaignDialogState {
+  campaignId: number
+  campaignName: string
 }
 
 function formatCampaignStartDate(creationDate?: string) {
@@ -51,13 +57,21 @@ function App() {
   const [view, setView] = useState<View>('home')
   const [characters, setCharacters] = useState<CharacterCard[]>([])
   const [campaigns, setCampaigns] = useState<OwnedCampaignSummary[]>([])
+  const [playerCampaigns, setPlayerCampaigns] = useState<PlayerCampaignSummary[]>([])
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null)
   const [loadingCharacters, setLoadingCharacters] = useState(false)
   const [loadingCampaigns, setLoadingCampaigns] = useState(false)
+  const [loadingPlayerCampaigns, setLoadingPlayerCampaigns] = useState(false)
   const [deletingCharacterId, setDeletingCharacterId] = useState<number | null>(null)
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null)
+  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null)
+  const [deletingCampaignId, setDeletingCampaignId] = useState<number | null>(null)
+  const [deleteCampaignDialog, setDeleteCampaignDialog] = useState<DeleteCampaignDialogState | null>(null)
+  const [campaignViewError, setCampaignViewError] = useState<string | null>(null)
+  const [campaignViewFeedback, setCampaignViewFeedback] = useState<string | null>(null)
   const [charactersError, setCharactersError] = useState<string | null>(null)
   const [campaignsError, setCampaignsError] = useState<string | null>(null)
+  const [playerCampaignsError, setPlayerCampaignsError] = useState<string | null>(null)
   const [campaignFeedback, setCampaignFeedback] = useState<string | null>(null)
   const [characterSheetFeedback, setCharacterSheetFeedback] = useState<string | null>(null)
   const [characterFormMode, setCharacterFormMode] = useState<CharacterFormMode>('create')
@@ -67,6 +81,7 @@ function App() {
   const currentUserIdRef = useRef<number | null>(null)
   const latestCharacterRequestId = useRef(0)
   const latestCampaignRequestId = useRef(0)
+  const latestPlayerCampaignRequestId = useRef(0)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -165,22 +180,61 @@ function App() {
     loadCampaigns()
   }, [isAuthenticated, loadCampaigns])
 
+  const loadPlayerCampaigns = useCallback(async () => {
+    const requestId = latestPlayerCampaignRequestId.current + 1
+    latestPlayerCampaignRequestId.current = requestId
+    setLoadingPlayerCampaigns(true)
+    setPlayerCampaignsError(null)
+
+    try {
+      const data = await api.campaigns.findAsPlayer()
+
+      if (requestId !== latestPlayerCampaignRequestId.current) {
+        return
+      }
+
+      setPlayerCampaigns(Array.isArray(data) ? data : [])
+    } catch (err: unknown) {
+      if (requestId !== latestPlayerCampaignRequestId.current) {
+        return
+      }
+
+      setPlayerCampaignsError(err instanceof Error ? err.message : 'Failed to load player campaigns')
+    } finally {
+      if (requestId === latestPlayerCampaignRequestId.current) {
+        setLoadingPlayerCampaigns(false)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    void loadPlayerCampaigns()
+  }, [isAuthenticated, loadPlayerCampaigns])
+
   const handleLogout = () => {
     localStorage.removeItem('token')
     latestCharacterRequestId.current += 1
     latestCampaignRequestId.current += 1
+    latestPlayerCampaignRequestId.current += 1
     setIsAuthenticated(false)
     setCurrentUserId(null)
     setUserRole(null)
     setView('home')
     setSelectedCharacterId(null)
+    setSelectedCampaignId(null)
     setCharacters([])
     setCampaigns([])
+    setPlayerCampaigns([])
     setCampaignFeedback(null)
     setCharacterSheetFeedback(null)
+    setCampaignViewFeedback(null)
     setCharactersError(null)
     setCampaignsError(null)
+    setCampaignViewError(null)
     setDeleteDialog(null)
+    setDeleteCampaignDialog(null)
     setCharacterFormMode('create')
     setCharacterReturnView('home')
     setEditCharacterData(null)
@@ -194,9 +248,61 @@ function App() {
   const handleBackToHome = () => {
     setView('home')
     setSelectedCharacterId(null)
+    setSelectedCampaignId(null)
     setCharacterSheetFeedback(null)
+    setCampaignViewFeedback(null)
+    setCampaignViewError(null)
     setEditCharacterData(null)
     setCharacterReturnView('home')
+  }
+
+  const handleViewCampaign = (campaignId: number) => {
+    setSelectedCampaignId(campaignId)
+    setCampaignViewFeedback(null)
+    setCampaignViewError(null)
+    setView('view-campaign')
+  }
+
+  const handleRequestDeleteCampaign = (campaignId: number, campaignName: string) => {
+    setDeleteCampaignDialog({ campaignId, campaignName })
+    setCampaignViewError(null)
+  }
+
+  const handleCloseDeleteCampaignDialog = () => {
+    if (deletingCampaignId !== null) {
+      return
+    }
+
+    setDeleteCampaignDialog(null)
+  }
+
+  const handleConfirmDeleteCampaign = async () => {
+    if (!deleteCampaignDialog) {
+      return
+    }
+
+    const { campaignId, campaignName } = deleteCampaignDialog
+
+    setDeletingCampaignId(campaignId)
+    setCampaignViewError(null)
+
+    try {
+      await api.campaigns.remove(campaignId)
+      setDeleteCampaignDialog(null)
+      setCampaigns((current) => current.filter((c) => c.id !== campaignId))
+
+      if (selectedCampaignId === campaignId) {
+        setSelectedCampaignId(null)
+        setView('home')
+        setCampaignViewFeedback(null)
+      }
+
+      setCampaignFeedback(`Campaign "${campaignName}" deleted successfully.`)
+    } catch (err: unknown) {
+      setCampaignViewError(err instanceof Error ? err.message : 'Failed to delete campaign')
+    } finally {
+      setDeletingCampaignId((currentId) => (currentId === campaignId ? null : currentId))
+    }
   }
 
   const handleOpenCreateCampaign = () => {
@@ -361,6 +467,21 @@ function App() {
       <AdminPanel
         onBack={handleBackToHome}
         onLogout={handleLogout}
+      />
+    )
+  } else if (view === 'view-campaign' && selectedCampaignId) {
+    const isDungeonMaster = campaigns.some((c) => c.id === selectedCampaignId)
+    content = (
+      <ViewCampaign
+        campaignId={selectedCampaignId}
+        isDungeonMaster={isDungeonMaster}
+        onBack={handleBackToHome}
+        onLogout={handleLogout}
+        onDeleteCampaign={handleRequestDeleteCampaign}
+        deletingCampaignId={deletingCampaignId}
+        deleteError={campaignViewError}
+        feedback={campaignViewFeedback}
+        onDismissFeedback={() => setCampaignViewFeedback(null)}
       />
     )
   } else if (view === 'create-character' && currentUserId) {
@@ -674,6 +795,7 @@ function App() {
                         transition: 'color 0.2s',
                         letterSpacing: '0.05em'
                       }}
+                      onClick={() => handleViewCampaign(campaign.id)}
                       onMouseEnter={(e) => e.currentTarget.style.color = '#60a5fa'}
                       onMouseLeave={(e) => e.currentTarget.style.color = '#3b82f6'}
                     >
@@ -681,24 +803,129 @@ function App() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => handleRequestDeleteCampaign(campaign.id, campaign.name)}
+                      disabled={deletingCampaignId === campaign.id}
                       style={{
                         flex: 1,
                         padding: '0.5rem 1rem',
                         backgroundColor: 'transparent',
                         color: '#ef4444',
                         border: 'none',
-                        cursor: 'pointer',
+                        cursor: deletingCampaignId === campaign.id ? 'wait' : 'pointer',
                         fontSize: '0.875rem',
                         fontWeight: '700',
                         transition: 'color 0.2s',
-                        letterSpacing: '0.05em'
+                        letterSpacing: '0.05em',
+                        opacity: deletingCampaignId === campaign.id ? 0.7 : 1,
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = '#dc2626'}
+                      onMouseEnter={(e) => {
+                        if (deletingCampaignId !== campaign.id) {
+                          e.currentTarget.style.color = '#dc2626'
+                        }
+                      }}
                       onMouseLeave={(e) => e.currentTarget.style.color = '#ef4444'}
                     >
-                      DELETE
+                      {deletingCampaignId === campaign.id ? 'DELETING...' : 'DELETE'}
                     </button>
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Player Campaigns Section */}
+        <section className="content-section">
+          <div className="section-header">
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Campaigns as Player</h2>
+              <p className="section-subtitle">Campaigns you have joined with one of your characters.</p>
+            </div>
+          </div>
+
+          <div className="entity-grid">
+            {loadingPlayerCampaigns && (
+              <div className="campaign-section-message" role="status">
+                Loading player campaigns...
+              </div>
+            )}
+
+            {!loadingPlayerCampaigns && playerCampaignsError && (
+              <div className="error-message campaign-section-message">{playerCampaignsError}</div>
+            )}
+
+            {!loadingPlayerCampaigns && !playerCampaignsError && playerCampaigns.length === 0 && (
+              <div className="campaign-section-message campaign-section-empty">
+                You have not joined any campaigns as a player yet.
+              </div>
+            )}
+
+            {!loadingPlayerCampaigns && !playerCampaignsError && playerCampaigns.map((pc) => (
+              <div key={pc.campaignId} className="campaign-placeholder-card">
+                <div style={{
+                  backgroundColor: 'var(--color-background)',
+                  padding: '2rem 1.5rem',
+                  textAlign: 'center'
+                }}>
+                  <h3 style={{
+                    margin: '0 0 0.5rem 0',
+                    fontSize: '1.5rem',
+                    fontWeight: 'normal',
+                    color: 'var(--color-foreground)'
+                  }}>
+                    {pc.campaignName}
+                  </h3>
+                  <p style={{
+                    margin: '0 0 1.5rem 0',
+                    fontSize: '0.875rem',
+                    color: 'var(--color-foreground-muted)'
+                  }}>
+                    {formatCampaignStartDate(pc.creationDate)}
+                  </p>
+
+                  <div style={{
+                    padding: '0.75rem 0',
+                    borderTop: '1px solid var(--color-border)',
+                    borderBottom: '1px solid var(--color-border)',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      fontWeight: '700',
+                      color: 'var(--color-foreground)',
+                      letterSpacing: '0.05em',
+                      marginBottom: '0.5rem'
+                    }}>
+                      ROLE: PLAYER
+                    </div>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: 'var(--color-foreground-muted)'
+                    }}>
+                      Your character: <strong style={{ color: 'var(--color-foreground)' }}>{pc.characterName}</strong>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem 1rem',
+                      backgroundColor: 'transparent',
+                      color: '#3b82f6',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      fontWeight: '700',
+                      transition: 'color 0.2s',
+                      letterSpacing: '0.05em'
+                    }}
+                    onClick={() => handleViewCampaign(pc.campaignId)}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#60a5fa'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#3b82f6'}
+                  >
+                    VIEW CAMPAIGN
+                  </button>
                 </div>
               </div>
             ))}
@@ -736,6 +963,35 @@ function App() {
                 disabled={deletingCharacterId === deleteDialog.characterId}
               >
                 {deletingCharacterId === deleteDialog.characterId ? 'Deleting...' : 'Delete character'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteCampaignDialog && (
+        <div className="confirmation-backdrop" role="presentation">
+          <div className="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-campaign-title">
+            <span className="confirmation-eyebrow">Campaign deletion</span>
+            <h2 id="delete-campaign-title">Delete {deleteCampaignDialog.campaignName}?</h2>
+            <p>
+              This permanently removes the campaign and all associated player assignments. Characters will not be deleted.
+            </p>
+            <div className="confirmation-actions">
+              <button
+                type="button"
+                className="confirmation-secondary-button"
+                onClick={handleCloseDeleteCampaignDialog}
+                disabled={deletingCampaignId === deleteCampaignDialog.campaignId}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirmation-danger-button"
+                onClick={() => void handleConfirmDeleteCampaign()}
+                disabled={deletingCampaignId === deleteCampaignDialog.campaignId}
+              >
+                {deletingCampaignId === deleteCampaignDialog.campaignId ? 'Deleting...' : 'Delete campaign'}
               </button>
             </div>
           </div>

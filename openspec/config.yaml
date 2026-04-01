@@ -1,0 +1,56 @@
+schema: spec-driven
+
+context: |
+  Project: D&D Manager (TPI - Trabajo Práctico Integrador)
+  Stack: Java 21 + Spring Boot 3.5 (backend), React 19 + TypeScript + Vite (frontend)
+  Auth: JWT via Spring Security; userId resolved via GET /auth/me
+  Architecture: REST API + SPA; frontend is a single App.tsx controller with view-switching pattern
+  DB: PostgreSQL (prod), H2 (test); JPA + ModelMapper + Lombok
+  Frontend patterns: container-view pattern in App.tsx, page components in src/pages/, api layer in src/services/api.ts
+
+strict_tdd: true
+
+testing:
+  runner:
+    command: "cd frontend && npx vitest run"
+    framework: vitest
+  layers:
+    unit: { available: true, tool: vitest }
+    integration: { available: true, tool: "@testing-library/react" }
+    e2e: { available: false }
+  coverage:
+    available: true
+    command: "cd frontend && npx vitest run --coverage"
+  quality:
+    linter: { available: true, command: "cd frontend && npx eslint ." }
+    type_checker: { available: true, command: "cd frontend && npx tsc --noEmit" }
+    formatter: { available: false }
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected frontend files and backend endpoints
+    - Note any constraints from the existing backend contract
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Reference backend endpoint contracts explicitly
+  design:
+    - Document state management decisions in App.tsx
+    - Describe component props interface
+    - Note any backend limitations (e.g. @JsonIgnore fields)
+  tasks:
+    - Group tasks by phase (api, component, wiring, tests)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns (same style as Characters.tsx, CreateCampaign.tsx)
+    - All new state goes in App.tsx; pages are pure presentational
+    - New API methods go in api.ts under the campaigns namespace
+  verify:
+    - Run vitest and ensure no new failures introduced
+    - 2 pre-existing failures in CreateCharacter.test.tsx are known and ignored
+    - Check all spec scenarios are covered by tests
+  archive:
+    - Move completed change folder to openspec/changes/archive/
+    - Update openspec/specs/ with final delta specs

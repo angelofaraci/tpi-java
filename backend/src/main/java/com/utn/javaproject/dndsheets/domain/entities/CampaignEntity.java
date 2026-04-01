@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import javax.xml.stream.events.Characters;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -22,6 +23,10 @@ public class CampaignEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "campaign_id_seq")
     private Long id;
+
+    @Column(unique = true, nullable = false, updatable = false)
+    private String joinCode;
+
     @ManyToOne
 
     private UserEntity dm;
@@ -39,6 +44,22 @@ public class CampaignEntity {
 
     @OneToMany(mappedBy = "id", cascade = CascadeType.ALL)
     private List<CharacterEntity> characters;
+
+    @PrePersist
+    void generateJoinCodeIfAbsent() {
+        if (joinCode == null) {
+            String raw = java.util.UUID.randomUUID().toString().replace("-", "").toUpperCase();
+            joinCode = raw.substring(0, 4) + "-" + raw.substring(4, 8);
+        }
+    }
+
+    public String getJoinCode() {
+        return joinCode;
+    }
+
+    public void setJoinCode(String joinCode) {
+        this.joinCode = joinCode;
+    }
 
     public UserEntity getDm() {
         return dm;

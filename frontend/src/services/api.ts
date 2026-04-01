@@ -1,5 +1,5 @@
 import { authUtils } from '../utils/auth'
-import type { Campaign, CreateCampaignPayload, OwnedCampaignSummary } from '../interfaces/campaign'
+import type { Campaign, CreateCampaignPayload, OwnedCampaignSummary, PlayerCampaignSummary } from '../interfaces/campaign'
 import type {
   Character,
   CharacterCatalogCampaignOption,
@@ -225,11 +225,41 @@ export const api = {
       return handleResponse<Campaign>(response)
     },
 
+    async findByCode(code: string) {
+      const response = await fetch(`${API_BASE_URL}/campaigns/by-code/${encodeURIComponent(code)}`, {
+        headers: createHeaders(),
+      })
+      if (response.status === 404) return null
+      return handleResponse<Campaign>(response)
+    },
+
     async findMine() {
       const response = await fetch(`${API_BASE_URL}/campaigns/mine`, {
         headers: createHeaders(),
       })
       return handleResponse<OwnedCampaignSummary[]>(response)
+    },
+
+    async findAsPlayer() {
+      const response = await fetch(`${API_BASE_URL}/campaigns/as-player`, {
+        headers: createHeaders(),
+      })
+      return handleResponse<PlayerCampaignSummary[]>(response)
+    },
+
+    async findById(id: number) {
+      const response = await fetch(`${API_BASE_URL}/campaign/${id}`, {
+        headers: createHeaders(),
+      })
+      return handleResponse<Campaign>(response)
+    },
+
+    async remove(id: number) {
+      const response = await fetch(`${API_BASE_URL}/campaign/${id}`, {
+        method: 'DELETE',
+        headers: createHeaders(),
+      })
+      return handleResponse(response)
     },
 
     async findAll() {
