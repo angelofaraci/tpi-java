@@ -1,10 +1,13 @@
 package com.utn.javaproject.dndsheets.controllers;
 
 
+import com.utn.javaproject.dndsheets.domain.dto.CampaignDetailDto;
 import com.utn.javaproject.dndsheets.domain.dto.CampaignDto;
 import com.utn.javaproject.dndsheets.domain.dto.CampaignSummaryDto;
 import com.utn.javaproject.dndsheets.domain.dto.PlayerCampaignSummaryDto;
 import com.utn.javaproject.dndsheets.domain.entities.CampaignEntity;
+import com.utn.javaproject.dndsheets.domain.entities.CharacterEntity;
+import com.utn.javaproject.dndsheets.domain.entities.UserEntity;
 import com.utn.javaproject.dndsheets.mappers.Mapper;
 import com.utn.javaproject.dndsheets.services.CampaignService;
 import org.springframework.http.HttpStatus;
@@ -77,13 +80,11 @@ public class CampaignController {
     }
 
     @GetMapping(path = "/campaign/{id}")
-    public ResponseEntity<CampaignDto> getCampaign(@PathVariable("id") Long id){
+    public ResponseEntity<CampaignDetailDto> getCampaign(@PathVariable("id") Long id) {
         Optional<CampaignEntity> foundCampaign = campaignService.findOne(id);
-        return foundCampaign.map(campaignEntity -> {
-            CampaignDto campaignDto = campaignMapper.mapTo(campaignEntity);
-            return new ResponseEntity<>(campaignDto, HttpStatus.OK);
-        }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
-
+        return foundCampaign
+                .map(entity -> new ResponseEntity<>(mapToDetail(entity), HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @PutMapping(path = "campaign/{id}")
@@ -116,8 +117,84 @@ public class CampaignController {
     }
 
     @DeleteMapping(path = "campaign/{id}")
-    public ResponseEntity deleteCampaign(@PathVariable("id") Long id){
+    public ResponseEntity<Void> deleteCampaign(@PathVariable("id") Long id){
         campaignService.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
+    // ---- private helpers ----
+
+    private CampaignDetailDto mapToDetail(CampaignEntity entity) {
+        // Start with explicit campaign_players entries
+        List<UserEntity> explicitPlayers = entity.getPlayers() == null ? List.of() : entity.getPlayers();
+
+        // Add users derived from characters (includes the DM if they have a character)
+        List<UserEntity> characterOwners = entity.getCharacters() == null
+                ? List.of()
+                : entity.getCharacters().stream()
+                        .map(CharacterEntity::getUser)
+                        .filter(java.util.Objects::nonNull)
+                        .toList();
+
+        // Union by user id — explicit players first, then character owners not already present
+        java.util.Set<Long> seenIds = new java.util.LinkedHashSet<>();
+        java.util.List<UserEntity> allPlayers = new java.util.ArrayList<>();
+        for (UserEntity u : explicitPlayers) {
+            if (seenIds.add(u.getId())) allPlayers.add(u);
+        }
+        for (UserEntity u : characterOwners) {
+            if (seenIds.add(u.getId())) allPlayers.add(u);
+        }
+
+        List<CampaignDetailDto.CampaignPlayerDto> playerDtos = allPlayers.stream()
+                .map(this::mapPlayer)
+                .toList();
+
+        List<CampaignDetailDto.CampaignCharacterDto> characterDtos = entity.getCharacters() == null
+                ? List.of()
+                : entity.getCharacters().stream().map(this::mapCharacter).toList();
+
+        return CampaignDetailDto.builder()
+                .id(entity.getId())
+                .joinCode(entity.getJoinCode())
+                .name(entity.getName())
+                .description(entity.getDescription())
+                .privacy(entity.getPrivacy())
+                .creationDate(entity.getCreationDate())
+                .players(playerDtos)
+                .characters(characterDtos)
+                .build();
+    }
+
+    private CampaignDetailDto.CampaignPlayerDto mapPlayer(UserEntity user) {
+        return CampaignDetailDto.CampaignPlayerDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .build();
+    }
+
+    private CampaignDetailDto.CampaignCharacterDto mapCharacter(CharacterEntity character) {
+        CampaignDetailDto.CampaignCharacterDto.RaceProjection race = character.getRace() == null ? null
+                : CampaignDetailDto.CampaignCharacterDto.RaceProjection.builder()
+                        .id(character.getRace().getId())
+                        .name(character.getRace().getName())
+                        .build();
+
+        CampaignDetailDto.CampaignCharacterDto.UserProjection user = character.getUser() == null ? null
+                : CampaignDetailDto.CampaignCharacterDto.UserProjection.builder()
+                        .id(character.getUser().getId())
+                        .username(character.getUser().getUsername())
+                        .build();
+
+        return CampaignDetailDto.CampaignCharacterDto.builder()
+                .id(character.getId())
+                .name(character.getName())
+                .alignment(character.getAlignment())
+                .background(character.getBackground())
+                .race(race)
+                .user(user)
+                .build();
+    }
 }
+

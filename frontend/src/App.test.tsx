@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -395,7 +395,6 @@ describe('App create campaign flow', () => {
           description: 'Island quest',
           privacy: false,
           creationDate: '2025-11-29T00:00:00.000+00:00',
-          playerCount: 1,
         },
       ])
 
@@ -424,7 +423,6 @@ describe('App create campaign flow', () => {
         description: 'Starter set adventure',
         privacy: false,
         creationDate: '2025-11-29T00:00:00.000+00:00',
-        playerCount: 3,
       },
     ])
 
@@ -432,7 +430,6 @@ describe('App create campaign flow', () => {
 
     expect(await screen.findByText('Intro to Stormwreck Isle')).toBeInTheDocument()
     expect(screen.getByText('Campaign Started 11/29/2025')).toBeInTheDocument()
-    expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('VIEW CAMPAIGN')).toBeInTheDocument()
     await waitFor(() => expect(api.campaigns.findMine).toHaveBeenCalledTimes(1))
   })
@@ -450,6 +447,114 @@ describe('App create campaign flow', () => {
     expect(await screen.findByText('Loading campaigns...')).toBeInTheDocument()
     resolveCampaigns?.([])
     await waitFor(() => expect(screen.getByText('You are not DM of any campaigns yet.')).toBeInTheDocument())
+  })
+
+  it('shows the join code and copy button on the owned campaign card', async () => {
+    vi.mocked(api.campaigns.findMine).mockResolvedValueOnce([
+      {
+        id: 11,
+        name: 'Intro to Stormwreck Isle',
+        description: 'Starter set adventure',
+        privacy: false,
+        creationDate: '2025-11-29T00:00:00.000+00:00',
+        joinCode: 'AB12-CD34',
+      },
+    ])
+
+    render(<App />)
+
+    expect(await screen.findByText('AB12-CD34')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy code' })).toBeInTheDocument()
+  })
+
+  it('shows the join code dialog with a copy button instead of a Copy Code text button after campaign creation', async () => {
+    const user = userEvent.setup()
+
+    vi.mocked(api.campaigns.findMine).mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        id: 42,
+        name: 'Stormwreck',
+        description: 'Island quest',
+        privacy: false,
+        creationDate: '2025-11-29T00:00:00.000+00:00',
+        joinCode: 'XY99-ZZ00',
+      },
+    ])
+
+    render(<App />)
+
+    await screen.findByRole('button', { name: '+ Create Campaign' })
+    await user.click(screen.getByRole('button', { name: '+ Create Campaign' }))
+    await user.type(screen.getByLabelText('Campaign Name'), 'Stormwreck')
+    await user.type(screen.getByLabelText('Description'), 'Island quest')
+    await user.click(screen.getByRole('button', { name: 'Create Campaign' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('XY99-ZZ00')).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Copy code' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Copy Code' })).not.toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Got it!' })).toBeInTheDocument()
+  })
+
+  it('groups player campaigns by campaignId showing one card per campaign', async () => {
+    vi.mocked(api.campaigns.findAsPlayer).mockResolvedValueOnce([
+      {
+        campaignId: 5,
+        campaignName: 'Lost Mines',
+        campaignDescription: 'Classic starter',
+        privacy: false,
+        creationDate: '2025-11-29T00:00:00.000+00:00',
+        characterId: 10,
+        characterName: 'Iria',
+      },
+      {
+        campaignId: 5,
+        campaignName: 'Lost Mines',
+        campaignDescription: 'Classic starter',
+        privacy: false,
+        creationDate: '2025-11-29T00:00:00.000+00:00',
+        characterId: 11,
+        characterName: 'Borin',
+      },
+    ])
+
+    render(<App />)
+
+    // One campaign name, not two
+    expect(await screen.findAllByText('Lost Mines')).toHaveLength(1)
+    // Both character names visible inside the single card
+    expect(screen.getByText('Iria')).toBeInTheDocument()
+    expect(screen.getByText('Borin')).toBeInTheDocument()
+  })
+
+  it('shows each campaign once even when the player has multiple characters in different campaigns', async () => {
+    vi.mocked(api.campaigns.findAsPlayer).mockResolvedValueOnce([
+      {
+        campaignId: 5,
+        campaignName: 'Lost Mines',
+        campaignDescription: 'Classic starter',
+        privacy: false,
+        creationDate: '2025-11-29T00:00:00.000+00:00',
+        characterId: 10,
+        characterName: 'Iria',
+      },
+      {
+        campaignId: 7,
+        campaignName: 'Stormwreck Isle',
+        campaignDescription: 'Island quest',
+        privacy: false,
+        creationDate: '2025-12-01T00:00:00.000+00:00',
+        characterId: 12,
+        characterName: 'Zara',
+      },
+    ])
+
+    render(<App />)
+
+    expect(await screen.findByText('Lost Mines')).toBeInTheDocument()
+    expect(screen.getByText('Stormwreck Isle')).toBeInTheDocument()
+    expect(screen.getByText('Iria')).toBeInTheDocument()
+    expect(screen.getByText('Zara')).toBeInTheDocument()
   })
 
   it('shows a campaign error without affecting the characters section', async () => {
@@ -566,7 +671,6 @@ describe('App view campaign flow', () => {
         description: 'Starter set adventure',
         privacy: false,
         creationDate: '2025-11-29T00:00:00.000+00:00',
-        playerCount: 2,
       },
     ])
     vi.mocked(api.campaigns.findAll).mockResolvedValue([])

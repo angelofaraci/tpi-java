@@ -8,7 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.xml.stream.events.Characters;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +32,8 @@ public class CampaignEntity {
     private String name;
     private String description;
     private Boolean privacy;
-    private Date CreationDate;
+    @Column(name = "CreationDate")
+    private Date creationDate;
     @ManyToMany
     @JoinTable(
             name = "campaign_players",
@@ -42,7 +42,7 @@ public class CampaignEntity {
     )
     private List<UserEntity> players;
 
-    @OneToMany(mappedBy = "id", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL)
     private List<CharacterEntity> characters;
 
     @PrePersist
@@ -94,11 +94,11 @@ public class CampaignEntity {
     }
 
     public Date getCreationDate() {
-        return CreationDate;
+        return creationDate;
     }
 
     public void setCreationDate(Date creationDate) {
-        this.CreationDate = creationDate;
+        this.creationDate = creationDate;
     }
 
     public List<UserEntity> getPlayers() {

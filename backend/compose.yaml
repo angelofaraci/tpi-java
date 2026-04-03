@@ -5,5 +5,7 @@ services:
     environment:
       - 'POSTGRES_USER=myuser'
       - 'POSTGRES_PASSWORD=secret'
+      - 'PGTZ=UTC'
+      - 'TZ=UTC'
     ports:
       - '55443:5432'

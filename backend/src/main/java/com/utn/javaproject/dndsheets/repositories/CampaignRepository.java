@@ -15,7 +15,6 @@ public interface CampaignRepository extends JpaRepository<CampaignEntity, Long> 
 
     Optional<CampaignEntity> findByJoinCode(String joinCode);
 
-    @Query("SELECT c FROM CampaignEntity c WHERE c.dm.id = ?1 ORDER BY c.CreationDate DESC")
+    @Query("SELECT c FROM CampaignEntity c WHERE c.dm.id = ?1 ORDER BY c.creationDate DESC")
     List<CampaignEntity> findAllByDmIdOrderByCreationDateDesc(Long dmId);
-
 }

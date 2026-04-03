@@ -6,6 +6,7 @@ import { CreateCampaign } from './pages/CreateCampaign'
 import { CreateCharacter } from './pages/CreateCharacter'
 import { ViewCampaign } from './pages/ViewCampaign'
 import { AdminPanel } from './pages/AdminPanel'
+import { CopyCodeButton } from './components/CopyCodeButton'
 import { api } from './services/api'
 import type { OwnedCampaignSummary, PlayerCampaignSummary } from './interfaces/campaign'
 import type { HydratedCharacterEditData } from './interfaces/character'
@@ -34,6 +35,11 @@ interface DeleteDialogState {
 interface DeleteCampaignDialogState {
   campaignId: number
   campaignName: string
+}
+
+interface JoinCodeDialogState {
+  campaignName: string
+  joinCode: string
 }
 
 function formatCampaignStartDate(creationDate?: string) {
@@ -67,6 +73,7 @@ function App() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null)
   const [deletingCampaignId, setDeletingCampaignId] = useState<number | null>(null)
   const [deleteCampaignDialog, setDeleteCampaignDialog] = useState<DeleteCampaignDialogState | null>(null)
+  const [joinCodeDialog, setJoinCodeDialog] = useState<JoinCodeDialogState | null>(null)
   const [campaignViewError, setCampaignViewError] = useState<string | null>(null)
   const [campaignViewFeedback, setCampaignViewFeedback] = useState<string | null>(null)
   const [charactersError, setCharactersError] = useState<string | null>(null)
@@ -235,6 +242,7 @@ function App() {
     setCampaignViewError(null)
     setDeleteDialog(null)
     setDeleteCampaignDialog(null)
+    setJoinCodeDialog(null)
     setCharacterFormMode('create')
     setCharacterReturnView('home')
     setEditCharacterData(null)
@@ -339,10 +347,45 @@ function App() {
     setView('home')
   }
 
-  const handleCreateCampaignSuccess = (campaignName: string) => {
+  const handleCreateCampaignSuccess = async (result: { campaignName: string; joinCode?: string }) => {
     setView('home')
-    setCampaignFeedback(`Campaign "${campaignName}" created successfully. You are now the DM.`)
-    void loadCampaigns()
+
+    // Intentamos obtener el joinCode desde la respuesta del POST primero.
+    // Si no vino (backend issue), recargamos la lista via loadCampaigns (que anula peticiones anteriores)
+    // y buscamos el joinCode por nombre en la lista fresca.
+    let joinCode = result.joinCode
+
+    if (!joinCode) {
+      try {
+        const requestId = latestCampaignRequestId.current + 1
+        latestCampaignRequestId.current = requestId
+        setLoadingCampaigns(true)
+        setCampaignsError(null)
+
+        const freshList = await api.campaigns.findMine()
+
+        if (requestId === latestCampaignRequestId.current) {
+          const match = Array.isArray(freshList)
+            ? freshList.find((c) => c.name === result.campaignName)
+            : undefined
+          joinCode = match?.joinCode
+          if (Array.isArray(freshList)) {
+            setCampaigns(freshList)
+          }
+          setLoadingCampaigns(false)
+        }
+      } catch {
+        void loadCampaigns()
+      }
+    } else {
+      void loadCampaigns()
+    }
+
+    if (joinCode) {
+      setJoinCodeDialog({ campaignName: result.campaignName, joinCode })
+    } else {
+      setCampaignFeedback(`Campaign "${result.campaignName}" created successfully. You are now the DM.`)
+    }
   }
 
   const handleCancelCreateCharacter = () => {
@@ -447,6 +490,7 @@ function App() {
         onEditCharacter={handleOpenEditCharacter}
         onLogout={handleLogout}
         onDeleteCharacter={handleRequestDeleteCharacter}
+        onViewCampaign={handleViewCampaign}
         deletingCharacterId={deletingCharacterId}
         deleteError={charactersError}
         feedback={characterSheetFeedback}
@@ -630,7 +674,10 @@ function App() {
                         VIEW
                       </button>
                       <button
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleViewCharacter(character.id)
+                        }}
                         style={{
                           flex: 1,
                           padding: '0.5rem',
@@ -743,23 +790,6 @@ function App() {
                     {formatCampaignStartDate(campaign.creationDate)}
                   </p>
 
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{
-                      fontSize: '2.5rem',
-                      fontWeight: 'bold',
-                      color: 'var(--color-foreground)',
-                      marginBottom: '0.25rem'
-                    }}>
-                      {campaign.playerCount}
-                    </div>
-                    <div style={{
-                      fontSize: '0.875rem',
-                      color: 'var(--color-foreground-muted)',
-                      fontWeight: '600'
-                    }}>
-                      PLAYERS
-                    </div>
-                  </div>
 
                   <div style={{
                     padding: '0.75rem 0',
@@ -775,6 +805,25 @@ function App() {
                     }}>
                       ROLE: DUNGEON MASTER
                     </div>
+                    {campaign.joinCode && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        marginTop: '0.5rem',
+                      }}>
+                        <span style={{
+                          fontSize: '0.8rem',
+                          fontFamily: 'monospace',
+                          color: 'var(--color-foreground-muted)',
+                          letterSpacing: '0.1em',
+                        }}>
+                          {campaign.joinCode}
+                        </span>
+                        <CopyCodeButton code={campaign.joinCode} size="sm" />
+                      </div>
+                    )}
                   </div>
 
                   <div style={{
@@ -860,75 +909,91 @@ function App() {
               </div>
             )}
 
-            {!loadingPlayerCampaigns && !playerCampaignsError && playerCampaigns.map((pc) => (
-              <div key={pc.campaignId} className="campaign-placeholder-card">
-                <div style={{
-                  backgroundColor: 'var(--color-background)',
-                  padding: '2rem 1.5rem',
-                  textAlign: 'center'
-                }}>
-                  <h3 style={{
-                    margin: '0 0 0.5rem 0',
-                    fontSize: '1.5rem',
-                    fontWeight: 'normal',
-                    color: 'var(--color-foreground)'
-                  }}>
-                    {pc.campaignName}
-                  </h3>
-                  <p style={{
-                    margin: '0 0 1.5rem 0',
-                    fontSize: '0.875rem',
-                    color: 'var(--color-foreground-muted)'
-                  }}>
-                    {formatCampaignStartDate(pc.creationDate)}
-                  </p>
+            {!loadingPlayerCampaigns && !playerCampaignsError && (() => {
+              // Group by campaignId — one card per campaign, list all characters inside
+              const grouped = playerCampaigns.reduce<Map<number, { campaignId: number; campaignName: string; creationDate?: string; characters: { id: number; name: string }[] }>>(
+                (acc, pc) => {
+                  if (!acc.has(pc.campaignId)) {
+                    acc.set(pc.campaignId, { campaignId: pc.campaignId, campaignName: pc.campaignName, creationDate: pc.creationDate, characters: [] })
+                  }
+                  acc.get(pc.campaignId)!.characters.push({ id: pc.characterId, name: pc.characterName })
+                  return acc
+                },
+                new Map()
+              )
 
+              return [...grouped.values()].map((group) => (
+                <div key={group.campaignId} className="campaign-placeholder-card">
                   <div style={{
-                    padding: '0.75rem 0',
-                    borderTop: '1px solid var(--color-border)',
-                    borderBottom: '1px solid var(--color-border)',
-                    marginBottom: '1.5rem'
+                    backgroundColor: 'var(--color-background)',
+                    padding: '2rem 1.5rem',
+                    textAlign: 'center'
                   }}>
-                    <div style={{
-                      fontSize: '0.875rem',
-                      fontWeight: '700',
-                      color: 'var(--color-foreground)',
-                      letterSpacing: '0.05em',
-                      marginBottom: '0.5rem'
+                    <h3 style={{
+                      margin: '0 0 0.5rem 0',
+                      fontSize: '1.5rem',
+                      fontWeight: 'normal',
+                      color: 'var(--color-foreground)'
                     }}>
-                      ROLE: PLAYER
-                    </div>
-                    <div style={{
+                      {group.campaignName}
+                    </h3>
+                    <p style={{
+                      margin: '0 0 1.5rem 0',
                       fontSize: '0.875rem',
                       color: 'var(--color-foreground-muted)'
                     }}>
-                      Your character: <strong style={{ color: 'var(--color-foreground)' }}>{pc.characterName}</strong>
-                    </div>
-                  </div>
+                      {formatCampaignStartDate(group.creationDate)}
+                    </p>
 
-                  <button
-                    type="button"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem 1rem',
-                      backgroundColor: 'transparent',
-                      color: '#3b82f6',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      fontWeight: '700',
-                      transition: 'color 0.2s',
-                      letterSpacing: '0.05em'
-                    }}
-                    onClick={() => handleViewCampaign(pc.campaignId)}
-                    onMouseEnter={(e) => e.currentTarget.style.color = '#60a5fa'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = '#3b82f6'}
-                  >
-                    VIEW CAMPAIGN
-                  </button>
+                    <div style={{
+                      padding: '0.75rem 0',
+                      borderTop: '1px solid var(--color-border)',
+                      borderBottom: '1px solid var(--color-border)',
+                      marginBottom: '1.5rem'
+                    }}>
+                      <div style={{
+                        fontSize: '0.875rem',
+                        fontWeight: '700',
+                        color: 'var(--color-foreground)',
+                        letterSpacing: '0.05em',
+                        marginBottom: group.characters.length > 0 ? '0.5rem' : 0
+                      }}>
+                        ROLE: PLAYER
+                      </div>
+                      {group.characters.map((ch) => (
+                        <div key={ch.id} style={{
+                          fontSize: '0.875rem',
+                          color: 'var(--color-foreground-muted)'
+                        }}>
+                          <strong style={{ color: 'var(--color-foreground)' }}>{ch.name}</strong>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 1rem',
+                        backgroundColor: 'transparent',
+                        color: '#3b82f6',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: '700',
+                        transition: 'color 0.2s',
+                        letterSpacing: '0.05em'
+                      }}
+                      onClick={() => handleViewCampaign(group.campaignId)}
+                      onMouseEnter={(e) => e.currentTarget.style.color = '#60a5fa'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = '#3b82f6'}
+                    >
+                      VIEW CAMPAIGN
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            })()}
           </div>
         </section>
       </div>
@@ -939,6 +1004,47 @@ function App() {
   return (
     <>
       {content}
+      {joinCodeDialog && (
+        <div className="confirmation-backdrop" role="presentation">
+          <div className="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="join-code-title">
+            <span className="confirmation-eyebrow">Campaign created!</span>
+            <h2 id="join-code-title">🎲 {joinCodeDialog.campaignName}</h2>
+            <p>
+              Share this code with your players so they can join the campaign:
+            </p>
+            <div style={{
+              background: 'var(--color-background)',
+              border: '2px solid var(--color-border)',
+              borderRadius: '0.5rem',
+              padding: '1rem 1.5rem',
+              margin: '1rem 0',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.1em', color: 'var(--color-foreground-muted)', marginBottom: '0.5rem' }}>
+                JOIN CODE
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                <div style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '0.15em', color: 'var(--color-foreground)', fontFamily: 'monospace' }}>
+                  {joinCodeDialog.joinCode}
+                </div>
+                <CopyCodeButton code={joinCodeDialog.joinCode} size="md" />
+              </div>
+            </div>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-foreground-muted)', margin: '0 0 1.5rem' }}>
+              You can also find this code later in the campaign view.
+            </p>
+            <div className="confirmation-actions">
+              <button
+                type="button"
+                className="login-button"
+                onClick={() => setJoinCodeDialog(null)}
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {deleteDialog && (
         <div className="confirmation-backdrop" role="presentation">
           <div className="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-character-title">

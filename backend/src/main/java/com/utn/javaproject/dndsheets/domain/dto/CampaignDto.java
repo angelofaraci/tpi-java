@@ -23,7 +23,9 @@ public class CampaignDto {
     private String name;
     private String description;
     private Boolean privacy;
-    private Date CreationDate;
+    private Date creationDate;
+    @JsonIgnore
     private List<UserDto> players;
+    @JsonIgnore
     private List<CharacterDto> characters;
 }

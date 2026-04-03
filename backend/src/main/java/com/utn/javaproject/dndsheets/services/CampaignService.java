@@ -121,7 +121,6 @@ public class CampaignService {
         summaryDto.setDescription(campaignEntity.getDescription());
         summaryDto.setPrivacy(campaignEntity.getPrivacy());
         summaryDto.setCreationDate(campaignEntity.getCreationDate());
-        summaryDto.setPlayerCount(campaignEntity.getPlayers() == null ? 0 : campaignEntity.getPlayers().size());
         return summaryDto;
     }
 

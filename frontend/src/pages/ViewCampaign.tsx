@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import '../App.css'
 import { api } from '../services/api'
+import { CopyCodeButton } from '../components/CopyCodeButton'
 import type { Campaign, CampaignParticipant, CampaignCharacterReference } from '../interfaces/campaign'
 
 interface ViewCampaignProps {
@@ -156,6 +157,7 @@ export function ViewCampaign({
               <div className="view-campaign-join-code">
                 <span className="view-campaign-join-code-label">JOIN CODE</span>
                 <span className="view-campaign-join-code-value">{campaign.joinCode}</span>
+                <CopyCodeButton code={campaign.joinCode} size="sm" variant="dark" />
               </div>
             )}
           </div>

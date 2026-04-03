@@ -632,7 +632,7 @@
 }
 
 .create-character-compact-stats {
-  align-items: end;
+  align-items: start;
 }
 
 .create-character-ability-grid {

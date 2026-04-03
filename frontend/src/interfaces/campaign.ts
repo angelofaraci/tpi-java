@@ -37,7 +37,6 @@ export interface OwnedCampaignSummary {
   description: string
   privacy: boolean
   creationDate?: string
-  playerCount: number
 }
 
 export interface CreateCampaignPayload {

@@ -66,7 +66,7 @@ class CampaignMineEndpointTests {
                 .name("Other DM Campaign")
                 .description("Should not be returned")
                 .privacy(false)
-                .CreationDate(new Date(1_000L))
+                .creationDate(new Date(1_000L))
                 .players(List.of())
                 .characters(List.of())
                 .build());
@@ -76,7 +76,7 @@ class CampaignMineEndpointTests {
                 .name("Old Watchtower")
                 .description("First owned campaign")
                 .privacy(false)
-                .CreationDate(new Date(2_000L))
+                .creationDate(new Date(2_000L))
                 .players(List.of())
                 .characters(List.of())
                 .build());
@@ -86,7 +86,7 @@ class CampaignMineEndpointTests {
                 .name("Hidden Shrine")
                 .description("Second owned campaign")
                 .privacy(true)
-                .CreationDate(new Date(3_000L))
+                .creationDate(new Date(3_000L))
                 .players(List.of(player))
                 .characters(List.of())
                 .build());
@@ -98,7 +98,6 @@ class CampaignMineEndpointTests {
                 .andExpect(jsonPath("$[0].name").value("Hidden Shrine"))
                 .andExpect(jsonPath("$[0].description").value("Second owned campaign"))
                 .andExpect(jsonPath("$[0].privacy").value(true))
-                .andExpect(jsonPath("$[0].playerCount").value(1))
                 .andExpect(jsonPath("$[0].dm").doesNotExist())
                 .andExpect(jsonPath("$[1].name").value("Old Watchtower"));
     }
@@ -152,16 +151,16 @@ class CampaignMineEndpointTests {
                         .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0]", aMapWithSize(7)))
+                .andExpect(jsonPath("$[0]", aMapWithSize(6)))
                 .andExpect(jsonPath("$[0].id").value(createdCampaign.getId()))
                 .andExpect(jsonPath("$[0].name").value(campaignName))
                 .andExpect(jsonPath("$[0].description").value("Created campaign should show on home"))
                 .andExpect(jsonPath("$[0].privacy").value(true))
                 .andExpect(jsonPath("$[0].creationDate").exists())
-                .andExpect(jsonPath("$[0].playerCount").value(0))
                 .andExpect(jsonPath("$[0].dm").doesNotExist())
                 .andExpect(jsonPath("$[0].players").doesNotExist())
-                .andExpect(jsonPath("$[0].characters").doesNotExist());
+                .andExpect(jsonPath("$[0].characters").doesNotExist())
+                .andExpect(jsonPath("$[0].playerCount").doesNotExist());
     }
 
     @Test

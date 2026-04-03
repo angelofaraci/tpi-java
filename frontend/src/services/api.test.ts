@@ -65,7 +65,6 @@ describe('api.campaigns.findMine', () => {
             description: 'Second owned campaign',
             privacy: true,
             creationDate: '2025-11-29T00:00:00.000+00:00',
-            playerCount: 1,
           },
         ]),
         {
@@ -96,7 +95,6 @@ describe('api.campaigns.findMine', () => {
         description: 'Second owned campaign',
         privacy: true,
         creationDate: '2025-11-29T00:00:00.000+00:00',
-        playerCount: 1,
       },
     ])
     expect(logSpy).toHaveBeenCalled()

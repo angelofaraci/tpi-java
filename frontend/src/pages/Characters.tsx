@@ -57,6 +57,7 @@ interface CharactersProps {
   onEditCharacter: (editData: HydratedCharacterEditData) => void;
   onLogout: () => void;
   onDeleteCharacter: (characterId: number, characterName?: string) => void;
+  onViewCampaign?: (campaignId: number) => void;
   deletingCharacterId: number | null;
   deleteError: string | null;
   feedback?: string | null;
@@ -70,6 +71,7 @@ export function Characters({
   onEditCharacter,
   onLogout,
   onDeleteCharacter,
+  onViewCampaign,
   deletingCharacterId,
   deleteError,
   feedback,
@@ -78,6 +80,7 @@ export function Characters({
 }: CharactersProps) {
   const [characterSheetData, setCharacterSheetData] = useState<FormCharacterData | null>(null)
   const [characterEditData, setCharacterEditData] = useState<HydratedCharacterEditData | null>(null)
+  const [characterCampaign, setCharacterCampaign] = useState<{ id: number; name?: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -100,10 +103,9 @@ export function Characters({
         const characterPayload = responseData as CharacterPayload
 
         const hasUser = !!characterPayload.user
-        const hasCampaign = !!characterPayload.campaign
         const hasRace = !!characterPayload.race
 
-        if (!hasUser || !hasCampaign || !hasRace) {
+        if (!hasUser || !hasRace) {
           setError('Malformed character payload from server')
           return
         }
@@ -111,7 +113,7 @@ export function Characters({
         const mappedData: Character = {
           id: characterPayload.id ?? 0,
           user: characterPayload.user as Character['user'],
-          campaign: characterPayload.campaign as Character['campaign'],
+          campaign: (characterPayload.campaign ?? { id: 0 }) as Character['campaign'],
           name: characterPayload.name ?? '',
           characterClasses: Array.isArray(characterPayload.characterClasses) ? characterPayload.characterClasses : [],
           characteristics: Array.isArray(characterPayload.characteristics) ? characterPayload.characteristics : [],
@@ -181,6 +183,9 @@ export function Characters({
           velocity: mappedData.characterStats.velocities[0] || 0,
           hp: mappedData.characterStats.hp || 0
         })
+        if (mappedData.campaign?.id && Number(mappedData.campaign.id) > 0) {
+          setCharacterCampaign({ id: Number(mappedData.campaign.id), name: mappedData.campaign.name })
+        }
         setCharacterEditData(hydrateCharacterEditData(mappedData, normalizedLevels))
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
@@ -328,6 +333,41 @@ export function Characters({
               <p>{characterSheetData.hp}</p>
             </div>
           </div>
+
+          {/* Campaign Info */}
+          {characterCampaign && (
+            <div style={{
+              marginTop: '1rem',
+              padding: '0.75rem 1rem',
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              flexWrap: 'wrap',
+            }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--color-foreground-muted)' }}>
+                  CAMPAIGN
+                </span>
+                <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-foreground)', marginTop: '0.25rem' }}>
+                  🗺️ {characterCampaign.name || `Campaign #${characterCampaign.id}`}
+                </div>
+              </div>
+              {onViewCampaign && (
+                <button
+                  type="button"
+                  className="section-action-button"
+                  onClick={() => onViewCampaign(characterCampaign.id)}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  View Campaign →
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="sheet-columns">

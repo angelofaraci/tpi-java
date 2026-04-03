@@ -3,10 +3,15 @@ import '../App.css'
 import type { CreateCampaignPayload } from '../interfaces/campaign'
 import { api } from '../services/api'
 
+interface CreatedCampaignResult {
+  campaignName: string
+  joinCode?: string
+}
+
 interface CreateCampaignProps {
   onCancel: () => void
   onLogout: () => void
-  onSuccess: (campaignName: string) => void
+  onSuccess: (result: CreatedCampaignResult) => void
 }
 
 interface CampaignFormErrors {
@@ -64,7 +69,7 @@ export function CreateCampaign({ onCancel, onLogout, onSuccess }: CreateCampaign
     const campaignName = formState.name.trim()
 
     try {
-      await api.campaigns.create({
+      const created = await api.campaigns.create({
         name: campaignName,
         description: formState.description.trim(),
         privacy: formState.privacy,
@@ -72,7 +77,7 @@ export function CreateCampaign({ onCancel, onLogout, onSuccess }: CreateCampaign
 
       setFormState(defaultFormState)
       setFieldErrors({})
-      onSuccess(campaignName)
+      onSuccess({ campaignName, joinCode: created?.joinCode })
     } catch (error) {
       setSubmitError(getSubmitErrorMessage(error))
     } finally {
