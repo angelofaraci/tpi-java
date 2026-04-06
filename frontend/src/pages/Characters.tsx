@@ -448,22 +448,47 @@ export function Characters({
               {characterSheetData.classes.length === 0 ? (
                 <div className="feature-item">No class features</div>
               ) : (
-                characterSheetData.classes.map((c) => (
-                  <div key={c.classId}>
-                    <div className="feature-item">
-                      <strong>{c.description} (Level {c.level})</strong>
+                characterSheetData.classes.map((c) => {
+                  // Group features by level
+                  const featuresByLevel = c.features.reduce<Record<number, Array<{ title: string; description: string }>>>((acc, f) => {
+                    const [title, ...descParts] = f.text.split('\n')
+                    const description = descParts.join('\n')
+                    if (!acc[f.level]) {
+                      acc[f.level] = []
+                    }
+                    acc[f.level].push({ title: title || 'Feature', description: description || '' })
+                    return acc
+                  }, {})
+
+                  const levels = Object.keys(featuresByLevel).map(Number).sort((a, b) => a - b)
+
+                  return (
+                    <div key={c.classId} className="class-features-block">
+                      <div className="class-features-header">
+                        {c.description} (Level {c.level})
+                      </div>
+                      {levels.length === 0 ? (
+                        <div className="feature-item">No features unlocked</div>
+                      ) : (
+                        levels.map((level) => (
+                          <div key={`${c.classId}-level-${level}`} className="level-features-group">
+                            <div className="level-features-header">Level {level}</div>
+                            <div className="level-features-list">
+                              {featuresByLevel[level].map((feature, idx) => (
+                                <div key={`${c.classId}-${level}-${idx}`} className="feature-card">
+                                  <div className="feature-title">{feature.title}</div>
+                                  {feature.description && (
+                                    <div className="feature-description">{feature.description}</div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
-                    {c.features.length === 0 ? (
-                      <div className="feature-item">No features unlocked</div>
-                    ) : (
-                      c.features.map((f) => (
-                        <div key={`${c.classId}-${f.level}`} className="feature-item">
-                          {f.text}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
 

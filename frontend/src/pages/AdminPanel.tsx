@@ -115,6 +115,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const handleRemoveLevelCharacteristic = (level: number) => {
+    if (!confirm(`Remove level ${level} characteristic?`)) return
     setLevelCharacteristics((prev) => {
       const updated = { ...prev }
       delete updated[level]
@@ -130,6 +131,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const handleRemoveRacialFeat = (index: number) => {
+    const featName = racialFeats[index]
+    if (!confirm(`Remove racial feature "${featName}"?`)) return
     setRacialFeats((prev) => prev.filter((_, i) => i !== index))
   }
 
@@ -144,28 +147,33 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
       if (editMode === 'create-class') {
         await api.admin.classes.create(payload)
-        setFeedback('Class created successfully')
+        alert('Class created successfully')
       } else if (editMode === 'edit-class' && editingClass) {
         await api.admin.classes.update(editingClass.id!, payload)
-        setFeedback('Class updated successfully')
+        alert('Class updated successfully')
       }
 
       await loadData()
       handleCancelEdit()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save class')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to save class'
+      setError(errorMsg)
+      alert('Error: ' + errorMsg)
     }
   }
 
   const handleDeleteClass = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this class?')) return
+    const className = classes.find(c => c.id === id)?.name || 'this class'
+    if (!confirm(`Are you sure you want to delete "${className}"? This action cannot be undone.`)) return
 
     try {
       await api.admin.classes.delete(id)
-      setFeedback('Class deleted successfully')
+      alert('Class deleted successfully')
       await loadData()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete class')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to delete class'
+      setError(errorMsg)
+      alert('Error: ' + errorMsg)
     }
   }
 
@@ -179,28 +187,33 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
       if (editMode === 'create-race') {
         await api.admin.races.create(payload)
-        setFeedback('Race created successfully')
+        alert('Race created successfully')
       } else if (editMode === 'edit-race' && editingRace) {
         await api.admin.races.update(editingRace.id!, payload)
-        setFeedback('Race updated successfully')
+        alert('Race updated successfully')
       }
 
       await loadData()
       handleCancelEdit()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save race')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to save race'
+      setError(errorMsg)
+      alert('Error: ' + errorMsg)
     }
   }
 
   const handleDeleteRace = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this race?')) return
+    const raceName = races.find(r => r.id === id)?.name || 'this race'
+    if (!confirm(`Are you sure you want to delete "${raceName}"? This action cannot be undone.`)) return
 
     try {
       await api.admin.races.delete(id)
-      setFeedback('Race deleted successfully')
+      alert('Race deleted successfully')
       await loadData()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete race')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to delete race'
+      setError(errorMsg)
+      alert('Error: ' + errorMsg)
     }
   }
 
@@ -218,47 +231,73 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
           <h1>D&D Manager - Admin</h1>
           <button onClick={onLogout} className="logout-button">Logout</button>
         </header>
-        <div style={{ padding: '2rem' }}>
-          <button className="link-button" onClick={handleCancelEdit}>← Back to Admin Panel</button>
-          
-          <div style={{ marginTop: '2rem', maxWidth: '600px' }}>
-            <h2>{isCreate ? 'Create' : 'Edit'} {isClass ? 'Class' : 'Race'}</h2>
-            {error && <div className="error-message">{error}</div>}
+        <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: '100%', maxWidth: '800px' }}>
+            <button className="link-button" onClick={handleCancelEdit}>← Back to Admin Panel</button>
+            
+            <div style={{ 
+              marginTop: '2rem',
+              border: '1px solid var(--color-border)',
+              borderRadius: '8px',
+              padding: '2rem',
+              backgroundColor: 'var(--color-surface)'
+            }}>
+              <h2 style={{ marginTop: 0, marginBottom: '1.5rem', textAlign: 'center' }}>
+                {isCreate ? 'Create' : 'Edit'} {isClass ? 'Class' : 'Race'}
+              </h2>
+              {error && <div className="error-message">{error}</div>}
 
             {isClass ? (
               <div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Name</label>
-                  <input
-                    type="text"
-                    value={className}
-                    onChange={(e) => setClassName(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
-                  />
-                </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Description</label>
-                  <textarea
-                    value={classDescription}
-                    onChange={(e) => setClassDescription(e.target.value)}
-                    rows={3}
-                    style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
-                  />
-                </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Hit Dice</label>
-                  <input
-                    type="number"
-                    value={classHitDice}
-                    onChange={(e) => setClassHitDice(Number(e.target.value))}
-                    min={1}
-                    max={20}
-                    style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
-                  />
+                {/* Basic Info Section */}
+                <div style={{ 
+                  marginBottom: '2rem',
+                  padding: '1.5rem',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)'
+                }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--color-foreground)' }}>Basic Information</h3>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Name</label>
+                    <input
+                      type="text"
+                      value={className}
+                      onChange={(e) => setClassName(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Description</label>
+                    <textarea
+                      value={classDescription}
+                      onChange={(e) => setClassDescription(e.target.value)}
+                      rows={3}
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '0' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Hit Dice</label>
+                    <input
+                      type="number"
+                      value={classHitDice}
+                      onChange={(e) => setClassHitDice(Number(e.target.value))}
+                      min={1}
+                      max={20}
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                    />
+                  </div>
                 </div>
 
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Level Characteristics</label>
+                {/* Level Characteristics Section */}
+                <div style={{ 
+                  marginBottom: '2rem',
+                  padding: '1.5rem',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)'
+                }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--color-foreground)' }}>Level Characteristics</h3>
                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
                     <input
                       type="number"
@@ -267,7 +306,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                       onChange={(e) => setNewLevel(Number(e.target.value))}
                       min={1}
                       max={20}
-                      style={{ width: '80px', padding: '0.5rem', fontSize: '1rem' }}
+                      style={{ width: '80px', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
                     />
                     <input
                       type="text"
@@ -275,39 +314,40 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                       value={newFeature}
                       onChange={(e) => setNewFeature(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleAddLevelCharacteristic()}
-                      style={{ flex: 1, padding: '0.5rem', fontSize: '1rem' }}
+                      style={{ flex: 1, padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
                     />
                     <button
                       type="button"
                       onClick={handleAddLevelCharacteristic}
+                      className="section-action-button"
                       style={{ padding: '0.5rem 1rem', fontSize: '1rem' }}
                     >
                       Add
                     </button>
                   </div>
                   
-                  <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #ccc', padding: '0.5rem' }}>
+                  <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--color-border)', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'var(--color-surface)' }}>
                     {Object.entries(levelCharacteristics)
                       .sort(([a], [b]) => Number(a) - Number(b))
                       .map(([level, feature]) => (
-                        <div key={level} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', padding: '0.5rem', background: '#f5f5f5' }}>
+                        <div key={level} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', padding: '0.5rem', background: 'rgba(0, 0, 0, 0.03)', borderRadius: '4px' }}>
                           <span><strong>Level {level}:</strong> {feature}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveLevelCharacteristic(Number(level))}
-                            style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}
+                            style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}
                           >
                             ✕
                           </button>
                         </div>
                       ))}
                     {Object.keys(levelCharacteristics).length === 0 && (
-                      <p style={{ color: '#666', textAlign: 'center' }}>No level characteristics added yet</p>
+                      <p style={{ color: '#666', textAlign: 'center', margin: '1rem 0' }}>No level characteristics added yet</p>
                     )}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                   <button
                     type="button"
                     onClick={handleSaveClass}
@@ -316,34 +356,51 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                   >
                     {isCreate ? 'Create Class' : 'Update Class'}
                   </button>
-                  <button type="button" onClick={handleCancelEdit} style={{ padding: '0.5rem 1rem' }}>
+                  <button type="button" onClick={handleCancelEdit} style={{ padding: '0.5rem 1.5rem', borderRadius: '4px', border: '1px solid var(--color-border)', cursor: 'pointer' }}>
                     Cancel
                   </button>
                 </div>
               </div>
             ) : (
               <div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Name</label>
-                  <input
-                    type="text"
-                    value={raceName}
-                    onChange={(e) => setRaceName(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
-                  />
-                </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Description</label>
-                  <textarea
-                    value={raceDescription}
-                    onChange={(e) => setRaceDescription(e.target.value)}
-                    rows={3}
-                    style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
-                  />
+                {/* Basic Info Section */}
+                <div style={{ 
+                  marginBottom: '2rem',
+                  padding: '1.5rem',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)'
+                }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--color-foreground)' }}>Basic Information</h3>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Name</label>
+                    <input
+                      type="text"
+                      value={raceName}
+                      onChange={(e) => setRaceName(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '0' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Description</label>
+                    <textarea
+                      value={raceDescription}
+                      onChange={(e) => setRaceDescription(e.target.value)}
+                      rows={3}
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                    />
+                  </div>
                 </div>
 
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Racial Features</label>
+                {/* Racial Features Section */}
+                <div style={{ 
+                  marginBottom: '2rem',
+                  padding: '1.5rem',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)'
+                }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--color-foreground)' }}>Racial Features</h3>
                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
                     <input
                       type="text"
@@ -351,37 +408,38 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                       value={newRacialFeat}
                       onChange={(e) => setNewRacialFeat(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleAddRacialFeat()}
-                      style={{ flex: 1, padding: '0.5rem', fontSize: '1rem' }}
+                      style={{ flex: 1, padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
                     />
                     <button
                       type="button"
                       onClick={handleAddRacialFeat}
+                      className="section-action-button"
                       style={{ padding: '0.5rem 1rem', fontSize: '1rem' }}
                     >
                       Add
                     </button>
                   </div>
 
-                  <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #ccc', padding: '0.5rem' }}>
+                  <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--color-border)', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'var(--color-surface)' }}>
                     {racialFeats.map((feat, index) => (
-                      <div key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', padding: '0.5rem', background: '#f5f5f5' }}>
+                      <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', padding: '0.5rem', background: 'rgba(0, 0, 0, 0.03)', borderRadius: '4px' }}>
                         <span>{feat}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveRacialFeat(index)}
-                          style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}
+                          style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}
                         >
                           ✕
                         </button>
                       </div>
                     ))}
                     {racialFeats.length === 0 && (
-                      <p style={{ color: '#666', textAlign: 'center' }}>No racial features added yet</p>
+                      <p style={{ color: '#666', textAlign: 'center', margin: '1rem 0' }}>No racial features added yet</p>
                     )}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                   <button
                     type="button"
                     onClick={handleSaveRace}
@@ -390,7 +448,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                   >
                     {isCreate ? 'Create Race' : 'Update Race'}
                   </button>
-                  <button type="button" onClick={handleCancelEdit} style={{ padding: '0.5rem 1rem' }}>
+                  <button type="button" onClick={handleCancelEdit} style={{ padding: '0.5rem 1.5rem', borderRadius: '4px', border: '1px solid var(--color-border)', cursor: 'pointer' }}>
                     Cancel
                   </button>
                 </div>
@@ -399,6 +457,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
           </div>
         </div>
       </div>
+    </div>
     )
   }
 
@@ -454,6 +513,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                   <button
                     type="button"
                     onClick={() => handleOpenEditClass(dndClass)}
+                    className="section-action-button"
                     style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem' }}
                   >
                     Edit
@@ -461,7 +521,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                   <button
                     type="button"
                     onClick={() => handleDeleteClass(dndClass.id!)}
-                    style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem', color: '#ef4444' }}
+                    className="sheet-delete-button"
+                    style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem' }}
                   >
                     Delete
                   </button>
@@ -495,6 +556,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                   <button
                     type="button"
                     onClick={() => handleOpenEditRace(race)}
+                    className="section-action-button"
                     style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem' }}
                   >
                     Edit
@@ -502,7 +564,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                   <button
                     type="button"
                     onClick={() => handleDeleteRace(race.id!)}
-                    style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem', color: '#ef4444' }}
+                    className="sheet-delete-button"
+                    style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem' }}
                   >
                     Delete
                   </button>
