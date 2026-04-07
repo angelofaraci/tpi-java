@@ -14,6 +14,7 @@ interface ViewCampaignProps {
   deleteError: string | null
   feedback?: string | null
   onDismissFeedback?: () => void
+  onViewCharacter?: (characterId: number) => void
 }
 
 function formatDate(dateString?: string) {
@@ -45,10 +46,12 @@ export function ViewCampaign({
   deleteError,
   feedback,
   onDismissFeedback,
+  onViewCharacter,
 }: ViewCampaignProps) {
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [forbidden, setForbidden] = useState(false)
 
   useEffect(() => {
     const fetchCampaign = async () => {
@@ -65,7 +68,11 @@ export function ViewCampaign({
 
         setCampaign(data)
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load campaign')
+        if (err instanceof Error && err.message.includes('403')) {
+          setForbidden(true)
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load campaign')
+        }
       } finally {
         setLoading(false)
       }
@@ -76,6 +83,23 @@ export function ViewCampaign({
 
   if (loading) {
     return <div className="loading-container">Loading campaign...</div>
+  }
+
+  if (forbidden) {
+    return (
+      <div>
+        <header className="app-header">
+          <h1>D&D Manager</h1>
+          <button onClick={onLogout} className="logout-button">Logout</button>
+        </header>
+        <div style={{ padding: '2rem' }}>
+          <button className="link-button" onClick={onBack}>← Back to Home</button>
+          <div className="error-message" style={{ marginTop: '1rem' }}>
+            🔒 This campaign is private. You need to be the Dungeon Master or an active player to view it.
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (error) {
@@ -216,7 +240,7 @@ export function ViewCampaign({
                 {characters.map((character) => (
                   <li key={character.id} className="view-campaign-list-item">
                     <div className="view-campaign-list-icon">🧙</div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div className="view-campaign-list-primary">
                         {character.name || `Character #${character.id}`}
                       </div>
@@ -232,6 +256,16 @@ export function ViewCampaign({
                         </div>
                       )}
                     </div>
+                    {onViewCharacter && (
+                      <button
+                        type="button"
+                        className="link-button"
+                        style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}
+                        onClick={() => onViewCharacter(character.id)}
+                      >
+                        View Sheet →
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>

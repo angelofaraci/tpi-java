@@ -17,4 +17,7 @@ public interface CampaignRepository extends JpaRepository<CampaignEntity, Long> 
 
     @Query("SELECT c FROM CampaignEntity c WHERE c.dm.id = ?1 ORDER BY c.creationDate DESC")
     List<CampaignEntity> findAllByDmIdOrderByCreationDateDesc(Long dmId);
+
+    @Query("SELECT c FROM CampaignEntity c WHERE c.privacy = false OR c.privacy IS NULL")
+    List<CampaignEntity> findAllPublic();
 }

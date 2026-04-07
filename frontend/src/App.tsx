@@ -13,7 +13,7 @@ import type { HydratedCharacterEditData } from './interfaces/character'
 import type { User } from './interfaces/user'
 import './styles/CharacterSheet.css'
 
-type View = 'home' | 'character-sheet' | 'create-campaign' | 'create-character' | 'view-campaign' | 'admin'
+type View = 'home' | 'character-sheet' | 'create-campaign' | 'create-character' | 'view-campaign' | 'admin' | 'view-character-readonly'
 type CharacterFormMode = 'create' | 'edit'
 type CharacterReturnView = 'home' | 'character-sheet'
 
@@ -71,6 +71,7 @@ function App() {
   const [deletingCharacterId, setDeletingCharacterId] = useState<number | null>(null)
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null)
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null)
+  const [readOnlyCharacterId, setReadOnlyCharacterId] = useState<number | null>(null)
   const [deletingCampaignId, setDeletingCampaignId] = useState<number | null>(null)
   const [deleteCampaignDialog, setDeleteCampaignDialog] = useState<DeleteCampaignDialogState | null>(null)
   const [joinCodeDialog, setJoinCodeDialog] = useState<JoinCodeDialogState | null>(null)
@@ -126,7 +127,23 @@ function App() {
 
       if (resolvedUserId) {
         data = await api.characters.findByUserId(resolvedUserId)
-      } else {
+  } else if (view === 'view-character-readonly' && readOnlyCharacterId) {
+    content = (
+      <Characters
+        characterId={readOnlyCharacterId}
+        readOnly
+        onBack={() => {
+          setReadOnlyCharacterId(null)
+          setView('view-campaign')
+        }}
+        onEditCharacter={() => {}}
+        onLogout={handleLogout}
+        onDeleteCharacter={() => {}}
+        deletingCharacterId={null}
+        deleteError={null}
+      />
+    )
+  } else {
         data = await api.characters.findAll()
       }
 
@@ -257,6 +274,7 @@ function App() {
     setView('home')
     setSelectedCharacterId(null)
     setSelectedCampaignId(null)
+    setReadOnlyCharacterId(null)
     setCharacterSheetFeedback(null)
     setCampaignViewFeedback(null)
     setCampaignViewError(null)
@@ -269,6 +287,11 @@ function App() {
     setCampaignViewFeedback(null)
     setCampaignViewError(null)
     setView('view-campaign')
+  }
+
+  const handleViewCharacterReadOnly = (characterId: number) => {
+    setReadOnlyCharacterId(characterId)
+    setView('view-character-readonly')
   }
 
   const handleRequestDeleteCampaign = (campaignId: number, campaignName: string) => {
@@ -526,6 +549,7 @@ function App() {
         deleteError={campaignViewError}
         feedback={campaignViewFeedback}
         onDismissFeedback={() => setCampaignViewFeedback(null)}
+        onViewCharacter={handleViewCharacterReadOnly}
       />
     )
   } else if (view === 'create-character' && currentUserId) {

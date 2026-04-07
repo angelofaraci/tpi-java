@@ -63,6 +63,7 @@ interface CharactersProps {
   feedback?: string | null;
   onDismissFeedback?: () => void;
   refreshToken?: number;
+  readOnly?: boolean;
 }
 
 export function Characters({
@@ -77,6 +78,7 @@ export function Characters({
   feedback,
   onDismissFeedback,
   refreshToken,
+  readOnly = false,
 }: CharactersProps) {
   const [characterSheetData, setCharacterSheetData] = useState<FormCharacterData | null>(null)
   const [characterEditData, setCharacterEditData] = useState<HydratedCharacterEditData | null>(null)
@@ -249,26 +251,30 @@ export function Characters({
       </div>
       <div className="character-sheet">
         <div className="sheet-actions-row">
-          <button
-            type="button"
-            className="section-action-button sheet-hero-action-button"
-            onClick={() => {
-              if (characterEditData) {
-                onEditCharacter(characterEditData)
-              }
-            }}
-            disabled={!characterEditData}
-          >
-            Edit Character
-          </button>
-          <button
-            type="button"
-            className="sheet-delete-button sheet-hero-action-button"
-            onClick={() => onDeleteCharacter(characterId, characterSheetData.name)}
-            disabled={deletingCharacterId === characterId}
-          >
-            {deletingCharacterId === characterId ? 'Deleting...' : 'Delete Character'}
-          </button>
+          {!readOnly && (
+            <>
+              <button
+                type="button"
+                className="section-action-button sheet-hero-action-button"
+                onClick={() => {
+                  if (characterEditData) {
+                    onEditCharacter(characterEditData)
+                  }
+                }}
+                disabled={!characterEditData}
+              >
+                Edit Character
+              </button>
+              <button
+                type="button"
+                className="sheet-delete-button sheet-hero-action-button"
+                onClick={() => onDeleteCharacter(characterId, characterSheetData.name)}
+                disabled={deletingCharacterId === characterId}
+              >
+                {deletingCharacterId === characterId ? 'Deleting...' : 'Delete Character'}
+              </button>
+            </>
+          )}
         </div>
 
         <div className="header-section">

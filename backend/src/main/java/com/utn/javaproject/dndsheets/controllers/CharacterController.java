@@ -9,6 +9,8 @@ import com.utn.javaproject.dndsheets.services.CharacterService;
 import com.utn.javaproject.dndsheets.services.LevelService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -60,12 +62,20 @@ public class CharacterController {
     }
 
     @GetMapping(path = "/character/{id}")
-    public ResponseEntity<CharacterDto> getCharacter(@PathVariable("id") Long id) {
+    public ResponseEntity<CharacterDto> getCharacter(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal UserDetails principal
+    ) {
         Optional<CharacterEntity> foundCharacter = characterService.findOne(id);
-        return foundCharacter.map(characterEntity -> {
-            CharacterDto characterDto = characterMapper.mapTo(characterEntity);
-            return new ResponseEntity<>(characterDto, HttpStatus.OK);
-        }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        if (foundCharacter.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        CharacterEntity entity = foundCharacter.get();
+        String username = principal != null ? principal.getUsername() : null;
+        if (username == null || !characterService.canAccess(entity, username)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+        return new ResponseEntity<>(characterMapper.mapTo(entity), HttpStatus.OK);
     }
 
     @GetMapping(path = "/users/{userId}/characters")

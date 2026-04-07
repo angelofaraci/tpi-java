@@ -80,11 +80,20 @@ public class CampaignController {
     }
 
     @GetMapping(path = "/campaign/{id}")
-    public ResponseEntity<CampaignDetailDto> getCampaign(@PathVariable("id") Long id) {
+    public ResponseEntity<CampaignDetailDto> getCampaign(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal UserDetails principal
+    ) {
         Optional<CampaignEntity> foundCampaign = campaignService.findOne(id);
-        return foundCampaign
-                .map(entity -> new ResponseEntity<>(mapToDetail(entity), HttpStatus.OK))
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        if (foundCampaign.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        CampaignEntity entity = foundCampaign.get();
+        String username = principal != null ? principal.getUsername() : null;
+        if (username == null || !campaignService.canAccess(entity, username)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+        return new ResponseEntity<>(mapToDetail(entity), HttpStatus.OK);
     }
 
     @PutMapping(path = "campaign/{id}")

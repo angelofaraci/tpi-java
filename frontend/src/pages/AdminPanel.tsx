@@ -17,7 +17,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   const [editMode, setEditMode] = useState<EditMode>('none')
   const [editingClass, setEditingClass] = useState<DndClassDto | null>(null)
   const [editingRace, setEditingRace] = useState<RaceDto | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null)
 
   // Form states for class
   const [className, setClassName] = useState('')
@@ -99,6 +100,10 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     setEditMode('edit-race')
   }
 
+  const showConfirm = (message: string, onConfirm: () => void) => {
+    setConfirmModal({ message, onConfirm })
+  }
+
   const handleCancelEdit = () => {
     setEditMode('none')
     resetClassForm()
@@ -115,11 +120,12 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const handleRemoveLevelCharacteristic = (level: number) => {
-    if (!confirm(`Remove level ${level} characteristic?`)) return
-    setLevelCharacteristics((prev) => {
-      const updated = { ...prev }
-      delete updated[level]
-      return updated
+    showConfirm(`Remove level ${level} characteristic?`, () => {
+      setLevelCharacteristics((prev) => {
+        const updated = { ...prev }
+        delete updated[level]
+        return updated
+      })
     })
   }
 
@@ -132,8 +138,9 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
   const handleRemoveRacialFeat = (index: number) => {
     const featName = racialFeats[index]
-    if (!confirm(`Remove racial feature "${featName}"?`)) return
-    setRacialFeats((prev) => prev.filter((_, i) => i !== index))
+    showConfirm(`Remove racial feature "${featName}"?`, () => {
+      setRacialFeats((prev) => prev.filter((_, i) => i !== index))
+    })
   }
 
   const handleSaveClass = async () => {
@@ -147,34 +154,32 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
       if (editMode === 'create-class') {
         await api.admin.classes.create(payload)
-        alert('Class created successfully')
+        setFeedback({ message: 'Class created successfully', type: 'success' })
       } else if (editMode === 'edit-class' && editingClass) {
         await api.admin.classes.update(editingClass.id!, payload)
-        alert('Class updated successfully')
+        setFeedback({ message: 'Class updated successfully', type: 'success' })
       }
 
       await loadData()
       handleCancelEdit()
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to save class'
-      setError(errorMsg)
-      alert('Error: ' + errorMsg)
+      setFeedback({ message: 'Error: ' + errorMsg, type: 'error' })
     }
   }
 
   const handleDeleteClass = async (id: number) => {
-    const className = classes.find(c => c.id === id)?.name || 'this class'
-    if (!confirm(`Are you sure you want to delete "${className}"? This action cannot be undone.`)) return
-
-    try {
-      await api.admin.classes.delete(id)
-      alert('Class deleted successfully')
-      await loadData()
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to delete class'
-      setError(errorMsg)
-      alert('Error: ' + errorMsg)
-    }
+    const name = classes.find(c => c.id === id)?.name || 'this class'
+    showConfirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`, async () => {
+      try {
+        await api.admin.classes.delete(id)
+        setFeedback({ message: 'Class deleted successfully', type: 'success' })
+        await loadData()
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Failed to delete class'
+        setFeedback({ message: 'Error: ' + errorMsg, type: 'error' })
+      }
+    })
   }
 
   const handleSaveRace = async () => {
@@ -187,34 +192,32 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
       if (editMode === 'create-race') {
         await api.admin.races.create(payload)
-        alert('Race created successfully')
+        setFeedback({ message: 'Race created successfully', type: 'success' })
       } else if (editMode === 'edit-race' && editingRace) {
         await api.admin.races.update(editingRace.id!, payload)
-        alert('Race updated successfully')
+        setFeedback({ message: 'Race updated successfully', type: 'success' })
       }
 
       await loadData()
       handleCancelEdit()
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to save race'
-      setError(errorMsg)
-      alert('Error: ' + errorMsg)
+      setFeedback({ message: 'Error: ' + errorMsg, type: 'error' })
     }
   }
 
   const handleDeleteRace = async (id: number) => {
-    const raceName = races.find(r => r.id === id)?.name || 'this race'
-    if (!confirm(`Are you sure you want to delete "${raceName}"? This action cannot be undone.`)) return
-
-    try {
-      await api.admin.races.delete(id)
-      alert('Race deleted successfully')
-      await loadData()
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to delete race'
-      setError(errorMsg)
-      alert('Error: ' + errorMsg)
-    }
+    const name = races.find(r => r.id === id)?.name || 'this race'
+    showConfirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`, async () => {
+      try {
+        await api.admin.races.delete(id)
+        setFeedback({ message: 'Race deleted successfully', type: 'success' })
+        await loadData()
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Failed to delete race'
+        setFeedback({ message: 'Error: ' + errorMsg, type: 'error' })
+      }
+    })
   }
 
   if (loading) {
@@ -471,8 +474,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
         <button className="link-button" onClick={onBack}>← Back to Home</button>
 
         {feedback && (
-          <div className="status-banner success-banner" role="status" style={{ marginTop: '1rem' }}>
-            <span>{feedback}</span>
+          <div className={`status-banner ${feedback.type === 'success' ? 'success-banner' : 'error-banner'}`} role="status" style={{ marginTop: '1rem' }}>
+            <span>{feedback.message}</span>
             <button
               type="button"
               className="banner-dismiss-button"
@@ -481,6 +484,38 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
             >
               x
             </button>
+          </div>
+        )}
+
+        {confirmModal && (
+          <div style={{
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+          }}>
+            <div style={{
+              backgroundColor: 'var(--color-surface)', borderRadius: '8px',
+              padding: '2rem', maxWidth: '420px', width: '90%',
+              border: '1px solid var(--color-border)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+            }}>
+              <p style={{ margin: '0 0 1.5rem 0', lineHeight: '1.5' }}>{confirmModal.message}</p>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setConfirmModal(null)}
+                  style={{ padding: '0.5rem 1.25rem', borderRadius: '4px', border: '1px solid var(--color-border)', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { confirmModal.onConfirm(); setConfirmModal(null) }}
+                  className="sheet-delete-button"
+                  style={{ padding: '0.5rem 1.25rem' }}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

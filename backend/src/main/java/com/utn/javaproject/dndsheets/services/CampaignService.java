@@ -40,7 +40,29 @@ public class CampaignService {
     }
 
     public List<CampaignEntity> findAll() {
-        return new ArrayList<>(campaignRepository.findAll());
+        return new ArrayList<>(campaignRepository.findAllPublic());
+    }
+
+    /**
+     * Returns true if the given username can access the campaign detail.
+     * Access is granted when:
+     *   - the campaign is public, OR
+     *   - the user is the DM, OR
+     *   - the user is already a player (has a character assigned to this campaign)
+     */
+    public boolean canAccess(CampaignEntity campaign, String username) {
+        if (campaign.getPrivacy() == null || !campaign.getPrivacy()) {
+            return true;
+        }
+        return userRepository.findByUsername(username).map(user -> {
+            if (campaign.getDm() != null && campaign.getDm().getId().equals(user.getId())) {
+                return true;
+            }
+            if (campaign.getPlayers() != null) {
+                return campaign.getPlayers().stream().anyMatch(p -> p.getId().equals(user.getId()));
+            }
+            return false;
+        }).orElse(false);
     }
 
     @Transactional(readOnly = true)

@@ -156,4 +156,32 @@ public class CharacterService {
     public List<CharacterEntity> findByUserId(Long userId) {
         return characterRepository.findByUserId(userId);
     }
+
+    /**
+     * Returns true if the given username can read this character sheet.
+     * Access is granted when the user is:
+     *   - the owner of the character, OR
+     *   - the DM of the campaign this character belongs to, OR
+     *   - a player (via campaign_players) of that same campaign
+     */
+    public boolean canAccess(CharacterEntity character, String username) {
+        return userRepository.findByUsername(username).map(user -> {
+            // owner
+            if (character.getUser() != null && character.getUser().getId().equals(user.getId())) {
+                return true;
+            }
+            // campaign-based access
+            var campaign = character.getCampaign();
+            if (campaign == null) return false;
+            // DM
+            if (campaign.getDm() != null && campaign.getDm().getId().equals(user.getId())) {
+                return true;
+            }
+            // fellow player
+            if (campaign.getPlayers() != null) {
+                return campaign.getPlayers().stream().anyMatch(p -> p.getId().equals(user.getId()));
+            }
+            return false;
+        }).orElse(false);
+    }
 }
