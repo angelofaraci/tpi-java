@@ -43,6 +43,11 @@ public class CampaignService {
         return new ArrayList<>(campaignRepository.findAllPublic());
     }
 
+    /** Returns ALL campaigns regardless of privacy — for admin use only. */
+    public List<CampaignEntity> findAllForAdmin() {
+        return new ArrayList<>(campaignRepository.findAll());
+    }
+
     /**
      * Returns true if the given username is the DM of this campaign.
      */

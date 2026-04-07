@@ -330,6 +330,84 @@ export const api = {
 
   // ADMIN
   admin: {
+    users: {
+      async findAll() {
+        const response = await fetch(`${API_BASE_URL}/admin/users`, {
+          headers: createHeaders(),
+        })
+        return handleResponse<User[]>(response)
+      },
+
+      async update(id: number, payload: { username?: string; email?: string; password?: string }) {
+        const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+          method: 'PATCH',
+          headers: createHeaders(),
+          body: JSON.stringify(payload),
+        })
+        return handleResponse<User>(response)
+      },
+
+      async delete(id: number) {
+        const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+          method: 'DELETE',
+          headers: createHeaders(),
+        })
+        return handleResponse(response)
+      },
+    },
+
+    characters: {
+      async findAll() {
+        const response = await fetch(`${API_BASE_URL}/admin/characters`, {
+          headers: createHeaders(),
+        })
+        return handleResponse<Character[]>(response)
+      },
+
+      async update(id: number, payload: unknown) {
+        const response = await fetch(`${API_BASE_URL}/admin/characters/${id}`, {
+          method: 'PATCH',
+          headers: createHeaders(),
+          body: JSON.stringify(payload),
+        })
+        return handleResponse<Character>(response)
+      },
+
+      async delete(id: number) {
+        const response = await fetch(`${API_BASE_URL}/admin/characters/${id}`, {
+          method: 'DELETE',
+          headers: createHeaders(),
+        })
+        return handleResponse(response)
+      },
+    },
+
+    campaigns: {
+      async findAll() {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns`, {
+          headers: createHeaders(),
+        })
+        return handleResponse<Campaign[]>(response)
+      },
+
+      async update(id: number, payload: { name?: string; description?: string; privacy?: boolean }) {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns/${id}`, {
+          method: 'PATCH',
+          headers: createHeaders(),
+          body: JSON.stringify(payload),
+        })
+        return handleResponse<Campaign>(response)
+      },
+
+      async delete(id: number) {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns/${id}`, {
+          method: 'DELETE',
+          headers: createHeaders(),
+        })
+        return handleResponse(response)
+      },
+    },
+
     races: {
       async create(race: RaceDto) {
         const response = await fetch(`${API_BASE_URL}/races`, {

@@ -607,3 +607,245 @@ describe('api.levels mutations', () => {
     expect(result).toBeNull()
   })
 })
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Admin — Users
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('api.admin.users.findAll', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('requests GET /admin/users with auth header', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([{ id: 1, username: 'player1', email: 'p1@test.com', role: 'ROLE_USER' }]),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.admin.users.findAll()
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/admin/users')
+    expect(options).toMatchObject({ headers: { Authorization: 'Bearer test-token' } })
+    expect(result).toEqual([{ id: 1, username: 'player1', email: 'p1@test.com', role: 'ROLE_USER' }])
+    expect(logSpy).toHaveBeenCalled()
+  })
+})
+
+describe('api.admin.users.update', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('sends PATCH /admin/users/{id} with the partial payload', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ id: 1, username: 'new-name', email: 'p1@test.com', role: 'ROLE_USER' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.admin.users.update(1, { username: 'new-name' })
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/admin/users/1')
+    expect(options.method).toBe('PATCH')
+    expect(JSON.parse(String(options.body))).toEqual({ username: 'new-name' })
+    expect(result).toMatchObject({ id: 1, username: 'new-name' })
+    expect(logSpy).toHaveBeenCalled()
+  })
+})
+
+describe('api.admin.users.delete', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('sends DELETE /admin/users/{id} and returns null on 204', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.admin.users.delete(5)
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/admin/users/5')
+    expect(options.method).toBe('DELETE')
+    expect(result).toBeNull()
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Admin — Characters
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('api.admin.characters.findAll', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('requests GET /admin/characters with auth header', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([{ id: 10, name: 'Gandalf' }]),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.admin.characters.findAll()
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/admin/characters')
+    expect(options).toMatchObject({ headers: { Authorization: 'Bearer test-token' } })
+    expect(result).toEqual([{ id: 10, name: 'Gandalf' }])
+    expect(logSpy).toHaveBeenCalled()
+  })
+})
+
+describe('api.admin.characters.update', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('sends PATCH /admin/characters/{id} with the partial payload', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ id: 10, name: 'Saruman' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.admin.characters.update(10, { name: 'Saruman', alignment: 'Neutral Evil' })
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/admin/characters/10')
+    expect(options.method).toBe('PATCH')
+    expect(JSON.parse(String(options.body))).toEqual({ name: 'Saruman', alignment: 'Neutral Evil' })
+    expect(result).toMatchObject({ id: 10, name: 'Saruman' })
+    expect(logSpy).toHaveBeenCalled()
+  })
+})
+
+describe('api.admin.characters.delete', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('sends DELETE /admin/characters/{id} and returns null on 204', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.admin.characters.delete(10)
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/admin/characters/10')
+    expect(options.method).toBe('DELETE')
+    expect(result).toBeNull()
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Admin — Campaigns
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('api.admin.campaigns.findAll', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('requests GET /admin/campaigns with auth header', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          { id: 1, name: 'Lost Mines', privacy: false },
+          { id: 2, name: 'Secret Campaign', privacy: true },
+        ]),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.admin.campaigns.findAll()
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/admin/campaigns')
+    expect(options).toMatchObject({ headers: { Authorization: 'Bearer test-token' } })
+    // Both public and private campaigns are returned
+    expect(result).toHaveLength(2)
+    expect(result).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 1, privacy: false }),
+      expect.objectContaining({ id: 2, privacy: true }),
+    ]))
+    expect(logSpy).toHaveBeenCalled()
+  })
+})
+
+describe('api.admin.campaigns.update', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('sends PATCH /admin/campaigns/{id} with the partial payload', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ id: 1, name: 'Renamed Campaign', privacy: false }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.admin.campaigns.update(1, { name: 'Renamed Campaign' })
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/admin/campaigns/1')
+    expect(options.method).toBe('PATCH')
+    expect(JSON.parse(String(options.body))).toEqual({ name: 'Renamed Campaign' })
+    expect(result).toMatchObject({ id: 1, name: 'Renamed Campaign' })
+    expect(logSpy).toHaveBeenCalled()
+  })
+})
+
+describe('api.admin.campaigns.delete', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('sends DELETE /admin/campaigns/{id} and returns null on 204', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.admin.campaigns.delete(1)
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/admin/campaigns/1')
+    expect(options.method).toBe('DELETE')
+    expect(result).toBeNull()
+  })
+})

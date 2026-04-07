@@ -158,6 +158,25 @@ public class CharacterService {
     }
 
     /**
+     * Returns true if the given username can edit this character sheet.
+     * Edit access is granted when the user is:
+     *   - the owner of the character, OR
+     *   - the DM of the campaign this character belongs to
+     */
+    public boolean canEdit(CharacterEntity character, String username) {
+        return userRepository.findByUsername(username).map(user -> {
+            // owner
+            if (character.getUser() != null && character.getUser().getId().equals(user.getId())) {
+                return true;
+            }
+            // DM of the campaign
+            var campaign = character.getCampaign();
+            if (campaign == null) return false;
+            return campaign.getDm() != null && campaign.getDm().getId().equals(user.getId());
+        }).orElse(false);
+    }
+
+    /**
      * Returns true if the given username can read this character sheet.
      * Access is granted when the user is:
      *   - the owner of the character, OR

@@ -87,10 +87,16 @@ public class CharacterController {
     @PutMapping(path = "character/{id}")
     public ResponseEntity<CharacterDto> fullUpdateCharacter(
             @PathVariable("id") Long id,
-            @RequestBody CharacterDto characterDto) {
+            @RequestBody CharacterDto characterDto,
+            @AuthenticationPrincipal UserDetails principal) {
 
-        if (!characterService.isExists(id)) {
+        Optional<CharacterEntity> found = characterService.findOne(id);
+        if (found.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (principal == null || !characterService.canEdit(found.get(), principal.getUsername())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
         characterDto.setId(id);
@@ -106,10 +112,16 @@ public class CharacterController {
     @PatchMapping(path = "character/{id}")
     public ResponseEntity<CharacterDto> partialUpdate(
             @PathVariable("id") Long id,
-            @RequestBody CharacterDto characterDto) {
+            @RequestBody CharacterDto characterDto,
+            @AuthenticationPrincipal UserDetails principal) {
 
-        if (!characterService.isExists(id)) {
+        Optional<CharacterEntity> found = characterService.findOne(id);
+        if (found.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (principal == null || !characterService.canEdit(found.get(), principal.getUsername())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
         try {
