@@ -34,6 +34,7 @@ public class DndClassEntity {
 
     private String description;
 
+    @Lob
     @Builder.Default
     private HashMap<Short, String> levelCharacteristics = new HashMap<>();
     private Integer hitDice;

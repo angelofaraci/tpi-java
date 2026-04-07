@@ -184,7 +184,7 @@ describe('AdminPanel — Users CRUD', () => {
     const playerCard = (await screen.findByText('player1')).closest('div')!
     await user.click(within(playerCard).getByRole('button', { name: 'Eliminar' }))
 
-    expect(screen.getByText(/player1/)).toBeInTheDocument()
+    expect(screen.getByText(/Eliminar al usuario "player1"/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Confirmar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
   })
@@ -353,8 +353,9 @@ describe('AdminPanel — Classes tab (smoke)', () => {
     expect(screen.getByText('Fighter')).toBeInTheDocument()
   })
 
-  it('shows Create Class button', () => {
+  it('shows Create Class button', async () => {
     render(<AdminPanel {...defaultProps} />)
+    await screen.findByText('Wizard') // wait for classes to load
     expect(screen.getByRole('button', { name: '+ Crear Clase' })).toBeInTheDocument()
   })
 })

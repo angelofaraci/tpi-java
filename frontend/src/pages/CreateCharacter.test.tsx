@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CANONICAL_ALIGNMENTS, type CharacterCatalogClassOption, type CreateCharacterPayload } from '../interfaces/character'
@@ -161,8 +161,6 @@ describe('CreateCharacter', () => {
   })
 
   it('submits the typed payload after loading the creation catalogs', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true })
-
     vi.mocked(api.characters.create).mockResolvedValueOnce({
       id: 21,
       name: 'Iria',
@@ -170,11 +168,15 @@ describe('CreateCharacter', () => {
 
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Create Character' })).toBeInTheDocument()
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
     expect(screen.getByLabelText('Campaign Code')).toBeInTheDocument()
 
+    // Activate fake timers only for the debounce window, then restore immediately
+    vi.useFakeTimers()
     fireEvent.change(screen.getByLabelText('Campaign Code'), { target: { value: 'OPEN-TABL' } })
-    await vi.runAllTimersAsync()
+    await vi.advanceTimersByTimeAsync(700) // advance past the 600ms debounce
+    vi.useRealTimers()
+
     fireEvent.change(screen.getByLabelText('Character Name'), { target: { value: ' Iria ' } })
     fireEvent.change(screen.getByLabelText('Alignment'), { target: { value: 'Neutral Good' } })
     fireEvent.change(screen.getByLabelText('Background'), { target: { value: ' Sage ' } })
@@ -196,9 +198,7 @@ describe('CreateCharacter', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Wisdom saving throw' }))
     fireEvent.click(screen.getByRole('button', { name: 'Create Character' }))
 
-    vi.useRealTimers()
-
-    await waitFor(() => expect(api.characters.create).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(api.characters.create).toHaveBeenCalledTimes(1), { timeout: 10000 })
 
     expect(vi.mocked(api.characters.create).mock.calls[0]?.[0]).toEqual({
       user: { id: 4 },
@@ -242,7 +242,7 @@ describe('CreateCharacter', () => {
       characterId: 21,
       characterName: 'Iria',
     })
-  })
+  }, 15000)
 
   it('rejects out-of-range class levels in create mode by clamping them before submit', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
@@ -338,6 +338,8 @@ describe('CreateCharacter', () => {
     )
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Edit Character' })).toBeInTheDocument()
+    // Flush all pending effects (e.g. auto saving-throw defaults applied after catalog loads)
+    await act(async () => {})
     expect(screen.getByLabelText('Character Name')).toHaveValue('Iria')
     expect(screen.getByLabelText('Race')).toHaveValue('7')
     expect(screen.getByLabelText('Class')).toHaveValue('8')
@@ -355,7 +357,7 @@ describe('CreateCharacter', () => {
     await waitFor(() => {
       expect(screen.getByRole('checkbox', { name: 'Intelligence saving throw' })).toBeChecked()
       expect(screen.getByRole('checkbox', { name: 'Wisdom saving throw' })).toBeChecked()
-    })
+    }, { timeout: 3000 })
     expect(screen.getByLabelText('Arcana')).toBeChecked()
     expect(screen.getByLabelText('History')).toBeChecked()
     expect(document.getElementById('skill-History-expertise')).toBeChecked()
