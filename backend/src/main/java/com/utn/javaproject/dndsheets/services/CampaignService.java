@@ -44,6 +44,16 @@ public class CampaignService {
     }
 
     /**
+     * Returns true if the given username is the DM of this campaign.
+     */
+    public boolean isDm(CampaignEntity campaign, String username) {
+        if (campaign.getDm() == null) return false;
+        return userRepository.findByUsername(username)
+                .map(user -> campaign.getDm().getId().equals(user.getId()))
+                .orElse(false);
+    }
+
+    /**
      * Returns true if the given username can access the campaign detail.
      * Access is granted when:
      *   - the campaign is public, OR

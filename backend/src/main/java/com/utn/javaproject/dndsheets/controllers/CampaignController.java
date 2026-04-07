@@ -93,7 +93,8 @@ public class CampaignController {
         if (username == null || !campaignService.canAccess(entity, username)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
-        return new ResponseEntity<>(mapToDetail(entity), HttpStatus.OK);
+        boolean isDm = username != null && campaignService.isDm(entity, username);
+        return new ResponseEntity<>(mapToDetail(entity, isDm), HttpStatus.OK);
     }
 
     @PutMapping(path = "campaign/{id}")
@@ -133,7 +134,7 @@ public class CampaignController {
 
     // ---- private helpers ----
 
-    private CampaignDetailDto mapToDetail(CampaignEntity entity) {
+    private CampaignDetailDto mapToDetail(CampaignEntity entity, boolean includejoinCode) {
         // Start with explicit campaign_players entries
         List<UserEntity> explicitPlayers = entity.getPlayers() == null ? List.of() : entity.getPlayers();
 
@@ -165,7 +166,7 @@ public class CampaignController {
 
         return CampaignDetailDto.builder()
                 .id(entity.getId())
-                .joinCode(entity.getJoinCode())
+                .joinCode(includejoinCode ? entity.getJoinCode() : null)
                 .name(entity.getName())
                 .description(entity.getDescription())
                 .privacy(entity.getPrivacy())
