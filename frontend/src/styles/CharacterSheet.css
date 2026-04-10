@@ -385,12 +385,7 @@
   line-height: 1.5;
 }
 
-.feature-duo-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.25rem;
-  min-width: 0;
-}
+
 
 .input-field {
   border: none;
@@ -410,7 +405,6 @@
   .ability-scores,
   .ability-scores-sidebar,
   .sheet-columns,
-  .feature-duo-grid,
   .stats-container {
     grid-template-columns: 1fr;
   }

@@ -40,6 +40,13 @@ public class ClassInitializer implements CommandLineRunner {
 
         for (DndClassSeed seed : seeds) {
             if (dndClassRepository.existsByName(seed.name())) {
+                // UPDATE existing class if savingThrows is missing
+                dndClassRepository.findByName(seed.name()).ifPresent(existing -> {
+                    if (existing.getSavingThrows() == null || existing.getSavingThrows().isEmpty()) {
+                        existing.setSavingThrows(seed.savingThrows());
+                        dndClassRepository.save(existing);
+                    }
+                });
                 continue;
             }
 
@@ -47,6 +54,7 @@ public class ClassInitializer implements CommandLineRunner {
             entity.setName(seed.name());
             entity.setHitDice(seed.hitDice());
             entity.setLevelCharacteristics(seed.levelCharacteristics());
+            entity.setSavingThrows(seed.savingThrows());
 
             try {
                 dndClassRepository.save(entity);
@@ -68,7 +76,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 14, "Magic Item Savant\nYour skill with magic items deepens. You can attune to up to five magic items at once, and you ignore all class, race, spell, and level requirements on attuning to or using a magic item.");
         chars.put((short) 18, "Magic Item Master\nYou can attune to up to six magic items at once.");
         chars.put((short) 20, "Soul of Artifice\nYou develop a mystical connection to your magic items. You gain a +1 bonus to all saving throws per magic item you are currently attuned to. If you're reduced to 0 hit points but not killed outright, you can end one of your artificer infusions to drop to 1 hit point instead.");
-        return new DndClassSeed("Artificer", 8, chars);
+        return new DndClassSeed("Artificer", 8, chars, List.of("Constitution", "Intelligence"));
     }
 
     private DndClassSeed createBarbarian() {
@@ -85,7 +93,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 15, "Persistent Rage\nYour rage is so fierce that it ends early only if you fall unconscious or if you choose to end it.");
         chars.put((short) 18, "Indomitable Might\nIf your total for a Strength check is less than your Strength score, you can use that score in place of the total.");
         chars.put((short) 20, "Primal Champion\nYou embody the power of the wilds. Your Strength and Constitution scores increase by 4. Your maximum for those scores is now 24.");
-        return new DndClassSeed("Barbarian", 12, chars);
+        return new DndClassSeed("Barbarian", 12, chars, List.of("Strength", "Constitution"));
     }
 
     private DndClassSeed createBard() {
@@ -105,7 +113,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 15, "Bardic Inspiration (d12)\nYour Bardic Inspiration die becomes a d12.");
         chars.put((short) 18, "Magical Secrets\nYou learn two additional spells from any classes.");
         chars.put((short) 20, "Superior Inspiration\nWhen you roll initiative and have no uses of Bardic Inspiration left, you regain one use.");
-        return new DndClassSeed("Bard", 8, chars);
+        return new DndClassSeed("Bard", 8, chars, List.of("Dexterity", "Charisma"));
     }
 
     private DndClassSeed createCleric() {
@@ -122,7 +130,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 17, "Destroy Undead (CR 4)\nWhen an undead fails its saving throw against your Turn Undead feature, the creature is instantly destroyed if its challenge rating is 4 or lower.");
         chars.put((short) 18, "Channel Divinity (3/rest)\nYou can use your Channel Divinity three times between rests.");
         chars.put((short) 20, "Divine Intervention Improvement\nYour call for intervention succeeds automatically, no roll required.");
-        return new DndClassSeed("Cleric", 8, chars);
+        return new DndClassSeed("Cleric", 8, chars, List.of("Wisdom", "Charisma"));
     }
 
     private DndClassSeed createDruid() {
@@ -135,7 +143,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 18, "Timeless Body\nThe primal magic that you wield causes you to age more slowly. For every 10 years that pass, your body ages only 1 year.");
         chars.put((short) 18, "Beast Spells\nYou can cast many of your druid spells in any shape you assume using Wild Shape. You can perform the somatic and verbal components of a druid spell while in a beast shape, but you aren't able to provide material components.");
         chars.put((short) 20, "Archdruid\nYou can use your Wild Shape an unlimited number of times. Additionally, you can ignore the verbal and somatic components of your druid spells, as well as any material components that lack a cost and aren't consumed by a spell.");
-        return new DndClassSeed("Druid", 8, chars);
+        return new DndClassSeed("Druid", 8, chars, List.of("Intelligence", "Wisdom"));
     }
 
     private DndClassSeed createFighter() {
@@ -147,7 +155,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 9, "Indomitable\nYou can reroll a saving throw that you fail. If you do so, you must use the new roll. You can use this feature once between long rests. You can use it twice starting at 13th level and three times starting at 17th level.");
         chars.put((short) 11, "Extra Attack (2)\nYou can attack three times whenever you take the Attack action on your turn.");
         chars.put((short) 20, "Extra Attack (3)\nYou can attack four times whenever you take the Attack action on your turn.");
-        return new DndClassSeed("Fighter", 10, chars);
+        return new DndClassSeed("Fighter", 10, chars, List.of("Strength", "Constitution"));
     }
 
     private DndClassSeed createMonk() {
@@ -169,7 +177,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 15, "Timeless Body\nYour ki sustains you so that you suffer none of the frailty of old age, and you can't be aged magically. You can still die of old age, however. You also no longer need food or water.");
         chars.put((short) 18, "Empty Body\nYou can use your action to spend 4 ki points to become invisible for 1 minute. During that time, you also have resistance to all damage but force damage. You can also spend 8 ki points to cast the astral projection spell.");
         chars.put((short) 20, "Perfect Self\nWhen you roll for initiative and have no ki points remaining, you regain 4 ki points.");
-        return new DndClassSeed("Monk", 8, chars);
+        return new DndClassSeed("Monk", 8, chars, List.of("Strength", "Dexterity"));
     }
 
     private DndClassSeed createPaladin() {
@@ -185,7 +193,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 10, "Aura of Courage\nYou and friendly creatures within 10 feet of you can't be frightened while you are conscious. At 18th level, the range increases to 30 feet.");
         chars.put((short) 11, "Improved Divine Smite\nYou are so suffused with righteous might that all your melee weapon strikes carry divine power with them. Whenever you hit a creature with a melee weapon, the creature takes an extra 1d8 radiant damage.");
         chars.put((short) 14, "Cleansing Touch\nYou can use your action to end one spell on yourself or on one willing creature that you touch. You can use this feature a number of times equal to your Charisma modifier (minimum of once).");
-        return new DndClassSeed("Paladin", 10, chars);
+        return new DndClassSeed("Paladin", 10, chars, List.of("Wisdom", "Charisma"));
     }
 
     private DndClassSeed createRanger() {
@@ -201,7 +209,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 14, "Vanish\nYou can use the Hide action as a bonus action on your turn. Also, you can't be tracked by nonmagical means, unless you choose to leave a trail.");
         chars.put((short) 18, "Feral Senses\nYou gain preternatural senses that help you fight creatures you can't see. When you attack a creature you can't see, your inability to see it doesn't impose disadvantage on your attack rolls against it. You are also aware of the location of any invisible creature within 30 feet of you.");
         chars.put((short) 20, "Foe Slayer\nYou become an unparalleled hunter of your enemies. Once on each of your turns, you can add your Wisdom modifier to the attack roll or the damage roll of an attack you make against one of your favored enemies.");
-        return new DndClassSeed("Ranger", 10, chars);
+        return new DndClassSeed("Ranger", 10, chars, List.of("Strength", "Dexterity"));
     }
 
     private DndClassSeed createRogue() {
@@ -218,7 +226,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 15, "Slippery Mind\nYou have acquired greater mental strength. You gain proficiency in Wisdom saving throws.");
         chars.put((short) 18, "Elusive\nYou are so evasive that attackers rarely gain the upper hand against you. No attack roll has advantage against you while you aren't incapacitated.");
         chars.put((short) 20, "Stroke of Luck\nYou have an uncanny knack for succeeding when you need to. If your attack misses a target within range, you can turn the miss into a hit. Alternatively, if you fail an ability check, you can treat the d20 roll as a 20.");
-        return new DndClassSeed("Rogue", 8, chars);
+        return new DndClassSeed("Rogue", 8, chars, List.of("Dexterity", "Intelligence"));
     }
 
     private DndClassSeed createSorcerer() {
@@ -228,7 +236,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 2, "Flexible Casting\nYou can use your sorcery points to gain additional spell slots, or sacrifice spell slots to gain additional sorcery points.");
         chars.put((short) 3, "Metamagic\nYou gain the ability to twist your spells to suit your needs. You gain two Metamagic options of your choice. You gain another one at 10th and 17th level. You can use only one Metamagic option on a spell when you cast it, unless otherwise noted.");
         chars.put((short) 20, "Sorcerous Restoration\nYou regain 4 expended sorcery points whenever you finish a short rest.");
-        return new DndClassSeed("Sorcerer", 6, chars);
+        return new DndClassSeed("Sorcerer", 6, chars, List.of("Constitution", "Charisma"));
     }
 
     private DndClassSeed createWarlock() {
@@ -241,7 +249,7 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 15, "Mystic Arcanum (8th level)\nChoose one 8th-level warlock spell as your arcanum.");
         chars.put((short) 17, "Mystic Arcanum (9th level)\nChoose one 9th-level warlock spell as your arcanum.");
         chars.put((short) 20, "Eldritch Master\nYou can draw on your inner reserve of mystical power while entreating your patron to regain expended spell slots. You can spend 1 minute entreating your patron for aid to regain all your expended spell slots from your Pact Magic feature. Once you regain spell slots with this feature, you must finish a long rest before you can do so again.");
-        return new DndClassSeed("Warlock", 8, chars);
+        return new DndClassSeed("Warlock", 8, chars, List.of("Wisdom", "Charisma"));
     }
 
     private DndClassSeed createWizard() {
@@ -250,9 +258,9 @@ public class ClassInitializer implements CommandLineRunner {
         chars.put((short) 1, "Arcane Recovery\nYou have learned to regain some of your magical energy by studying your spellbook. Once per day when you finish a short rest, you can choose expended spell slots to recover. The spell slots can have a combined level equal to or less than half your wizard level (rounded up).");
         chars.put((short) 18, "Spell Mastery\nYou have achieved such mastery over certain spells that you can cast them at will. Choose a 1st-level wizard spell and a 2nd-level wizard spell from your spellbook. You can cast those spells at their lowest level without expending a spell slot when you have them prepared.");
         chars.put((short) 20, "Signature Spells\nYou gain mastery over two powerful spells and can cast them with little effort. Choose two 3rd-level wizard spells in your spellbook as your signature spells. You always have these spells prepared, and you can cast each of them once at 3rd level without expending a spell slot.");
-        return new DndClassSeed("Wizard", 6, chars);
+        return new DndClassSeed("Wizard", 6, chars, List.of("Intelligence", "Wisdom"));
     }
 
-    private record DndClassSeed(String name, Integer hitDice, HashMap<Short, String> levelCharacteristics) {
+    private record DndClassSeed(String name, Integer hitDice, HashMap<Short, String> levelCharacteristics, List<String> savingThrows) {
     }
 }

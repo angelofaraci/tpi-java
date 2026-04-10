@@ -41,6 +41,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   const [className, setClassName] = useState('')
   const [classDescription, setClassDescription] = useState('')
   const [classHitDice, setClassHitDice] = useState(6)
+  const [classSavingThrows, setClassSavingThrows] = useState<string[]>([])
   const [levelCharacteristics, setLevelCharacteristics] = useState<Record<number, string>>({})
   const [newLevel, setNewLevel] = useState(1)
   const [newFeatureTitle, setNewFeatureTitle] = useState('')
@@ -145,6 +146,11 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     setConfirmModal({ message, onConfirm })
   }
 
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab)
+    setFeatureEditModal(null)
+  }
+
   const formatFeature = (title: string, description: string) => `${title.trim()}\n${description.trim()}`
 
   const parseFeature = (feature: string) => {
@@ -158,6 +164,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   // ── Class handlers ───────────────────────────────────────────────────────────
   const resetClassForm = () => {
     setClassName(''); setClassDescription(''); setClassHitDice(6)
+    setClassSavingThrows([])
     setLevelCharacteristics({}); setNewLevel(1)
     setNewFeatureTitle(''); setNewFeatureDescription('')
     setEditingClass(null)
@@ -168,7 +175,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
   const handleOpenEditClass = (c: DndClassDto) => {
     setEditingClass(c); setClassName(c.name); setClassDescription(c.description)
-    setClassHitDice(c.hitDice); setLevelCharacteristics(c.levelCharacteristics || {})
+    setClassHitDice(c.hitDice); setClassSavingThrows(c.savingThrows ?? [])
+    setLevelCharacteristics(c.levelCharacteristics || {})
     setClassEditMode('edit')
   }
 
@@ -204,7 +212,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
   const handleSaveClass = async () => {
     try {
-      const payload: DndClassDto = { name: className, description: classDescription, hitDice: classHitDice, levelCharacteristics }
+      const payload: DndClassDto = { name: className, description: classDescription, hitDice: classHitDice, levelCharacteristics, savingThrows: classSavingThrows }
       if (classEditMode === 'create') {
         await api.admin.classes.create(payload)
         setFeedback({ message: 'Clase creada correctamente', type: 'success' })
@@ -601,6 +609,23 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
               <input style={inputStyle} type="number" min={1} max={20}
                 value={classHitDice} onChange={e => setClassHitDice(Number(e.target.value))} />
             </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Saving Throw Proficiencies</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.5rem' }}>
+                {(['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma'] as const).map(ability => (
+                  <label key={ability} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={classSavingThrows.includes(ability)}
+                      onChange={() => setClassSavingThrows(prev =>
+                        prev.includes(ability) ? prev.filter(a => a !== ability) : [...prev, ability]
+                      )}
+                    />
+                    {ability}
+                  </label>
+                ))}
+              </div>
+            </div>
             <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
               <h4 style={{ marginTop: 0 }}>Características por nivel</h4>
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -922,7 +947,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
               key={tab.key}
               role="tab"
               aria-selected={activeTab === tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)}
               style={{
                 padding: '0.65rem 1.25rem',
                 border: 'none',

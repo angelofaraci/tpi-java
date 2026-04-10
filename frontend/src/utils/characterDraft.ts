@@ -141,22 +141,6 @@ export function deriveXpFromLevel(level: number) {
   return XP_BY_LEVEL[normalizedLevel] ?? 0
 }
 
-const SAVING_THROW_BY_CLASS_NAME: Record<string, [AbilityScoreName, AbilityScoreName]> = {
-  Artificer: ['Constitution', 'Intelligence'],
-  Barbarian: ['Strength', 'Constitution'],
-  Bard: ['Dexterity', 'Charisma'],
-  Cleric: ['Wisdom', 'Charisma'],
-  Druid: ['Intelligence', 'Wisdom'],
-  Fighter: ['Strength', 'Constitution'],
-  Monk: ['Strength', 'Dexterity'],
-  Paladin: ['Wisdom', 'Charisma'],
-  Ranger: ['Strength', 'Dexterity'],
-  Rogue: ['Dexterity', 'Intelligence'],
-  Sorcerer: ['Constitution', 'Charisma'],
-  Warlock: ['Wisdom', 'Charisma'],
-  Wizard: ['Intelligence', 'Wisdom'],
-}
-
 export function deriveSavingThrowDefaults(
   classLevels: InitialCharacterClassLevel[],
   classes: CharacterCatalogClassOption[],
@@ -176,20 +160,14 @@ export function deriveSavingThrowDefaults(
     return defaults
   }
 
-  const className = classes.find((entry) => entry.id === drivingClass.classId)?.name
+  const classData = classes.find((c) => c.id === drivingClass.classId)
+  const savingThrows = classData?.savingThrows ?? []
 
-  if (!className) {
-    return defaults
+  for (const t of savingThrows) {
+    if (t in defaults) {
+      defaults[t as AbilityScoreName] = 1
+    }
   }
-
-  const savingThrows = SAVING_THROW_BY_CLASS_NAME[className]
-
-  if (!savingThrows) {
-    return defaults
-  }
-
-  defaults[savingThrows[0]] = 1
-  defaults[savingThrows[1]] = 1
 
   return defaults
 }

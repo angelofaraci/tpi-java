@@ -109,6 +109,7 @@ export interface LevelRecord {
     description?: string
     hitDice?: number
     levelCharacteristics?: Record<number, string> | Record<string, string> | Record<string, unknown>
+    savingThrows?: string[]
   }
   level?: number | string
 }
@@ -216,6 +217,7 @@ export interface CharacterCatalogClassOption {
   description: string
   hitDice: number
   levelCharacteristics: Record<number, string> | Record<string, string>
+  savingThrows?: string[]
 }
 
 export interface CharacterCatalogData {

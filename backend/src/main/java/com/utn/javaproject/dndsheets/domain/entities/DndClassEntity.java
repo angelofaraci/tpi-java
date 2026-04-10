@@ -6,7 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -39,12 +41,24 @@ public class DndClassEntity {
     private HashMap<Short, String> levelCharacteristics = new HashMap<>();
     private Integer hitDice;
 
+    @ElementCollection
+    @CollectionTable(
+        name = "dnd_class_saving_throws",
+        joinColumns = @JoinColumn(name = "class_id")
+    )
+    @Column(name = "saving_throw")
+    @Builder.Default
+    private List<String> savingThrows = new ArrayList<>();
+
     @PrePersist
     @PreUpdate
     @PostLoad
     void normalize() {
         if (levelCharacteristics == null) {
             levelCharacteristics = new HashMap<>();
+        }
+        if (savingThrows == null) {
+            savingThrows = new ArrayList<>();
         }
     }
 

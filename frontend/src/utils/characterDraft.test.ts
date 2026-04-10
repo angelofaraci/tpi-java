@@ -521,8 +521,8 @@ describe('deriveXpFromLevel', () => {
 describe('deriveSavingThrowDefaults', () => {
   it('returns defaults for driving class and keeps tie-break on first class', () => {
     const classes = [
-      { id: 8, name: 'Wizard', description: 'Arcane scholar', hitDice: 6, levelCharacteristics: { 1: 'Spellcasting' } },
-      { id: 5, name: 'Fighter', description: 'Martial expert', hitDice: 10, levelCharacteristics: { 1: 'Fighting Style' } },
+      { id: 8, name: 'Wizard', description: 'Arcane scholar', hitDice: 6, levelCharacteristics: { 1: 'Spellcasting' }, savingThrows: ['Intelligence', 'Wisdom'] },
+      { id: 5, name: 'Fighter', description: 'Martial expert', hitDice: 10, levelCharacteristics: { 1: 'Fighting Style' }, savingThrows: ['Strength', 'Constitution'] },
     ]
 
     expect(deriveSavingThrowDefaults([
@@ -534,6 +534,51 @@ describe('deriveSavingThrowDefaults', () => {
       Constitution: 0,
       Intelligence: 1,
       Wisdom: 1,
+      Charisma: 0,
+    })
+  })
+
+  it('reads savingThrows from API-provided class data: Barbarian gets Strength and Constitution', () => {
+    const classes = [
+      { id: 1, name: 'Barbarian', description: 'Primal warrior', hitDice: 12, levelCharacteristics: {}, savingThrows: ['Strength', 'Constitution'] },
+    ]
+
+    expect(deriveSavingThrowDefaults([{ classId: 1, level: 3 }], classes)).toEqual({
+      Strength: 1,
+      Dexterity: 0,
+      Constitution: 1,
+      Intelligence: 0,
+      Wisdom: 0,
+      Charisma: 0,
+    })
+  })
+
+  it('returns all zeros when class savingThrows is empty (graceful degradation)', () => {
+    const classes = [
+      { id: 2, name: 'TestClass', description: 'No throws', hitDice: 8, levelCharacteristics: {}, savingThrows: [] },
+    ]
+
+    expect(deriveSavingThrowDefaults([{ classId: 2, level: 1 }], classes)).toEqual({
+      Strength: 0,
+      Dexterity: 0,
+      Constitution: 0,
+      Intelligence: 0,
+      Wisdom: 0,
+      Charisma: 0,
+    })
+  })
+
+  it('returns all zeros when class savingThrows is undefined (null safety)', () => {
+    const classes = [
+      { id: 3, name: 'TestClass2', description: 'No throws', hitDice: 8, levelCharacteristics: {} },
+    ]
+
+    expect(deriveSavingThrowDefaults([{ classId: 3, level: 1 }], classes)).toEqual({
+      Strength: 0,
+      Dexterity: 0,
+      Constitution: 0,
+      Intelligence: 0,
+      Wisdom: 0,
       Charisma: 0,
     })
   })

@@ -25,8 +25,8 @@ vi.mock('../services/api', () => ({
 
 // ── Datos de prueba ─────────────────────────────────────────────────────────────
 const mockClasses: DndClassDto[] = [
-  { id: 1, name: 'Wizard', description: 'A scholarly magic-user', hitDice: 6, levelCharacteristics: {} },
-  { id: 2, name: 'Fighter', description: 'A master of martial combat', hitDice: 10, levelCharacteristics: {} },
+  { id: 1, name: 'Wizard', description: 'A scholarly magic-user', hitDice: 6, levelCharacteristics: {}, savingThrows: ['Intelligence', 'Wisdom'] },
+  { id: 2, name: 'Fighter', description: 'A master of martial combat', hitDice: 10, levelCharacteristics: {}, savingThrows: ['Strength', 'Constitution'] },
 ]
 
 const mockRaces: RaceDto[] = [
@@ -462,5 +462,122 @@ describe('AdminPanel — Error feedback', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     expect(await screen.findByText('Campaign update failed')).toBeInTheDocument()
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
+describe('AdminPanel — Classes saving throws', () => {
+  beforeEach(() => { vi.clearAllMocks(); setupMocks() })
+
+  it('renders all 6 saving throw checkboxes in create class form', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel {...defaultProps} />)
+    await screen.findByText('Wizard') // wait for classes to load
+
+    await user.click(screen.getByRole('button', { name: '+ Crear Clase' }))
+
+    for (const ability of ['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma']) {
+      expect(screen.getByRole('checkbox', { name: ability })).toBeInTheDocument()
+    }
+  })
+
+  it('pre-checks the correct saving throws when editing a class', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel {...defaultProps} />)
+    await screen.findByText('Wizard')
+
+    const wizardCard = screen.getByText('Wizard').closest('div')!
+    await user.click(within(wizardCard).getByRole('button', { name: 'Editar' }))
+
+    expect(screen.getByRole('checkbox', { name: 'Intelligence' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Wisdom' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Strength' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Dexterity' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Constitution' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Charisma' })).not.toBeChecked()
+  })
+
+  it('includes selected saving throws in the create payload', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.admin.classes.create).mockResolvedValue({ id: 99, name: 'Bard', description: 'A musical muse', hitDice: 8, levelCharacteristics: {}, savingThrows: ['Dexterity', 'Charisma'] } as never)
+    render(<AdminPanel {...defaultProps} />)
+    await screen.findByText('Wizard')
+
+    await user.click(screen.getByRole('button', { name: '+ Crear Clase' }))
+
+    // First textbox is Nombre, second is Descripción (inside level characteristics section is "Título" with placeholder)
+    const textboxes = screen.getAllByRole('textbox')
+    await user.type(textboxes[0], 'Bard')          // Nombre
+    await user.type(textboxes[1], 'A musical muse') // Descripción
+
+    await user.click(screen.getByRole('checkbox', { name: 'Dexterity' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Charisma' }))
+
+    await user.click(screen.getByRole('button', { name: 'Crear Clase' }))
+
+    expect(api.admin.classes.create).toHaveBeenCalledWith(
+      expect.objectContaining({ savingThrows: expect.arrayContaining(['Dexterity', 'Charisma']) })
+    )
+  })
+
+  it('includes empty savingThrows array when none are checked on create', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.admin.classes.create).mockResolvedValue({ id: 99, name: 'Monk', description: 'A martial artist', hitDice: 8, levelCharacteristics: {}, savingThrows: [] } as never)
+    render(<AdminPanel {...defaultProps} />)
+    await screen.findByText('Wizard')
+
+    await user.click(screen.getByRole('button', { name: '+ Crear Clase' }))
+
+    const textboxes = screen.getAllByRole('textbox')
+    await user.type(textboxes[0], 'Monk')              // Nombre
+    await user.type(textboxes[1], 'A martial artist')  // Descripción
+
+    // No checkboxes clicked — savingThrows should be []
+    await user.click(screen.getByRole('button', { name: 'Crear Clase' }))
+
+    expect(api.admin.classes.create).toHaveBeenCalledWith(
+      expect.objectContaining({ savingThrows: [] })
+    )
+  })
+
+  it('includes updated savingThrows in the edit (update) payload', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.admin.classes.update).mockResolvedValue({ ...mockClasses[0], savingThrows: ['Strength'] } as never)
+    render(<AdminPanel {...defaultProps} />)
+    await screen.findByText('Wizard')
+
+    const wizardCard = screen.getByText('Wizard').closest('div')!
+    await user.click(within(wizardCard).getByRole('button', { name: 'Editar' }))
+
+    // Wizard starts with Intelligence + Wisdom checked — uncheck Intelligence, check Strength
+    await user.click(screen.getByRole('checkbox', { name: 'Intelligence' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Strength' }))
+
+    await user.click(screen.getByRole('button', { name: 'Actualizar Clase' }))
+
+    expect(api.admin.classes.update).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ savingThrows: expect.arrayContaining(['Wisdom', 'Strength']) })
+    )
+    expect(api.admin.classes.update).toHaveBeenCalledWith(
+      1,
+      expect.not.objectContaining({ savingThrows: expect.arrayContaining(['Intelligence']) })
+    )
+  })
+
+  it('clears saving throws when cancelling and reopening create form', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel {...defaultProps} />)
+    await screen.findByText('Wizard')
+
+    // Open create, check a checkbox, then cancel
+    await user.click(screen.getByRole('button', { name: '+ Crear Clase' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Charisma' }))
+    expect(screen.getByRole('checkbox', { name: 'Charisma' })).toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+    // Reopen create — checkboxes must be cleared
+    await user.click(screen.getByRole('button', { name: '+ Crear Clase' }))
+    expect(screen.getByRole('checkbox', { name: 'Charisma' })).not.toBeChecked()
   })
 })

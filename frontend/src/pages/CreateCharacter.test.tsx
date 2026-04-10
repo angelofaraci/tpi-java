@@ -48,6 +48,7 @@ const catalogClasses: CharacterCatalogClassOption[] = [
     description: 'Arcane scholar',
     hitDice: 6,
     levelCharacteristics: { 1: 'Spellcasting', 2: 'Arcane Tradition', 3: 'Arcane Recovery' },
+    savingThrows: ['Intelligence', 'Wisdom'],
   },
   {
     id: 5,
@@ -55,6 +56,7 @@ const catalogClasses: CharacterCatalogClassOption[] = [
     description: 'Martial expert',
     hitDice: 10,
     levelCharacteristics: { 1: 'Fighting Style', 2: 'Second Wind' },
+    savingThrows: ['Strength', 'Constitution'],
   },
 ]
 

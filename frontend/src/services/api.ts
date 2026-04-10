@@ -25,6 +25,7 @@ export interface DndClassDto {
   description: string
   levelCharacteristics: Record<number, string>
   hitDice: number
+  savingThrows?: string[]
 }
 
 export interface RaceDto {

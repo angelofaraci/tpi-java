@@ -532,11 +532,19 @@ export function Characters({
               {characterSheetData.characteristics.length === 0 ? (
                 <div className="feature-item">No character features</div>
               ) : (
-                characterSheetData.characteristics.map((feature, index) => (
-                  <div key={index} className="feature-item">
-                    {feature}
+                <div className="class-features-block">
+                  <div className="level-features-list">
+                    {characterSheetData.characteristics.map((feature, index) => {
+                      const parsed = parseFeature(feature)
+                      return (
+                        <div key={index} className="feature-card">
+                          <div className="feature-title">{parsed.title || 'Feature'}</div>
+                          {parsed.description && <div className="feature-description">{parsed.description}</div>}
+                        </div>
+                      )
+                    })}
                   </div>
-                ))
+                </div>
               )}
             </div>
           </div>

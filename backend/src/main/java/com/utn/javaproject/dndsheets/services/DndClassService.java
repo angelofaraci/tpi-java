@@ -46,6 +46,7 @@ public class DndClassService {
             Optional.ofNullable(dndClassEntity.getDescription()).ifPresent(existingClass::setDescription);
             Optional.ofNullable(dndClassEntity.getLevelCharacteristics()).ifPresent(existingClass::setLevelCharacteristics);
             Optional.ofNullable(dndClassEntity.getHitDice()).ifPresent(existingClass::setHitDice);
+            Optional.ofNullable(dndClassEntity.getSavingThrows()).ifPresent(existingClass::setSavingThrows);
 
             return dndClassRepository.save(existingClass);
         }).orElseThrow(() -> new RuntimeException("DndClass does not exist"));

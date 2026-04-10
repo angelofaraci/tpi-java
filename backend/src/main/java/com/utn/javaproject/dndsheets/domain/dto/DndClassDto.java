@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.HashMap;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -17,5 +18,6 @@ public class DndClassDto {
     private String description;
     private HashMap<Short, String> levelCharacteristics;
     private Integer hitDice;
+    private List<String> savingThrows;
 
 }
