@@ -18,7 +18,7 @@ import java.util.Optional;
 
 
 @RestController
-public class CharacterController {
+public class   CharacterController {
 
     private final Mapper<CharacterEntity, CharacterDto> characterMapper;
     private final CharacterService characterService;

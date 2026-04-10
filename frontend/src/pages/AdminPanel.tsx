@@ -14,6 +14,13 @@ type Tab = 'classes' | 'races' | 'characters' | 'users' | 'campaigns'
 
 type ClassEditMode = 'none' | 'create' | 'edit'
 type RaceEditMode = 'none' | 'create' | 'edit'
+type FeatureEditModalState = {
+  type: 'class' | 'race'
+  level?: number
+  index?: number
+  title: string
+  description: string
+}
 
 const ALIGNMENTS = [
   'Lawful Good', 'Neutral Good', 'Chaotic Good',
@@ -36,7 +43,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   const [classHitDice, setClassHitDice] = useState(6)
   const [levelCharacteristics, setLevelCharacteristics] = useState<Record<number, string>>({})
   const [newLevel, setNewLevel] = useState(1)
-  const [newFeature, setNewFeature] = useState('')
+  const [newFeatureTitle, setNewFeatureTitle] = useState('')
+  const [newFeatureDescription, setNewFeatureDescription] = useState('')
 
   // ── Races state ──────────────────────────────────────────────────────────────
   const [races, setRaces] = useState<RaceDto[]>([])
@@ -46,7 +54,9 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   const [raceName, setRaceName] = useState('')
   const [raceDescription, setRaceDescription] = useState('')
   const [racialFeats, setRacialFeats] = useState<string[]>([])
-  const [newRacialFeat, setNewRacialFeat] = useState('')
+  const [newRacialFeatTitle, setNewRacialFeatTitle] = useState('')
+  const [newRacialFeatDescription, setNewRacialFeatDescription] = useState('')
+  const [featureEditModal, setFeatureEditModal] = useState<FeatureEditModalState | null>(null)
 
   // ── Characters state ─────────────────────────────────────────────────────────
   const [characters, setCharacters] = useState<Character[]>([])
@@ -135,11 +145,23 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     setConfirmModal({ message, onConfirm })
   }
 
+  const formatFeature = (title: string, description: string) => `${title.trim()}\n${description.trim()}`
+
+  const parseFeature = (feature: string) => {
+    const [title, ...descriptionParts] = String(feature || '').split('\n')
+    return {
+      title: (title || '').trim(),
+      description: descriptionParts.join('\n').trim(),
+    }
+  }
+
   // ── Class handlers ───────────────────────────────────────────────────────────
   const resetClassForm = () => {
     setClassName(''); setClassDescription(''); setClassHitDice(6)
-    setLevelCharacteristics({}); setNewLevel(1); setNewFeature('')
+    setLevelCharacteristics({}); setNewLevel(1)
+    setNewFeatureTitle(''); setNewFeatureDescription('')
     setEditingClass(null)
+    setFeatureEditModal(null)
   }
 
   const handleOpenCreateClass = () => { resetClassForm(); setClassEditMode('create') }
@@ -153,15 +175,30 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   const handleCancelClassEdit = () => { setClassEditMode('none'); resetClassForm() }
 
   const handleAddLevelCharacteristic = () => {
-    if (newLevel > 0 && newFeature.trim()) {
-      setLevelCharacteristics(prev => ({ ...prev, [newLevel]: newFeature.trim() }))
-      setNewLevel(newLevel + 1); setNewFeature('')
+    const title = newFeatureTitle.trim()
+    const description = newFeatureDescription.trim()
+    if (newLevel > 0 && title && description) {
+      setLevelCharacteristics(prev => ({ ...prev, [newLevel]: formatFeature(title, description) }))
+      setNewLevel(newLevel + 1)
+      setNewFeatureTitle('')
+      setNewFeatureDescription('')
     }
+  }
+
+  const handleEditLevelCharacteristic = (level: number) => {
+    const parsed = parseFeature(levelCharacteristics[level])
+    setFeatureEditModal({
+      type: 'class',
+      level,
+      title: parsed.title,
+      description: parsed.description,
+    })
   }
 
   const handleRemoveLevelCharacteristic = (level: number) => {
     showConfirm(`¿Eliminar característica del nivel ${level}?`, () => {
       setLevelCharacteristics(prev => { const u = { ...prev }; delete u[level]; return u })
+      if (featureEditModal?.type === 'class' && featureEditModal.level === level) setFeatureEditModal(null)
     })
   }
 
@@ -192,7 +229,10 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
   // ── Race handlers ────────────────────────────────────────────────────────────
   const resetRaceForm = () => {
-    setRaceName(''); setRaceDescription(''); setRacialFeats([]); setNewRacialFeat(''); setEditingRace(null)
+    setRaceName(''); setRaceDescription(''); setRacialFeats([])
+    setNewRacialFeatTitle(''); setNewRacialFeatDescription('')
+    setEditingRace(null)
+    setFeatureEditModal(null)
   }
 
   const handleOpenCreateRace = () => { resetRaceForm(); setRaceEditMode('create') }
@@ -205,16 +245,48 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   const handleCancelRaceEdit = () => { setRaceEditMode('none'); resetRaceForm() }
 
   const handleAddRacialFeat = () => {
-    if (newRacialFeat.trim() && !racialFeats.includes(newRacialFeat.trim())) {
-      setRacialFeats(prev => [...prev, newRacialFeat.trim()]); setNewRacialFeat('')
-    }
+    const title = newRacialFeatTitle.trim()
+    const description = newRacialFeatDescription.trim()
+    if (!title || !description) return
+
+    const formattedFeature = formatFeature(title, description)
+    setRacialFeats(prev => prev.includes(formattedFeature) ? prev : [...prev, formattedFeature])
+    setNewRacialFeatTitle('')
+    setNewRacialFeatDescription('')
+  }
+
+  const handleEditRacialFeat = (index: number) => {
+    const parsed = parseFeature(racialFeats[index])
+    setFeatureEditModal({
+      type: 'race',
+      index,
+      title: parsed.title,
+      description: parsed.description,
+    })
   }
 
   const handleRemoveRacialFeat = (index: number) => {
     const feat = racialFeats[index]
     showConfirm(`¿Eliminar característica racial "${feat}"?`, () => {
       setRacialFeats(prev => prev.filter((_, i) => i !== index))
+      if (featureEditModal?.type === 'race' && featureEditModal.index === index) setFeatureEditModal(null)
     })
+  }
+
+  const handleSaveFeatureModal = () => {
+    if (!featureEditModal) return
+    const title = featureEditModal.title.trim()
+    const description = featureEditModal.description.trim()
+    if (!title || !description) return
+    const formatted = formatFeature(title, description)
+
+    if (featureEditModal.type === 'class' && typeof featureEditModal.level === 'number') {
+      setLevelCharacteristics(prev => ({ ...prev, [featureEditModal.level!]: formatted }))
+    }
+    if (featureEditModal.type === 'race' && typeof featureEditModal.index === 'number') {
+      setRacialFeats(prev => prev.map((f, i) => i === featureEditModal.index ? formatted : f))
+    }
+    setFeatureEditModal(null)
   }
 
   const handleSaveRace = async () => {
@@ -463,6 +535,48 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     )
   }
 
+  const renderFeatureEditModal = () => {
+    if (!featureEditModal) return null
+    const isClassFeature = featureEditModal.type === 'class'
+    const title = isClassFeature ? `Editar Feature de Clase (Nivel ${featureEditModal.level})` : 'Editar Feature de Raza'
+
+    return (
+      <div style={overlayStyle}>
+        <div style={{ ...modalStyle, maxWidth: '560px' }}>
+          <h3 style={{ marginTop: 0 }}>{title}</h3>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Título</label>
+            <input
+              style={inputStyle}
+              value={featureEditModal.title}
+              onChange={e => setFeatureEditModal(prev => prev ? { ...prev, title: e.target.value } : prev)}
+            />
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Descripción</label>
+            <textarea
+              style={{ ...inputStyle, resize: 'vertical' }}
+              rows={4}
+              value={featureEditModal.description}
+              onChange={e => setFeatureEditModal(prev => prev ? { ...prev, description: e.target.value } : prev)}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+            <button type="button" onClick={() => setFeatureEditModal(null)} style={cancelBtnStyle}>Cancelar</button>
+            <button
+              type="button"
+              onClick={handleSaveFeatureModal}
+              className="section-action-button"
+              disabled={!featureEditModal.title.trim() || !featureEditModal.description.trim()}
+            >
+              Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // ── Classes tab with inline edit panel ───────────────────────────────────────
   const renderClassesTab = () => {
     if (classesLoading) return <p>Cargando clases...</p>
@@ -493,17 +607,48 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                 <input type="number" placeholder="Nivel" value={newLevel} min={1} max={20}
                   onChange={e => setNewLevel(Number(e.target.value))}
                   style={{ width: '80px', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
-                <input type="text" placeholder="Característica" value={newFeature}
-                  onChange={e => setNewFeature(e.target.value)}
+                <input type="text" placeholder="Título" value={newFeatureTitle}
+                  onChange={e => setNewFeatureTitle(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddLevelCharacteristic()}
                   style={{ flex: 1, padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
                 <button type="button" onClick={handleAddLevelCharacteristic} className="section-action-button" style={{ padding: '0.4rem 0.75rem' }}>Agregar</button>
               </div>
+              <div style={{ marginBottom: '0.75rem' }}>
+                <textarea
+                  placeholder="Descripción"
+                  value={newFeatureDescription}
+                  onChange={e => setNewFeatureDescription(e.target.value)}
+                  rows={3}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
               <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
                 {Object.entries(levelCharacteristics).sort(([a], [b]) => Number(a) - Number(b)).map(([lvl, feat]) => (
                   <div key={lvl} style={rowItemStyle}>
-                    <span><strong>Nivel {lvl}:</strong> {feat}</span>
-                    <button type="button" onClick={() => handleRemoveLevelCharacteristic(Number(lvl))} style={deleteIconStyle}>✕</button>
+                    <span>
+                      <strong>Nivel {lvl}:</strong> {parseFeature(feat).title}
+                      {parseFeature(feat).description ? ` — ${parseFeature(feat).description}` : ''}
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleEditLevelCharacteristic(Number(lvl))}
+                        style={editIconStyle}
+                        title="Editar característica"
+                        aria-label="Editar característica"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLevelCharacteristic(Number(lvl))}
+                        style={deleteIconStyle}
+                        title="Eliminar característica"
+                        aria-label="Eliminar característica"
+                      >
+                        🗑
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {Object.keys(levelCharacteristics).length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>Sin características configuradas</p>}
@@ -565,17 +710,48 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
             <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
               <h4 style={{ marginTop: 0 }}>Características Raciales</h4>
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <input type="text" placeholder="Característica racial" value={newRacialFeat}
-                  onChange={e => setNewRacialFeat(e.target.value)}
+                <input type="text" placeholder="Título" value={newRacialFeatTitle}
+                  onChange={e => setNewRacialFeatTitle(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddRacialFeat()}
                   style={{ flex: 1, padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
                 <button type="button" onClick={handleAddRacialFeat} className="section-action-button" style={{ padding: '0.4rem 0.75rem' }}>Agregar</button>
               </div>
+              <div style={{ marginBottom: '0.75rem' }}>
+                <textarea
+                  placeholder="Descripción"
+                  value={newRacialFeatDescription}
+                  onChange={e => setNewRacialFeatDescription(e.target.value)}
+                  rows={3}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
               <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
                 {racialFeats.map((feat, i) => (
                   <div key={i} style={rowItemStyle}>
-                    <span>{feat}</span>
-                    <button type="button" onClick={() => handleRemoveRacialFeat(i)} style={deleteIconStyle}>✕</button>
+                    <span>
+                      <strong>{parseFeature(feat).title}</strong>
+                      {parseFeature(feat).description ? ` — ${parseFeature(feat).description}` : ''}
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleEditRacialFeat(i)}
+                        style={editIconStyle}
+                        title="Editar característica"
+                        aria-label="Editar característica"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRacialFeat(i)}
+                        style={deleteIconStyle}
+                        title="Eliminar característica"
+                        aria-label="Eliminar característica"
+                      >
+                        🗑
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {racialFeats.length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>Sin características raciales</p>}
@@ -737,6 +913,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
         {renderCharacterEditForm()}
         {renderUserEditForm()}
         {renderCampaignEditForm()}
+        {renderFeatureEditModal()}
 
         {/* Tabs nav */}
         <nav role="tablist" aria-label="Admin sections" style={{ display: 'flex', gap: '0', marginTop: '1.5rem', borderBottom: '2px solid var(--color-border)' }}>
@@ -828,6 +1005,32 @@ const rowItemStyle: React.CSSProperties = {
   background: 'rgba(0,0,0,0.03)', borderRadius: '4px',
 }
 
+const editIconStyle: React.CSSProperties = {
+  color: '#ffffff',
+  backgroundColor: '#2563eb',
+  border: '1px solid #1d4ed8',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontSize: '1rem',
+  width: '30px',
+  height: '30px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  lineHeight: 1,
+}
+
 const deleteIconStyle: React.CSSProperties = {
-  color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 0.25rem',
+  color: '#ffffff',
+  backgroundColor: '#dc2626',
+  border: '1px solid #b91c1c',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontSize: '1rem',
+  width: '30px',
+  height: '30px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  lineHeight: 1,
 }

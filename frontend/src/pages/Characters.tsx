@@ -224,6 +224,16 @@ export function Characters({
 
   const dexterityModifier = Math.floor((characterSheetData.abilityScores.Dexterity - 10) / 2)
 
+  const parseFeature = (featureText: string) => {
+    const [title, ...descParts] = String(featureText || '').split('\n')
+    return {
+      title: (title || '').trim(),
+      description: descParts.join('\n').trim(),
+    }
+  }
+
+  const stripRaceLevelPrefix = (title: string) => title.replace(/^(level|nivel)\s*\d+\s*[:\-]?\s*/i, '').trim()
+
   return (
     <div>
       <header className="app-header">
@@ -287,6 +297,10 @@ export function Characters({
           </div>
 
           <div className="stats-container sheet-top-stats">
+            <div className="stat-box proficiency-stat-box">
+              <div>Proficiency</div>
+              <div className="score proficiency-stat-score">+{characterSheetData.proficiency}</div>
+            </div>
             <div className="stat-box">
               <div>Armor Class</div>
               <div className="score">{10 + dexterityModifier}</div>
@@ -302,10 +316,6 @@ export function Characters({
           </div>
 
           <div className="basic-info">
-            <div className='infobox'>
-              <h3>Name: </h3>
-              <p>{characterSheetData.name}</p>
-            </div>
             <div className='infobox'>
               <h3>Class: </h3>
               {characterSheetData.classes.length > 0 ? (
@@ -329,10 +339,6 @@ export function Characters({
             <div className='infobox'>
               <h3>Alignment: </h3>
               <p>{characterSheetData.alignment}</p>
-            </div>
-            <div className='infobox'>
-              <h3>Proficiency: </h3>
-              <p>{characterSheetData.proficiency}</p>
             </div>
             <div className='infobox'>
               <h3>HP: </h3>
@@ -498,32 +504,40 @@ export function Characters({
               )}
             </div>
 
-            <div className="feature-duo-grid">
-              <div className="features-section">
-                <h3>Race Features</h3>
-                {!characterSheetData.racialFeats || characterSheetData.racialFeats.length === 0 ? (
-                  <div className="feature-item">No racial features</div>
-                ) : (
-                  characterSheetData.racialFeats.map((feat, index) => (
-                    <div key={index} className="feature-item">
-                      {feat}
-                    </div>
-                  ))
-                )}
-              </div>
+            <div className="features-section">
+              <h3>Race Features</h3>
+              {!characterSheetData.racialFeats || characterSheetData.racialFeats.length === 0 ? (
+                <div className="feature-item">No racial features</div>
+              ) : (
+                <div className="class-features-block">
+                  <div className="class-features-header">{characterSheetData.race || 'Race'}</div>
+                  <div className="level-features-list">
+                    {characterSheetData.racialFeats.map((feat, index) => {
+                      const parsed = parseFeature(feat)
+                      const cleanedTitle = stripRaceLevelPrefix(parsed.title)
+                      return (
+                        <div key={index} className="feature-card">
+                          <div className="feature-title">{cleanedTitle || 'Feature'}</div>
+                          {parsed.description && <div className="feature-description">{parsed.description}</div>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
 
-              <div className="features-section">
-                <h3>Character Features</h3>
-                {characterSheetData.characteristics.length === 0 ? (
-                  <div className="feature-item">No character features</div>
-                ) : (
-                  characterSheetData.characteristics.map((feature, index) => (
-                    <div key={index} className="feature-item">
-                      {feature}
-                    </div>
-                  ))
-                )}
-              </div>
+            <div className="features-section">
+              <h3>Character Features</h3>
+              {characterSheetData.characteristics.length === 0 ? (
+                <div className="feature-item">No character features</div>
+              ) : (
+                characterSheetData.characteristics.map((feature, index) => (
+                  <div key={index} className="feature-item">
+                    {feature}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
