@@ -141,6 +141,11 @@ export function deriveXpFromLevel(level: number) {
   return XP_BY_LEVEL[normalizedLevel] ?? 0
 }
 
+export function deriveXpFromClassLevels(classLevels: InitialCharacterClassLevel[]) {
+  const totalLevel = classLevels.reduce((sum, entry) => sum + (Number.isFinite(entry.level) && entry.level > 0 ? Math.trunc(entry.level) : 0), 0)
+  return deriveXpFromLevel(totalLevel)
+}
+
 export function deriveSavingThrowDefaults(
   classLevels: InitialCharacterClassLevel[],
   classes: CharacterCatalogClassOption[],

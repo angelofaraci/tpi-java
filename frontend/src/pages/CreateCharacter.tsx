@@ -17,7 +17,7 @@ import {
   DEFAULT_ABILITY_SCORES,
   deriveProficiencyFromLevel,
   deriveSavingThrowDefaults,
-  deriveXpFromLevel,
+  deriveXpFromClassLevels,
   resolveDrivingClass,
 } from '../utils/characterDraft'
 import { CANONICAL_ALIGNMENTS as canonicalAlignments } from '../interfaces/character'
@@ -168,7 +168,6 @@ export function CreateCharacter({
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [autoCalculateHp, setAutoCalculateHp] = useState(false)
-  const [hasUserEditedXp, setHasUserEditedXp] = useState(false)
   const [lastAutoSavingThrowsKey, setLastAutoSavingThrowsKey] = useState<string | null>(null)
 
   const isEditMode = mode === 'edit'
@@ -181,7 +180,6 @@ export function CreateCharacter({
     setFieldErrors({})
     setSubmitError(null)
     setAutoCalculateHp(false)
-    setHasUserEditedXp(false)
     setLastAutoSavingThrowsKey(null)
     setCampaignCode('')
     setCampaignCodeError(null)
@@ -237,6 +235,10 @@ export function CreateCharacter({
     () => deriveSavingThrowDefaults(draft.classLevels, classes),
     [classes, draft.classLevels],
   )
+  const minXp = useMemo(
+    () => (isEditMode ? 0 : deriveXpFromClassLevels(draft.classLevels)),
+    [draft.classLevels, isEditMode],
+  )
   const editClassNameById = useMemo(
     () => new Map((initialEditData?.classRows ?? []).map((row) => [row.classId, row.name ?? `Class ${row.classId}`])),
     [initialEditData],
@@ -257,10 +259,11 @@ export function CreateCharacter({
   }, [derivedProficiency, draft.proficiency])
 
   useEffect(() => {
-    const drivingClassName = drivingClass ? classes.find((entry) => entry.id === drivingClass.classId)?.name ?? 'unknown' : 'none'
-    const drivingKey = drivingClass ? `${drivingClass.classId}:${drivingClass.level}:${drivingClassName}` : 'none'
+    const primaryClass = draft.classLevels[0]
+    const primaryClassName = primaryClass ? classes.find((entry) => entry.id === primaryClass.classId)?.name ?? 'unknown' : 'none'
+    const primaryKey = primaryClass ? `${primaryClass.classId}:${primaryClass.level}:${primaryClassName}` : 'none'
 
-    if (drivingKey === lastAutoSavingThrowsKey) {
+    if (primaryKey === lastAutoSavingThrowsKey) {
       return
     }
 
@@ -271,25 +274,25 @@ export function CreateCharacter({
         ...classSavingThrowDefaults,
       },
     }))
-    setLastAutoSavingThrowsKey(drivingKey)
-  }, [classSavingThrowDefaults, classes, draft.classLevels, drivingClass, lastAutoSavingThrowsKey])
+    setLastAutoSavingThrowsKey(primaryKey)
+  }, [classSavingThrowDefaults, classes, draft.classLevels, lastAutoSavingThrowsKey])
 
   useEffect(() => {
-    if (isEditMode || hasUserEditedXp || !drivingClass) {
+    if (isEditMode) {
       return
     }
 
-    const derivedXp = deriveXpFromLevel(drivingClass.level)
+    const minXp = deriveXpFromClassLevels(draft.classLevels)
 
-    if (draft.xp === derivedXp) {
+    if (draft.xp >= minXp) {
       return
     }
 
     setDraft((current) => ({
       ...current,
-      xp: derivedXp,
+      xp: minXp,
     }))
-  }, [drivingClass, draft.xp, hasUserEditedXp, isEditMode])
+  }, [draft.classLevels, draft.xp, isEditMode])
 
   useEffect(() => {
     if (!autoCalculateHp) {
@@ -496,11 +499,10 @@ export function CreateCharacter({
         }
       : draft
 
-    const createDrivingClass = resolveDrivingClass(draftWithCharacteristics.classLevels)
-    const nextDraft = !isEditMode && !hasUserEditedXp && createDrivingClass
+    const nextDraft = !isEditMode
       ? {
           ...draftWithCharacteristics,
-          xp: deriveXpFromLevel(createDrivingClass.level),
+          xp: Math.max(draftWithCharacteristics.xp, deriveXpFromClassLevels(draftWithCharacteristics.classLevels)),
         }
       : draftWithCharacteristics
 
@@ -904,13 +906,10 @@ export function CreateCharacter({
                       <input
                         id="character-xp"
                         type="number"
-                        min="0"
+                        min={minXp}
                         value={draft.xp}
                         onChange={(event) => {
-                          setDraft((current) => ({ ...current, xp: Math.max(0, parseNumber(event.target.value, 0)) }))
-                          if (!isEditMode) {
-                            setHasUserEditedXp(true)
-                          }
+                          setDraft((current) => ({ ...current, xp: Math.max(minXp, parseNumber(event.target.value, minXp)) }))
                           setSubmitError(null)
                         }}
                         disabled={isSubmitting}

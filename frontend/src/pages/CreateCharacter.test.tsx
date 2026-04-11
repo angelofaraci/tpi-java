@@ -688,7 +688,7 @@ describe('CreateCharacter', () => {
     expect(intelligenceSavingThrow).not.toBeChecked()
   })
 
-  it('initializes XP once in create mode and does not auto-overwrite manual XP', async () => {
+  it('auto-sets XP to the minimum for the current total level in create mode', async () => {
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
@@ -696,13 +696,33 @@ describe('CreateCharacter', () => {
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '3' } })
 
     const xpInput = await screen.findByLabelText('XP')
+    // level 3 → minXp = 900
     expect(xpInput).toHaveValue(900)
 
+    // manually raise XP above the minimum — should not be overwritten
     fireEvent.change(xpInput, { target: { value: '1200' } })
     expect(xpInput).toHaveValue(1200)
 
+    // raise level to 4: minXp becomes 2700, but current xp (1200) < 2700 → adjusts to minimum
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '4' } })
-    expect(xpInput).toHaveValue(1200)
+    await waitFor(() => expect(xpInput).toHaveValue(2700))
+  })
+
+  it('does not overwrite XP when it already meets or exceeds the minimum for the new level', async () => {
+    render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
+
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '3' } })
+
+    const xpInput = await screen.findByLabelText('XP')
+    // level 3 → minXp = 900; raise to 5000 (well above level 4's 2700)
+    fireEvent.change(xpInput, { target: { value: '5000' } })
+    expect(xpInput).toHaveValue(5000)
+
+    // raise level to 4: minXp becomes 2700; 5000 >= 2700 → keep 5000
+    fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '4' } })
+    expect(xpInput).toHaveValue(5000)
   })
 
   it('clamps ability scores to 20', async () => {

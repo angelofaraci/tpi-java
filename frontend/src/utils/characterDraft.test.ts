@@ -9,6 +9,7 @@ import {
   deriveProficiencyFromLevel,
   deriveSavingThrowDefaults,
   deriveXpFromLevel,
+  deriveXpFromClassLevels,
   resolveDrivingClass,
   hydrateCharacterDraft,
   parseCharacteristicDetails,
@@ -515,6 +516,36 @@ describe('deriveXpFromLevel', () => {
     expect(deriveXpFromLevel(20)).toBe(355000)
     expect(deriveXpFromLevel(0)).toBe(0)
     expect(deriveXpFromLevel(99)).toBe(355000)
+  })
+})
+
+describe('deriveXpFromClassLevels', () => {
+  it('returns XP based on the sum of all class levels', () => {
+    // single class level 1 → totalLevel 1 → 0 XP
+    expect(deriveXpFromClassLevels([{ classId: 1, level: 1 }])).toBe(0)
+
+    // two classes both level 1 → totalLevel 2 → 300 XP
+    expect(deriveXpFromClassLevels([{ classId: 1, level: 1 }, { classId: 2, level: 1 }])).toBe(300)
+
+    // primary 3, secondary 2 → totalLevel 5 → 6500 XP
+    expect(deriveXpFromClassLevels([{ classId: 1, level: 3 }, { classId: 2, level: 2 }])).toBe(6500)
+
+    // single class level 5 → totalLevel 5 → 6500 XP
+    expect(deriveXpFromClassLevels([{ classId: 1, level: 5 }])).toBe(6500)
+  })
+
+  it('caps the total level at 20', () => {
+    // 15 + 10 = 25 → clamped to 20 → 355000 XP
+    expect(deriveXpFromClassLevels([{ classId: 1, level: 15 }, { classId: 2, level: 10 }])).toBe(355000)
+  })
+
+  it('returns 0 XP for an empty class list', () => {
+    expect(deriveXpFromClassLevels([])).toBe(0)
+  })
+
+  it('ignores entries with invalid levels', () => {
+    // level 0 and negative levels are treated as 0 and not summed
+    expect(deriveXpFromClassLevels([{ classId: 1, level: 0 }, { classId: 2, level: 3 }])).toBe(900)
   })
 })
 
