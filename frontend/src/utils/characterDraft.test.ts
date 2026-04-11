@@ -519,15 +519,29 @@ describe('deriveXpFromLevel', () => {
 })
 
 describe('deriveSavingThrowDefaults', () => {
-  it('returns defaults for driving class and keeps tie-break on first class', () => {
+  it('always uses the primary class (index 0) for saving throws, regardless of secondary class level', () => {
     const classes = [
       { id: 8, name: 'Wizard', description: 'Arcane scholar', hitDice: 6, levelCharacteristics: { 1: 'Spellcasting' }, savingThrows: ['Intelligence', 'Wisdom'] },
       { id: 5, name: 'Fighter', description: 'Martial expert', hitDice: 10, levelCharacteristics: { 1: 'Fighting Style' }, savingThrows: ['Strength', 'Constitution'] },
     ]
 
+    // Equal levels — primary class (Wizard, index 0) wins
     expect(deriveSavingThrowDefaults([
       { classId: 8, level: 4 },
       { classId: 5, level: 4 },
+    ], classes)).toEqual({
+      Strength: 0,
+      Dexterity: 0,
+      Constitution: 0,
+      Intelligence: 1,
+      Wisdom: 1,
+      Charisma: 0,
+    })
+
+    // Secondary class has higher level — primary class (Wizard, index 0) still wins
+    expect(deriveSavingThrowDefaults([
+      { classId: 8, level: 2 },
+      { classId: 5, level: 5 },
     ], classes)).toEqual({
       Strength: 0,
       Dexterity: 0,

@@ -154,13 +154,14 @@ export function deriveSavingThrowDefaults(
     Charisma: 0,
   }
 
-  const drivingClass = resolveDrivingClass(classLevels)
+  // Saving throws always come from the primary class (index 0), regardless of levels.
+  const primaryClass = normalizeClassLevelEntry(classLevels[0])
 
-  if (!drivingClass) {
+  if (!primaryClass) {
     return defaults
   }
 
-  const classData = classes.find((c) => c.id === drivingClass.classId)
+  const classData = classes.find((c) => c.id === primaryClass.classId)
   const savingThrows = classData?.savingThrows ?? []
 
   for (const t of savingThrows) {

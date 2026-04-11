@@ -31,6 +31,10 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
   const [showRegister, setShowRegister] = useState(false)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
 
+  const passwordMismatch =
+    registerForm.confirmPassword.length > 0 &&
+    registerForm.password !== registerForm.confirmPassword
+
   useEffect(() => {
     // If already authenticated, notify parent
     const token = localStorage.getItem('token')
@@ -210,7 +214,13 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                 onChange={(e) => setRegisterForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                 required
                 disabled={isRegistering}
+                style={passwordMismatch ? { borderColor: '#ef4444' } : undefined}
               />
+              {passwordMismatch && (
+                <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                  Passwords do not match
+                </span>
+              )}
             </div>
             <button
               type="submit"
@@ -219,7 +229,8 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                 !registerForm.email ||
                 !registerForm.username ||
                 !registerForm.password ||
-                !registerForm.confirmPassword
+                !registerForm.confirmPassword ||
+                passwordMismatch
               }
               className="login-button"
             >
