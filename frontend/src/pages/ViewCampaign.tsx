@@ -15,6 +15,7 @@ interface ViewCampaignProps {
   feedback?: string | null
   onDismissFeedback?: () => void
   onViewCharacter?: (characterId: number) => void
+  onEditCharacter?: (characterId: number) => void
 }
 
 function formatDate(dateString?: string) {
@@ -47,6 +48,7 @@ export function ViewCampaign({
   feedback,
   onDismissFeedback,
   onViewCharacter,
+  onEditCharacter,
 }: ViewCampaignProps) {
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [loading, setLoading] = useState(true)
@@ -264,6 +266,16 @@ export function ViewCampaign({
                         onClick={() => onViewCharacter(character.id)}
                       >
                         View Sheet →
+                      </button>
+                    )}
+                    {isDungeonMaster && onEditCharacter && (
+                      <button
+                        type="button"
+                        className="link-button"
+                        style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}
+                        onClick={() => onEditCharacter(character.id)}
+                      >
+                        Edit ✏️
                       </button>
                     )}
                   </li>

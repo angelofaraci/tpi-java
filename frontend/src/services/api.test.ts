@@ -155,6 +155,72 @@ describe('api.campaigns.findAll', () => {
   })
 })
 
+describe('api.campaigns.findAllPublic', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('requests all public campaigns from GET /campaigns and returns PublicCampaignSummary[]', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            id: 5,
+            name: 'Lost Mines',
+            description: 'Classic starter adventure',
+            privacy: false,
+            creationDate: '2025-11-29T00:00:00.000+00:00',
+          },
+          {
+            id: 8,
+            name: 'Open Table',
+            description: 'Shared campaign',
+            privacy: false,
+          },
+        ]),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.campaigns.findAllPublic()
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, options] = fetchMock.mock.calls[0]
+
+    expect(url).toBe('http://localhost:8080/campaigns')
+    expect(options).toMatchObject({
+      headers: {
+        Authorization: 'Bearer test-token',
+        'Content-Type': 'application/json',
+      },
+    })
+    expect(result).toEqual([
+      {
+        id: 5,
+        name: 'Lost Mines',
+        description: 'Classic starter adventure',
+        privacy: false,
+        creationDate: '2025-11-29T00:00:00.000+00:00',
+      },
+      {
+        id: 8,
+        name: 'Open Table',
+        description: 'Shared campaign',
+        privacy: false,
+      },
+    ])
+    expect(logSpy).toHaveBeenCalled()
+  })
+})
+
 describe('api.races.findAll', () => {
   beforeEach(() => {
     vi.restoreAllMocks()

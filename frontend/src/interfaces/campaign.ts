@@ -39,6 +39,14 @@ export interface OwnedCampaignSummary {
   creationDate?: string
 }
 
+export interface PublicCampaignSummary {
+  id: number
+  name: string
+  description: string
+  privacy: boolean
+  creationDate?: string
+}
+
 export interface CreateCampaignPayload {
   name: string
   description: string

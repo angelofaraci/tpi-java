@@ -8,7 +8,7 @@ import { ViewCampaign } from './pages/ViewCampaign'
 import { AdminPanel } from './pages/AdminPanel'
 import { CopyCodeButton } from './components/CopyCodeButton'
 import { api } from './services/api'
-import type { OwnedCampaignSummary, PlayerCampaignSummary } from './interfaces/campaign'
+import type { OwnedCampaignSummary, PlayerCampaignSummary, PublicCampaignSummary } from './interfaces/campaign'
 import type { HydratedCharacterEditData } from './interfaces/character'
 import type { User } from './interfaces/user'
 import './styles/CharacterSheet.css'
@@ -64,10 +64,12 @@ function App() {
   const [characters, setCharacters] = useState<CharacterCard[]>([])
   const [campaigns, setCampaigns] = useState<OwnedCampaignSummary[]>([])
   const [playerCampaigns, setPlayerCampaigns] = useState<PlayerCampaignSummary[]>([])
+  const [publicCampaigns, setPublicCampaigns] = useState<PublicCampaignSummary[]>([])
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null)
   const [loadingCharacters, setLoadingCharacters] = useState(false)
   const [loadingCampaigns, setLoadingCampaigns] = useState(false)
   const [loadingPlayerCampaigns, setLoadingPlayerCampaigns] = useState(false)
+  const [loadingPublicCampaigns, setLoadingPublicCampaigns] = useState(false)
   const [deletingCharacterId, setDeletingCharacterId] = useState<number | null>(null)
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null)
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null)
@@ -80,6 +82,7 @@ function App() {
   const [charactersError, setCharactersError] = useState<string | null>(null)
   const [campaignsError, setCampaignsError] = useState<string | null>(null)
   const [playerCampaignsError, setPlayerCampaignsError] = useState<string | null>(null)
+  const [publicCampaignsError, setPublicCampaignsError] = useState<string | null>(null)
   const [campaignFeedback, setCampaignFeedback] = useState<string | null>(null)
   const [characterSheetFeedback, setCharacterSheetFeedback] = useState<string | null>(null)
   const [characterFormMode, setCharacterFormMode] = useState<CharacterFormMode>('create')
@@ -90,6 +93,7 @@ function App() {
   const latestCharacterRequestId = useRef(0)
   const latestCampaignRequestId = useRef(0)
   const latestPlayerCampaignRequestId = useRef(0)
+  const latestPublicCampaignRequestId = useRef(0)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -237,11 +241,45 @@ function App() {
     void loadPlayerCampaigns()
   }, [isAuthenticated, loadPlayerCampaigns])
 
+  const loadPublicCampaigns = useCallback(async () => {
+    const requestId = latestPublicCampaignRequestId.current + 1
+    latestPublicCampaignRequestId.current = requestId
+    setLoadingPublicCampaigns(true)
+    setPublicCampaignsError(null)
+
+    try {
+      const data = await api.campaigns.findAllPublic()
+
+      if (requestId !== latestPublicCampaignRequestId.current) {
+        return
+      }
+
+      setPublicCampaigns(Array.isArray(data) ? data : [])
+    } catch (err: unknown) {
+      if (requestId !== latestPublicCampaignRequestId.current) {
+        return
+      }
+
+      setPublicCampaignsError(err instanceof Error ? err.message : 'Failed to load public campaigns')
+    } finally {
+      if (requestId === latestPublicCampaignRequestId.current) {
+        setLoadingPublicCampaigns(false)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    void loadPublicCampaigns()
+  }, [isAuthenticated, loadPublicCampaigns])
+
   const handleLogout = () => {
     localStorage.removeItem('token')
     latestCharacterRequestId.current += 1
     latestCampaignRequestId.current += 1
     latestPlayerCampaignRequestId.current += 1
+    latestPublicCampaignRequestId.current += 1
     setIsAuthenticated(false)
     setCurrentUserId(null)
     setUserRole(null)
@@ -251,11 +289,13 @@ function App() {
     setCharacters([])
     setCampaigns([])
     setPlayerCampaigns([])
+    setPublicCampaigns([])
     setCampaignFeedback(null)
     setCharacterSheetFeedback(null)
     setCampaignViewFeedback(null)
     setCharactersError(null)
     setCampaignsError(null)
+    setPublicCampaignsError(null)
     setCampaignViewError(null)
     setDeleteDialog(null)
     setDeleteCampaignDialog(null)
@@ -493,6 +533,34 @@ function App() {
     }
   }
 
+  const handleEditCharacterFromCampaign = async (characterId: number) => {
+    try {
+      const characterData = await api.characters.findById(characterId)
+      if (!characterData || typeof characterData !== 'object') return
+
+      const hydratedData: import('./interfaces/character').HydratedCharacterEditData = {
+        characterId,
+        name: (characterData as Record<string, unknown>).name as string | undefined,
+        alignment: (characterData as Record<string, unknown>).alignment as string | undefined,
+        background: (characterData as Record<string, unknown>).background as string | undefined,
+        campaignId: ((characterData as Record<string, unknown>).campaign as { id?: number } | undefined)?.id,
+        raceId: ((characterData as Record<string, unknown>).race as { id?: number } | undefined)?.id,
+        characteristics: (characterData as Record<string, unknown>).characteristics as string[] | undefined,
+        characterStatsId: ((characterData as Record<string, unknown>).characterStats as { id?: number } | undefined)?.id,
+        hp: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.hp as number | undefined,
+        xp: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.xp as number | undefined,
+        proficiency: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.proficiency as number | undefined,
+        abilityScores: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.abilityScores as Record<string, number> | undefined,
+        velocities: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.velocities as number[] | undefined,
+        proficiencies: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.proficiencies as Record<string, number> | undefined,
+        existingClasses: (characterData as Record<string, unknown>).characterClasses as import('./interfaces/character').HydratedCharacterEditData['existingClasses'],
+      }
+      handleOpenEditCharacter(hydratedData)
+    } catch (err: unknown) {
+      console.error('Failed to load character for editing:', err)
+    }
+  }
+
   let content
 
   if (!isAuthenticated) {
@@ -550,6 +618,7 @@ function App() {
         feedback={campaignViewFeedback}
         onDismissFeedback={() => setCampaignViewFeedback(null)}
         onViewCharacter={handleViewCharacterReadOnly}
+        onEditCharacter={isDungeonMaster ? handleEditCharacterFromCampaign : undefined}
       />
     )
   } else if (view === 'create-character' && currentUserId) {
@@ -1018,6 +1087,97 @@ function App() {
                 </div>
               ))
             })()}
+          </div>
+        </section>
+
+        {/* Public Campaigns Section */}
+        <section className="content-section">
+          <div className="section-header">
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Public Campaigns</h2>
+              <p className="section-subtitle">Open campaigns available for everyone to view.</p>
+            </div>
+          </div>
+
+          <div className="entity-grid">
+            {loadingPublicCampaigns && (
+              <div className="campaign-section-message" role="status">
+                Loading public campaigns...
+              </div>
+            )}
+
+            {!loadingPublicCampaigns && publicCampaignsError && (
+              <div className="error-message campaign-section-message">{publicCampaignsError}</div>
+            )}
+
+            {!loadingPublicCampaigns && !publicCampaignsError && publicCampaigns.length === 0 && (
+              <div className="campaign-section-message campaign-section-empty">
+                No public campaigns available at the moment.
+              </div>
+            )}
+
+            {!loadingPublicCampaigns && !publicCampaignsError && publicCampaigns.map((campaign) => (
+              <div key={campaign.id} className="campaign-placeholder-card">
+                <div style={{
+                  backgroundColor: 'var(--color-background)',
+                  padding: '2rem 1.5rem',
+                  textAlign: 'center'
+                }}>
+                  <h3 style={{
+                    margin: '0 0 0.5rem 0',
+                    fontSize: '1.5rem',
+                    fontWeight: 'normal',
+                    color: 'var(--color-foreground)'
+                  }}>
+                    {campaign.name}
+                  </h3>
+                  <p style={{
+                    margin: '0 0 1.5rem 0',
+                    fontSize: '0.875rem',
+                    color: 'var(--color-foreground-muted)'
+                  }}>
+                    {formatCampaignStartDate(campaign.creationDate)}
+                  </p>
+
+                  <div style={{
+                    padding: '0.75rem 0',
+                    borderTop: '1px solid var(--color-border)',
+                    borderBottom: '1px solid var(--color-border)',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      fontWeight: '700',
+                      color: 'var(--color-foreground)',
+                      letterSpacing: '0.05em'
+                    }}>
+                      {campaign.description}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem 1rem',
+                      backgroundColor: 'transparent',
+                      color: '#3b82f6',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      fontWeight: '700',
+                      transition: 'color 0.2s',
+                      letterSpacing: '0.05em'
+                    }}
+                    onClick={() => handleViewCampaign(campaign.id)}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#60a5fa'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#3b82f6'}
+                  >
+                    VIEW CAMPAIGN
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       </div>

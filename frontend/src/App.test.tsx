@@ -32,6 +32,7 @@ vi.mock('./services/api', () => ({
       findMine: vi.fn(),
       findAsPlayer: vi.fn(),
       findAll: vi.fn(),
+      findAllPublic: vi.fn(),
       findByCode: vi.fn(),
       remove: vi.fn(),
     },
@@ -96,6 +97,7 @@ describe('App create campaign flow', () => {
     vi.mocked(api.campaigns.findAll).mockResolvedValue([
       { id: 3, name: 'Open Table', description: 'Shared campaign', privacy: false },
     ])
+    vi.mocked(api.campaigns.findAllPublic).mockResolvedValue([])
     vi.mocked(api.races.findAll).mockResolvedValue([
       { id: 7, name: 'Elf', description: 'Fey ancestry', racialFeats: ['Darkvision'] },
     ])
@@ -566,6 +568,35 @@ describe('App create campaign flow', () => {
     expect(screen.getByText('Forge your first adventurer')).toBeInTheDocument()
   })
 
+  it('renders Public Campaigns section with cards from api.campaigns.findAllPublic()', async () => {
+    vi.mocked(api.campaigns.findAllPublic).mockResolvedValueOnce([
+      {
+        id: 20,
+        name: 'The Lost Dungeon',
+        description: 'An epic public adventure',
+        privacy: false,
+        creationDate: '2025-06-15T00:00:00.000+00:00',
+      },
+      {
+        id: 21,
+        name: 'Curse of Strahd',
+        description: 'Gothic horror campaign',
+        privacy: false,
+        creationDate: '2025-08-01T00:00:00.000+00:00',
+      },
+    ])
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Public Campaigns' })).toBeInTheDocument()
+    expect(await screen.findByText('The Lost Dungeon')).toBeInTheDocument()
+    expect(screen.getByText('An epic public adventure')).toBeInTheDocument()
+    expect(screen.getByText('Curse of Strahd')).toBeInTheDocument()
+    expect(screen.getByText('Gothic horror campaign')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'VIEW CAMPAIGN' }).length).toBeGreaterThanOrEqual(2)
+    await waitFor(() => expect(api.campaigns.findAllPublic).toHaveBeenCalledTimes(1))
+  })
+
   it('deletes the selected character dynamically from its card action', async () => {
     vi.mocked(api.characters.findByUserId).mockResolvedValueOnce([
       {
@@ -674,6 +705,7 @@ describe('App view campaign flow', () => {
       },
     ])
     vi.mocked(api.campaigns.findAll).mockResolvedValue([])
+    vi.mocked(api.campaigns.findAllPublic).mockResolvedValue([])
     vi.mocked(api.campaigns.findById).mockResolvedValue(mockCampaignDetail as never)
     vi.mocked(api.campaigns.remove).mockResolvedValue(null as never)
     vi.mocked(api.races.findAll).mockResolvedValue([])

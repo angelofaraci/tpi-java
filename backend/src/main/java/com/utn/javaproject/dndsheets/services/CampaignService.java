@@ -63,8 +63,10 @@ public class CampaignService {
      * Access is granted when:
      *   - the campaign is public, OR
      *   - the user is the DM, OR
-     *   - the user is already a player (has a character assigned to this campaign)
+     *   - the user is already a player (has a character assigned to this campaign), OR
+     *   - the user is the owner of a character associated with this campaign
      */
+    @Transactional(readOnly = true)
     public boolean canAccess(CampaignEntity campaign, String username) {
         if (campaign.getPrivacy() == null || !campaign.getPrivacy()) {
             return true;
@@ -73,8 +75,14 @@ public class CampaignService {
             if (campaign.getDm() != null && campaign.getDm().getId().equals(user.getId())) {
                 return true;
             }
-            if (campaign.getPlayers() != null) {
-                return campaign.getPlayers().stream().anyMatch(p -> p.getId().equals(user.getId()));
+            if (campaign.getPlayers() != null &&
+                    campaign.getPlayers().stream().anyMatch(p -> p.getId().equals(user.getId()))) {
+                return true;
+            }
+            // Character owner check (NEW)
+            if (campaign.getCharacters() != null) {
+                return campaign.getCharacters().stream()
+                        .anyMatch(c -> c.getUser() != null && c.getUser().getId().equals(user.getId()));
             }
             return false;
         }).orElse(false);

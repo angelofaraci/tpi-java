@@ -1,5 +1,5 @@
 import { authUtils } from '../utils/auth'
-import type { Campaign, CreateCampaignPayload, OwnedCampaignSummary, PlayerCampaignSummary } from '../interfaces/campaign'
+import type { Campaign, CreateCampaignPayload, OwnedCampaignSummary, PlayerCampaignSummary, PublicCampaignSummary } from '../interfaces/campaign'
 import type {
   Character,
   CharacterCatalogCampaignOption,
@@ -268,6 +268,13 @@ export const api = {
         headers: createHeaders(),
       })
       return handleResponse<CharacterCatalogCampaignOption[]>(response)
+    },
+
+    async findAllPublic() {
+      const response = await fetch(`${API_BASE_URL}/campaigns`, {
+        headers: createHeaders(),
+      })
+      return handleResponse<PublicCampaignSummary[]>(response)
     },
   },
 
