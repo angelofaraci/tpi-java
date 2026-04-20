@@ -100,6 +100,8 @@ public class CharacterController {
         }
 
         characterDto.setId(id);
+        // Campaign is immutable after creation — always preserve the existing campaign.
+        characterDto.setCampaign(characterMapper.mapTo(found.get()).getCampaign());
         try {
             CharacterEntity characterEntity = characterMapper.mapFrom(characterDto);
             CharacterEntity savedEntity = characterService.save(characterEntity);

@@ -23,6 +23,7 @@ public class CharacterService {
     private final CharacterStatsRepository characterStatsRepository;
     private final LevelService levelService;
     private final CharacterCreateRequestValidator characterCreateRequestValidator;
+    private final FileStorageService fileStorageService;
 
     public CharacterService(CharacterRepository characterRepository,
                            UserRepository userRepository,
@@ -30,7 +31,8 @@ public class CharacterService {
                            RaceRepository raceRepository,
                            CharacterStatsRepository characterStatsRepository,
                            LevelService levelService,
-                           CharacterCreateRequestValidator characterCreateRequestValidator) {
+                           CharacterCreateRequestValidator characterCreateRequestValidator,
+                           FileStorageService fileStorageService) {
         this.characterRepository = characterRepository;
         this.userRepository = userRepository;
         this.campaignRepository = campaignRepository;
@@ -38,6 +40,7 @@ public class CharacterService {
         this.characterStatsRepository = characterStatsRepository;
         this.levelService = levelService;
         this.characterCreateRequestValidator = characterCreateRequestValidator;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -114,15 +117,8 @@ public class CharacterService {
                     existingCharacter.setUser(characterEntity.getUser());
                 }
             }
-            if (characterEntity.getCampaign() != null) {
-                if (characterEntity.getCampaign().getId() != null) {
-                    existingCharacter.setCampaign(
-                            campaignRepository.findById(characterEntity.getCampaign().getId()).orElse(null)
-                    );
-                } else {
-                    existingCharacter.setCampaign(characterEntity.getCampaign());
-                }
-            }
+            // campaign is intentionally excluded from partial updates — the campaign a character
+            // belongs to can only be set at creation time, not changed via edit.
             Optional.ofNullable(characterEntity.getName()).ifPresent(existingCharacter::setName);
             Optional.ofNullable(characterEntity.getCharacteristics()).ifPresent(existingCharacter::setCharacteristics);
             Optional.ofNullable(characterEntity.getAlignment()).ifPresent(alignment -> {
@@ -131,6 +127,7 @@ public class CharacterService {
             });
             Optional.ofNullable(characterEntity.getBackground()).ifPresent(existingCharacter::setBackground);
             Optional.ofNullable(characterEntity.getCharacterStats()).ifPresent(existingCharacter::setCharacterStats);
+            Optional.ofNullable(characterEntity.getPortraitUrl()).ifPresent(existingCharacter::setPortraitUrl);
             if (characterEntity.getRace() != null) {
                 if (characterEntity.getRace().getId() != null) {
                     existingCharacter.setRace(
@@ -147,6 +144,9 @@ public class CharacterService {
 
     @Transactional
     public void delete(Long id) {
+        characterRepository.findById(id).ifPresent(character ->
+                fileStorageService.delete(character.getPortraitUrl())
+        );
         levelService.deleteByCharacterId(id);
         characterStatsRepository.deleteByCharacterId(id);
         characterRepository.deleteById(id);

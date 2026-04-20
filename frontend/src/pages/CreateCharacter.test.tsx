@@ -21,6 +21,7 @@ vi.mock('../services/api', () => ({
     characters: {
       create: vi.fn(),
       update: vi.fn(),
+      uploadPortrait: vi.fn(),
     },
     characterStats: {
       update: vi.fn(),
@@ -740,5 +741,51 @@ describe('CreateCharacter', () => {
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
     expect(screen.queryByRole('heading', { level: 3, name: 'Sheet Snapshot' })).not.toBeInTheDocument()
+  })
+
+  // ─── Portrait drag-and-drop zone ───────────────────────────────────────────
+
+  it('renders the portrait drag-and-drop zone in create mode', async () => {
+    render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
+
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+    expect(screen.getByText('Drag & drop or click to select')).toBeInTheDocument()
+  })
+
+  it('does NOT render the portrait drag-and-drop zone in edit mode', async () => {
+    render(
+      <CreateCharacter
+        currentUserId={4}
+        mode="edit"
+        initialEditData={buildSingleClassEditData()}
+        onCancel={onCancel}
+        onLogout={onLogout}
+        onSuccess={onSuccess}
+      />,
+    )
+
+    await screen.findByRole('heading', { level: 2, name: 'Edit Character' })
+    expect(screen.queryByText('Drag & drop or click to select')).not.toBeInTheDocument()
+  })
+
+  it('shows MIME validation error and does not call uploadPortrait when a non-image file is dropped', async () => {
+    render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
+
+    await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+
+    const dropZoneText = screen.getByText('Drag & drop or click to select')
+    const dropZone = dropZoneText.closest('div[style]') as HTMLElement
+
+    const file = new File(['some content'], 'document.txt', { type: 'text/plain' })
+
+    // jsdom doesn't support dataTransfer natively — use Object.defineProperty on the event
+    const dropEvent = new Event('drop', { bubbles: true })
+    Object.defineProperty(dropEvent, 'dataTransfer', {
+      value: { files: [file] },
+    })
+    dropZone.dispatchEvent(dropEvent)
+
+    expect(await screen.findByText('Only JPEG, PNG, WebP, and GIF images are accepted.')).toBeInTheDocument()
+    expect(api.characters.uploadPortrait).not.toHaveBeenCalled()
   })
 })

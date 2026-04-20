@@ -127,6 +127,19 @@ export const api = {
       })
       return handleResponse(response)
     },
+
+    async uploadPortrait(characterId: number, file: File): Promise<{ portraitUrl: string }> {
+      const formData = new FormData()
+      formData.append('file', file)
+      const token = authUtils.getToken()
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+      const response = await fetch(`${API_BASE_URL}/characters/${characterId}/portrait`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      })
+      return handleResponse<{ portraitUrl: string }>(response)
+    },
   },
 
   levels: {

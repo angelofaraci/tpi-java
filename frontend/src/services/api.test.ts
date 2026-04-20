@@ -915,3 +915,75 @@ describe('api.admin.campaigns.delete', () => {
     expect(result).toBeNull()
   })
 })
+
+// ══════════════════════════════════════════════════════════════════════════════
+// characters.uploadPortrait
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('api.characters.uploadPortrait', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.setItem('token', 'test-token')
+  })
+
+  it('sends POST /characters/{id}/portrait with FormData containing the file under key "file"', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ portraitUrl: '/uploads/portraits/uuid.jpg' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const file = new File(['image-bytes'], 'portrait.jpg', { type: 'image/jpeg' })
+    const result = await api.characters.uploadPortrait(42, file)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, options] = fetchMock.mock.calls[0]
+
+    expect(url).toBe('http://localhost:8080/characters/42/portrait')
+    expect(options.method).toBe('POST')
+    expect(options.body).toBeInstanceOf(FormData)
+    expect((options.body as FormData).get('file')).toBe(file)
+    expect(result).toEqual({ portraitUrl: '/uploads/portraits/uuid.jpg' })
+    expect(logSpy).toHaveBeenCalled()
+  })
+
+  it('does not include Content-Type: application/json header (lets browser set multipart boundary)', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ portraitUrl: '/uploads/portraits/uuid.jpg' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const file = new File(['image-bytes'], 'portrait.jpg', { type: 'image/jpeg' })
+    await api.characters.uploadPortrait(42, file)
+
+    const [, options] = fetchMock.mock.calls[0]
+    // The headers object must NOT contain 'Content-Type' — FormData sets its own boundary
+    const headers = options.headers as Record<string, string>
+    expect(headers).not.toHaveProperty('Content-Type')
+  })
+
+  it('sends the Authorization header when a token is present', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ portraitUrl: '/uploads/portraits/uuid.jpg' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const file = new File(['image-bytes'], 'portrait.jpg', { type: 'image/jpeg' })
+    await api.characters.uploadPortrait(7, file)
+
+    const [, options] = fetchMock.mock.calls[0]
+    expect((options.headers as Record<string, string>)['Authorization']).toBe('Bearer test-token')
+  })
+})

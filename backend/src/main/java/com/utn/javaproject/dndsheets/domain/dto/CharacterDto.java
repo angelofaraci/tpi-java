@@ -35,4 +35,5 @@ public class CharacterDto {
      * Legacy create contract: class IDs only, translated to level 1 rows when initialClasses is absent.
      */
     private List<Long> initialClassIds;
+    private String portraitUrl;
 }

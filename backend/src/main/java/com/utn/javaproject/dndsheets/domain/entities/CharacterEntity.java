@@ -34,5 +34,6 @@ public class CharacterEntity {
     @ManyToOne
     @JoinColumn(name = "race_id")
     private RaceEntity race;
+    private String portraitUrl;
 
 }

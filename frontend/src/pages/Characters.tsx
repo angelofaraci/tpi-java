@@ -49,6 +49,7 @@ interface FormCharacterData {
   proficiencies: { [key: string]: number };
   velocity: number;
   hp: number;
+  portraitUrl?: string;
 }
 
 interface CharactersProps {
@@ -123,6 +124,7 @@ export function Characters({
           background: characterPayload.background ?? '',
           characterStats: characterPayload.characterStats as Character['characterStats'],
           race: characterPayload.race as Character['race'],
+          portraitUrl: typeof characterPayload.portraitUrl === 'string' ? characterPayload.portraitUrl : undefined,
         }
 
         const normalizedLevels = Array.isArray(levelsResponse) ? (levelsResponse as LevelRecord[]) : []
@@ -183,7 +185,8 @@ export function Characters({
           },
           proficiencies: mappedData.characterStats.proficiencies || {},
           velocity: mappedData.characterStats.velocities[0] || 0,
-          hp: mappedData.characterStats.hp || 0
+          hp: mappedData.characterStats.hp || 0,
+          portraitUrl: mappedData.portraitUrl,
         })
         if (mappedData.campaign?.id && Number(mappedData.campaign.id) > 0) {
           setCharacterCampaign({ id: Number(mappedData.campaign.id), name: mappedData.campaign.name })
@@ -295,6 +298,16 @@ export function Characters({
               {!readOnly && <p className="sheet-hero-copy">Review the current sheet, class features, and core stats before making your next table decision.</p>}
             </div>
           </div>
+
+          {characterSheetData.portraitUrl && (
+            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+              <img
+                src={characterSheetData.portraitUrl.startsWith('/') ? `http://localhost:8080${characterSheetData.portraitUrl}` : characterSheetData.portraitUrl}
+                alt={`${characterSheetData.name || 'Character'} portrait`}
+                style={{ maxWidth: '160px', maxHeight: '160px', borderRadius: '0.5rem', objectFit: 'cover', display: 'block' }}
+              />
+            </div>
+          )}
 
           <div className="stats-container sheet-top-stats">
             <div className="stat-box proficiency-stat-box">

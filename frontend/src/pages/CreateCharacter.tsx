@@ -169,6 +169,10 @@ export function CreateCharacter({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [autoCalculateHp, setAutoCalculateHp] = useState(false)
   const [lastAutoSavingThrowsKey, setLastAutoSavingThrowsKey] = useState<string | null>(null)
+  const [portraitFile, setPortraitFile] = useState<File | null>(null)
+  const [portraitPreview, setPortraitPreview] = useState<string | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [portraitError, setPortraitError] = useState<string | null>(null)
 
   const isEditMode = mode === 'edit'
   const isMulticlassEdit = isEditMode && draft.classLevels.length > 1
@@ -479,6 +483,54 @@ export function CreateCharacter({
     }
   }
 
+  const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  const MAX_PORTRAIT_SIZE = 5 * 1024 * 1024 // 5 MB
+
+  const handlePortraitFile = (file: File) => {
+    setPortraitError(null)
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setPortraitError('Only JPEG, PNG, WebP, and GIF images are accepted.')
+      return
+    }
+    if (file.size > MAX_PORTRAIT_SIZE) {
+      setPortraitError('Image must be under 5 MB.')
+      return
+    }
+    if (portraitPreview) {
+      URL.revokeObjectURL(portraitPreview)
+    }
+    setPortraitFile(file)
+    setPortraitPreview(URL.createObjectURL(file))
+  }
+
+  const handlePortraitDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handlePortraitDragLeave = () => {
+    setIsDragOver(false)
+  }
+
+  const handlePortraitDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    setIsDragOver(false)
+    const file = event.dataTransfer.files[0]
+    if (file) handlePortraitFile(file)
+  }
+
+  const handlePortraitInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) handlePortraitFile(file)
+  }
+
+  const handleRemovePortrait = () => {
+    if (portraitPreview) URL.revokeObjectURL(portraitPreview)
+    setPortraitFile(null)
+    setPortraitPreview(null)
+    setPortraitError(null)
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitError(null)
@@ -515,6 +567,13 @@ export function CreateCharacter({
     try {
       if (!isEditMode) {
         const createdCharacter = await api.characters.create(buildCreateCharacterPayload(nextDraft))
+        if (portraitFile && createdCharacter.id) {
+          try {
+            await api.characters.uploadPortrait(createdCharacter.id, portraitFile)
+          } catch {
+            // Portrait upload failure is non-fatal — character was created successfully
+          }
+        }
         onSuccess({ characterId: createdCharacter.id, characterName: nextDraft.name.trim() })
         return
       }
@@ -703,6 +762,70 @@ export function CreateCharacter({
                       {fieldErrors.raceId && <p className="field-error">{fieldErrors.raceId}</p>}
                     </div>
                   </div>
+
+                  {/* Portrait upload — optional */}
+                  {!isEditMode && (
+                    <div className="form-group">
+                      <label>Portrait <span style={{ fontWeight: 400, color: 'var(--color-foreground-muted)' }}>(optional)</span></label>
+                      <div
+                        onDragOver={handlePortraitDragOver}
+                        onDragLeave={handlePortraitDragLeave}
+                        onDrop={handlePortraitDrop}
+                        onClick={() => !portraitPreview && document.getElementById('portrait-file-input')?.click()}
+                        style={{
+                          border: `2px dashed ${isDragOver ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                          borderRadius: '0.5rem',
+                          padding: '1rem',
+                          textAlign: 'center',
+                          cursor: portraitPreview ? 'default' : 'pointer',
+                          background: isDragOver ? 'var(--color-surface)' : 'transparent',
+                          transition: 'border-color 0.2s, background 0.2s',
+                          minHeight: '8rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        {portraitPreview ? (
+                          <>
+                            <img
+                              src={portraitPreview}
+                              alt="Portrait preview"
+                              style={{ maxWidth: '120px', maxHeight: '120px', borderRadius: '0.25rem', objectFit: 'cover' }}
+                            />
+                            <button
+                              type="button"
+                              className="link-button"
+                              onClick={(e) => { e.stopPropagation(); handleRemovePortrait() }}
+                              style={{ fontSize: '0.8rem' }}
+                            >
+                              Remove
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ fontSize: '2rem' }}>🖼️</span>
+                            <span style={{ fontSize: '0.875rem', color: 'var(--color-foreground-muted)' }}>
+                              Drag & drop or click to select
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--color-foreground-muted)' }}>
+                              JPEG, PNG, WebP, GIF · max 5 MB
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <input
+                        id="portrait-file-input"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        style={{ display: 'none' }}
+                        onChange={handlePortraitInputChange}
+                      />
+                      {portraitError && <p className="field-error">{portraitError}</p>}
+                    </div>
+                  )}
 
                   <section className="create-character-subsection">
                     <h4>{isEditMode ? 'Level For Class' : 'Class'}</h4>

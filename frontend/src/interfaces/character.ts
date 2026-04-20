@@ -93,6 +93,7 @@ export interface Character {
   background: string
   characterStats: CharacterStats
   race: CharacterRace
+  portraitUrl?: string
 }
 
 export interface LevelRecord {
@@ -252,6 +253,7 @@ export interface CharacterDraft {
   proficiencies: SkillProficiencies
   hp: number
   details: CharacterDetails
+  portraitUrl?: string
 }
 
 export interface CreateCharacterPayload {
