@@ -207,7 +207,7 @@ export function Characters({
     return (
       <div>
         <header className="app-header">
-          <h1>D&D Manager</h1>
+          <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager</h1>
           <button onClick={onLogout} className="logout-button">Logout</button>
         </header>
         <div style={{ padding: '2rem' }}>
@@ -237,7 +237,7 @@ export function Characters({
   return (
     <div>
       <header className="app-header">
-        <h1>D&D Manager</h1>
+        <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager</h1>
         <button onClick={onLogout} className="logout-button">Logout</button>
       </header>
       <div style={{ padding: '1rem 2rem' }}>
@@ -292,7 +292,7 @@ export function Characters({
             <div className="sheet-hero-content">
               <span className="sheet-hero-badge">Character Sheet</span>
               <h2 className="sheet-hero-title">{characterSheetData.name || 'Unnamed Character'}</h2>
-              <p className="sheet-hero-copy">Review the current sheet, class features, and core stats before making your next table decision.</p>
+              {!readOnly && <p className="sheet-hero-copy">Review the current sheet, class features, and core stats before making your next table decision.</p>}
             </div>
           </div>
 

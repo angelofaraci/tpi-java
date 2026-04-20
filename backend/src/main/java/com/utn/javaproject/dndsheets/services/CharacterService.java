@@ -181,7 +181,8 @@ public class CharacterService {
      * Access is granted when the user is:
      *   - the owner of the character, OR
      *   - the DM of the campaign this character belongs to, OR
-     *   - a player (via campaign_players) of that same campaign
+     *   - a player (via campaign_players) of that same campaign, OR
+     *   - the campaign is public (privacy == false or null)
      */
     public boolean canAccess(CharacterEntity character, String username) {
         return userRepository.findByUsername(username).map(user -> {
@@ -192,6 +193,10 @@ public class CharacterService {
             // campaign-based access
             var campaign = character.getCampaign();
             if (campaign == null) return false;
+            // public campaign — any authenticated user can view
+            if (campaign.getPrivacy() == null || !campaign.getPrivacy()) {
+                return true;
+            }
             // DM
             if (campaign.getDm() != null && campaign.getDm().getId().equals(user.getId())) {
                 return true;

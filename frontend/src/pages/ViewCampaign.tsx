@@ -91,7 +91,7 @@ export function ViewCampaign({
     return (
       <div>
         <header className="app-header">
-          <h1>D&D Manager</h1>
+          <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager</h1>
           <button onClick={onLogout} className="logout-button">Logout</button>
         </header>
         <div style={{ padding: '2rem' }}>
@@ -108,7 +108,7 @@ export function ViewCampaign({
     return (
       <div>
         <header className="app-header">
-          <h1>D&D Manager</h1>
+          <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager</h1>
           <button onClick={onLogout} className="logout-button">Logout</button>
         </header>
         <div style={{ padding: '2rem' }}>
@@ -129,7 +129,7 @@ export function ViewCampaign({
   return (
     <div>
       <header className="app-header">
-        <h1>D&D Manager</h1>
+        <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager</h1>
         <button onClick={onLogout} className="logout-button">Logout</button>
       </header>
 
@@ -258,26 +258,84 @@ export function ViewCampaign({
                         </div>
                       )}
                     </div>
-                    {onViewCharacter && (
-                      <button
-                        type="button"
-                        className="link-button"
-                        style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}
-                        onClick={() => onViewCharacter(character.id)}
-                      >
-                        View Sheet →
-                      </button>
-                    )}
-                    {isDungeonMaster && onEditCharacter && (
-                      <button
-                        type="button"
-                        className="link-button"
-                        style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}
-                        onClick={() => onEditCharacter(character.id)}
-                      >
-                        Edit ✏️
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {onViewCharacter && (
+                        <button
+                          type="button"
+                          title="View Sheet"
+                          aria-label="View character sheet"
+                          onClick={() => onViewCharacter(character.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '2rem',
+                            height: '2rem',
+                            borderRadius: '0.375rem',
+                            border: '1px solid var(--color-border)',
+                            backgroundColor: 'transparent',
+                            color: 'var(--color-foreground-muted)',
+                            cursor: 'pointer',
+                            transition: 'color 0.2s, border-color 0.2s, background-color 0.2s',
+                            padding: 0,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = '#60a5fa'
+                            e.currentTarget.style.borderColor = '#60a5fa'
+                            e.currentTarget.style.backgroundColor = 'rgba(96,165,250,0.08)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = 'var(--color-foreground-muted)'
+                            e.currentTarget.style.borderColor = 'var(--color-border)'
+                            e.currentTarget.style.backgroundColor = 'transparent'
+                          }}
+                        >
+                          {/* Eye icon */}
+                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                          </svg>
+                        </button>
+                      )}
+                      {isDungeonMaster && onEditCharacter && (
+                        <button
+                          type="button"
+                          title="Edit Character"
+                          aria-label="Edit character"
+                          onClick={() => onEditCharacter(character.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '2rem',
+                            height: '2rem',
+                            borderRadius: '0.375rem',
+                            border: '1px solid var(--color-border)',
+                            backgroundColor: 'transparent',
+                            color: 'var(--color-foreground-muted)',
+                            cursor: 'pointer',
+                            transition: 'color 0.2s, border-color 0.2s, background-color 0.2s',
+                            padding: 0,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = '#a78bfa'
+                            e.currentTarget.style.borderColor = '#a78bfa'
+                            e.currentTarget.style.backgroundColor = 'rgba(167,139,250,0.08)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = 'var(--color-foreground-muted)'
+                            e.currentTarget.style.borderColor = 'var(--color-border)'
+                            e.currentTarget.style.backgroundColor = 'transparent'
+                          }}
+                        >
+                          {/* Pencil icon */}
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                            <path d="m15 5 4 4"/>
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -905,7 +905,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   return (
     <div>
       <header className="app-header">
-        <h1>D&D Manager — Panel de Admin</h1>
+        <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager — Panel de Admin</h1>
         <button onClick={onLogout} className="logout-button">Logout</button>
       </header>
 

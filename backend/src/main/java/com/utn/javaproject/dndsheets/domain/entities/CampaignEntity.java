@@ -51,6 +51,9 @@ public class CampaignEntity {
             String raw = java.util.UUID.randomUUID().toString().replace("-", "").toUpperCase();
             joinCode = raw.substring(0, 4) + "-" + raw.substring(4, 8);
         }
+        if (creationDate == null) {
+            creationDate = new Date();
+        }
     }
 
     public String getJoinCode() {

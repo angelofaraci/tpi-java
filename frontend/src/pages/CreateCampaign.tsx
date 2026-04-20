@@ -88,7 +88,7 @@ export function CreateCampaign({ onCancel, onLogout, onSuccess }: CreateCampaign
   return (
     <div>
       <header className="app-header">
-        <h1>D&D Manager</h1>
+        <h1 onClick={onCancel} style={{ cursor: 'pointer' }}>D&D Manager</h1>
         <button onClick={onLogout} className="logout-button">Logout</button>
       </header>
 

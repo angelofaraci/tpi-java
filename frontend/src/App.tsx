@@ -131,23 +131,7 @@ function App() {
 
       if (resolvedUserId) {
         data = await api.characters.findByUserId(resolvedUserId)
-  } else if (view === 'view-character-readonly' && readOnlyCharacterId) {
-    content = (
-      <Characters
-        characterId={readOnlyCharacterId}
-        readOnly
-        onBack={() => {
-          setReadOnlyCharacterId(null)
-          setView('view-campaign')
-        }}
-        onEditCharacter={() => {}}
-        onLogout={handleLogout}
-        onDeleteCharacter={() => {}}
-        deletingCharacterId={null}
-        deleteError={null}
-      />
-    )
-  } else {
+      } else {
         data = await api.characters.findAll()
       }
 
@@ -630,6 +614,22 @@ function App() {
         onCancel={handleCancelCreateCharacter}
         onLogout={handleLogout}
         onSuccess={handleCreateCharacterSuccess}
+      />
+    )
+  } else if (view === 'view-character-readonly' && readOnlyCharacterId) {
+    content = (
+      <Characters
+        characterId={readOnlyCharacterId}
+        readOnly
+        onBack={() => {
+          setReadOnlyCharacterId(null)
+          setView('view-campaign')
+        }}
+        onEditCharacter={() => {}}
+        onLogout={handleLogout}
+        onDeleteCharacter={() => {}}
+        deletingCharacterId={null}
+        deleteError={null}
       />
     )
   } else {
