@@ -428,6 +428,8 @@ function App() {
       void loadCampaigns()
     }
 
+    void loadPublicCampaigns()
+
     if (joinCode) {
       setJoinCodeDialog({ campaignName: result.campaignName, joinCode })
     } else {

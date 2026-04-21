@@ -139,7 +139,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
   const showError = (e: unknown) => {
-    setFeedback({ message: e instanceof Error ? e.message : 'Error inesperado', type: 'error' })
+    setFeedback({ message: e instanceof Error ? e.message : 'Unexpected error', type: 'error' })
   }
 
   const showConfirm = (message: string, onConfirm: () => void) => {
@@ -204,7 +204,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const handleRemoveLevelCharacteristic = (level: number) => {
-    showConfirm(`¿Eliminar característica del nivel ${level}?`, () => {
+    showConfirm(`Delete level ${level} feature?`, () => {
       setLevelCharacteristics(prev => { const u = { ...prev }; delete u[level]; return u })
       if (featureEditModal?.type === 'class' && featureEditModal.level === level) setFeatureEditModal(null)
     })
@@ -215,21 +215,21 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
       const payload: DndClassDto = { name: className, description: classDescription, hitDice: classHitDice, levelCharacteristics, savingThrows: classSavingThrows }
       if (classEditMode === 'create') {
         await api.admin.classes.create(payload)
-        setFeedback({ message: 'Clase creada correctamente', type: 'success' })
+        setFeedback({ message: 'Class created successfully', type: 'success' })
       } else if (editingClass) {
         await api.admin.classes.update(editingClass.id!, payload)
-        setFeedback({ message: 'Clase actualizada correctamente', type: 'success' })
+        setFeedback({ message: 'Class updated successfully', type: 'success' })
       }
       await loadClasses(); handleCancelClassEdit()
     } catch (e) { showError(e) }
   }
 
   const handleDeleteClass = async (id: number) => {
-    const name = classes.find(c => c.id === id)?.name || 'esta clase'
-    showConfirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`, async () => {
+    const name = classes.find(c => c.id === id)?.name || 'this class'
+    showConfirm(`Delete "${name}"? This action cannot be undone.`, async () => {
       try {
         await api.admin.classes.delete(id)
-        setFeedback({ message: 'Clase eliminada', type: 'success' })
+        setFeedback({ message: 'Class deleted', type: 'success' })
         await loadClasses()
       } catch (e) { showError(e) }
     })
@@ -275,7 +275,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
   const handleRemoveRacialFeat = (index: number) => {
     const feat = racialFeats[index]
-    showConfirm(`¿Eliminar característica racial "${feat}"?`, () => {
+    showConfirm(`Delete racial feature "${feat}"?`, () => {
       setRacialFeats(prev => prev.filter((_, i) => i !== index))
       if (featureEditModal?.type === 'race' && featureEditModal.index === index) setFeatureEditModal(null)
     })
@@ -302,21 +302,21 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
       const payload: RaceDto = { name: raceName, description: raceDescription, racialFeats }
       if (raceEditMode === 'create') {
         await api.admin.races.create(payload)
-        setFeedback({ message: 'Raza creada correctamente', type: 'success' })
+        setFeedback({ message: 'Race created successfully', type: 'success' })
       } else if (editingRace) {
         await api.admin.races.update(editingRace.id!, payload)
-        setFeedback({ message: 'Raza actualizada correctamente', type: 'success' })
+        setFeedback({ message: 'Race updated successfully', type: 'success' })
       }
       await loadRaces(); handleCancelRaceEdit()
     } catch (e) { showError(e) }
   }
 
   const handleDeleteRace = async (id: number) => {
-    const name = races.find(r => r.id === id)?.name || 'esta raza'
-    showConfirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`, async () => {
+    const name = races.find(r => r.id === id)?.name || 'this race'
+    showConfirm(`Delete "${name}"? This action cannot be undone.`, async () => {
       try {
         await api.admin.races.delete(id)
-        setFeedback({ message: 'Raza eliminada', type: 'success' })
+        setFeedback({ message: 'Race deleted', type: 'success' })
         await loadRaces()
       } catch (e) { showError(e) }
     })
@@ -343,18 +343,18 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
         race: charRaceId !== '' ? { id: charRaceId } : undefined,
       }
       await api.admin.characters.update(editingCharacter.id, payload)
-      setFeedback({ message: 'Personaje actualizado correctamente', type: 'success' })
+      setFeedback({ message: 'Character updated successfully', type: 'success' })
       setEditingCharacter(null)
       await loadCharacters()
     } catch (e) { showError(e) }
   }
 
   const handleDeleteCharacter = async (id: number) => {
-    const name = characters.find(c => c.id === id)?.name || 'este personaje'
-    showConfirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`, async () => {
+    const name = characters.find(c => c.id === id)?.name || 'this character'
+    showConfirm(`Delete "${name}"? This action cannot be undone.`, async () => {
       try {
         await api.admin.characters.delete(id)
-        setFeedback({ message: 'Personaje eliminado', type: 'success' })
+        setFeedback({ message: 'Character deleted', type: 'success' })
         await loadCharacters()
       } catch (e) { showError(e) }
     })
@@ -375,18 +375,18 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
       if (userEmail.trim()) payload.email = userEmail.trim()
       if (userPassword.trim()) payload.password = userPassword.trim()
       await api.admin.users.update(editingUser.id, payload)
-      setFeedback({ message: 'Usuario actualizado correctamente', type: 'success' })
+      setFeedback({ message: 'User updated successfully', type: 'success' })
       setEditingUser(null)
       await loadUsers()
     } catch (e) { showError(e) }
   }
 
   const handleDeleteUser = async (id: number) => {
-    const name = users.find(u => u.id === id)?.username || 'este usuario'
-    showConfirm(`¿Eliminar al usuario "${name}"? Esta acción no se puede deshacer.`, async () => {
+    const name = users.find(u => u.id === id)?.username || 'this user'
+    showConfirm(`Delete user "${name}"? This action cannot be undone.`, async () => {
       try {
         await api.admin.users.delete(id)
-        setFeedback({ message: 'Usuario eliminado', type: 'success' })
+        setFeedback({ message: 'User deleted', type: 'success' })
         await loadUsers()
       } catch (e) { showError(e) }
     })
@@ -410,18 +410,18 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
         description: campaignDescription,
         privacy: campaignPrivacy,
       })
-      setFeedback({ message: 'Campaña actualizada correctamente', type: 'success' })
+      setFeedback({ message: 'Campaign updated successfully', type: 'success' })
       setEditingCampaign(null)
       await loadCampaigns()
     } catch (e) { showError(e) }
   }
 
   const handleDeleteCampaign = async (id: number) => {
-    const name = campaignsList.find(c => c.id === id)?.name || 'esta campaña'
-    showConfirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`, async () => {
+    const name = campaignsList.find(c => c.id === id)?.name || 'this campaign'
+    showConfirm(`Delete "${name}"? This action cannot be undone.`, async () => {
       try {
         await api.admin.campaigns.delete(id)
-        setFeedback({ message: 'Campaña eliminada', type: 'success' })
+        setFeedback({ message: 'Campaign deleted', type: 'success' })
         await loadCampaigns()
       } catch (e) { showError(e) }
     })
@@ -429,11 +429,11 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
   // ── Shared UI ────────────────────────────────────────────────────────────────
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'classes', label: 'Clases' },
-    { key: 'races', label: 'Razas' },
-    { key: 'characters', label: 'Personajes' },
-    { key: 'users', label: 'Usuarios' },
-    { key: 'campaigns', label: 'Campañas' },
+    { key: 'classes', label: 'Classes' },
+    { key: 'races', label: 'Races' },
+    { key: 'characters', label: 'Characters' },
+    { key: 'users', label: 'Users' },
+    { key: 'campaigns', label: 'Campaigns' },
   ]
 
   const inputStyle: React.CSSProperties = {
@@ -453,33 +453,33 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     return (
       <div style={overlayStyle}>
         <div style={modalStyle}>
-          <h3 style={{ marginTop: 0 }}>Editar Personaje</h3>
+          <h3 style={{ marginTop: 0 }}>Edit Character</h3>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Nombre</label>
+            <label style={labelStyle}>Name</label>
             <input style={inputStyle} value={charName} onChange={e => setCharName(e.target.value)} />
           </div>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Alineamiento</label>
+            <label style={labelStyle}>Alignment</label>
             <select style={inputStyle} value={charAlignment} onChange={e => setCharAlignment(e.target.value)}>
-              <option value="">— Sin alineamiento —</option>
+              <option value="">— No alignment —</option>
               {ALIGNMENTS.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Trasfondo</label>
+            <label style={labelStyle}>Background</label>
             <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2}
               value={charBackground} onChange={e => setCharBackground(e.target.value)} />
           </div>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Raza</label>
+            <label style={labelStyle}>Race</label>
             <select style={inputStyle} value={charRaceId} onChange={e => setCharRaceId(e.target.value === '' ? '' : Number(e.target.value))}>
-              <option value="">— Sin cambiar —</option>
+              <option value="">— Keep unchanged —</option>
               {charCatalogRaces.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-            <button type="button" onClick={handleCancelCharacterEdit} style={cancelBtnStyle}>Cancelar</button>
-            <button type="button" onClick={handleSaveCharacter} className="section-action-button">Guardar</button>
+            <button type="button" onClick={handleCancelCharacterEdit} style={cancelBtnStyle}>Cancel</button>
+            <button type="button" onClick={handleSaveCharacter} className="section-action-button">Save</button>
           </div>
         </div>
       </div>
@@ -491,7 +491,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     return (
       <div style={overlayStyle}>
         <div style={modalStyle}>
-          <h3 style={{ marginTop: 0 }}>Editar Usuario</h3>
+          <h3 style={{ marginTop: 0 }}>Edit User</h3>
           <div style={fieldStyle}>
             <label style={labelStyle}>Username</label>
             <input style={inputStyle} value={userUsername} onChange={e => setUserUsername(e.target.value)} />
@@ -501,13 +501,13 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
             <input style={inputStyle} type="email" value={userEmail} onChange={e => setUserEmail(e.target.value)} />
           </div>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Nueva contraseña <span style={{ fontWeight: 'normal', color: '#888' }}>(dejar vacío para no cambiar)</span></label>
+            <label style={labelStyle}>New password <span style={{ fontWeight: 'normal', color: '#888' }}>(leave blank to keep unchanged)</span></label>
             <input style={inputStyle} type="password" placeholder="••••••••"
               value={userPassword} onChange={e => setUserPassword(e.target.value)} />
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-            <button type="button" onClick={handleCancelUserEdit} style={cancelBtnStyle}>Cancelar</button>
-            <button type="button" onClick={handleSaveUser} className="section-action-button">Guardar</button>
+            <button type="button" onClick={handleCancelUserEdit} style={cancelBtnStyle}>Cancel</button>
+            <button type="button" onClick={handleSaveUser} className="section-action-button">Save</button>
           </div>
         </div>
       </div>
@@ -519,24 +519,24 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     return (
       <div style={overlayStyle}>
         <div style={modalStyle}>
-          <h3 style={{ marginTop: 0 }}>Editar Campaña</h3>
+          <h3 style={{ marginTop: 0 }}>Edit Campaign</h3>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Nombre</label>
+            <label style={labelStyle}>Name</label>
             <input style={inputStyle} value={campaignName} onChange={e => setCampaignName(e.target.value)} />
           </div>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Descripción</label>
+            <label style={labelStyle}>Description</label>
             <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={3}
               value={campaignDescription} onChange={e => setCampaignDescription(e.target.value)} />
           </div>
           <div style={{ ...fieldStyle, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <input type="checkbox" id="camp-privacy" checked={campaignPrivacy}
               onChange={e => setCampaignPrivacy(e.target.checked)} />
-            <label htmlFor="camp-privacy" style={{ fontWeight: 'bold', marginBottom: 0 }}>Campaña privada</label>
+            <label htmlFor="camp-privacy" style={{ fontWeight: 'bold', marginBottom: 0 }}>Private campaign</label>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-            <button type="button" onClick={handleCancelCampaignEdit} style={cancelBtnStyle}>Cancelar</button>
-            <button type="button" onClick={handleSaveCampaign} className="section-action-button" disabled={!campaignName.trim()}>Guardar</button>
+            <button type="button" onClick={handleCancelCampaignEdit} style={cancelBtnStyle}>Cancel</button>
+            <button type="button" onClick={handleSaveCampaign} className="section-action-button" disabled={!campaignName.trim()}>Save</button>
           </div>
         </div>
       </div>
@@ -546,14 +546,14 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   const renderFeatureEditModal = () => {
     if (!featureEditModal) return null
     const isClassFeature = featureEditModal.type === 'class'
-    const title = isClassFeature ? `Editar Feature de Clase (Nivel ${featureEditModal.level})` : 'Editar Feature de Raza'
+    const title = isClassFeature ? `Edit Class Feature (Level ${featureEditModal.level})` : 'Edit Race Feature'
 
     return (
       <div style={overlayStyle}>
         <div style={{ ...modalStyle, maxWidth: '560px' }}>
           <h3 style={{ marginTop: 0 }}>{title}</h3>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Título</label>
+            <label style={labelStyle}>Title</label>
             <input
               style={inputStyle}
               value={featureEditModal.title}
@@ -561,7 +561,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
             />
           </div>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Descripción</label>
+            <label style={labelStyle}>Description</label>
             <textarea
               style={{ ...inputStyle, resize: 'vertical' }}
               rows={4}
@@ -570,14 +570,14 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
             />
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-            <button type="button" onClick={() => setFeatureEditModal(null)} style={cancelBtnStyle}>Cancelar</button>
+            <button type="button" onClick={() => setFeatureEditModal(null)} style={cancelBtnStyle}>Cancel</button>
             <button
               type="button"
               onClick={handleSaveFeatureModal}
               className="section-action-button"
               disabled={!featureEditModal.title.trim() || !featureEditModal.description.trim()}
             >
-              Guardar
+              Save
             </button>
           </div>
         </div>
@@ -587,25 +587,25 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
   // ── Classes tab with inline edit panel ───────────────────────────────────────
   const renderClassesTab = () => {
-    if (classesLoading) return <p>Cargando clases...</p>
+    if (classesLoading) return <p>Loading classes...</p>
     if (classEditMode !== 'none') {
       const isCreate = classEditMode === 'create'
       return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <button className="link-button" onClick={handleCancelClassEdit}>← Volver a Clases</button>
+          <button className="link-button" onClick={handleCancelClassEdit}>← Back to Classes</button>
           <div style={sectionCardStyle}>
-            <h2 style={{ marginTop: 0, textAlign: 'center' }}>{isCreate ? 'Crear Clase' : 'Editar Clase'}</h2>
+            <h2 style={{ marginTop: 0, textAlign: 'center' }}>{isCreate ? 'Create Class' : 'Edit Class'}</h2>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Nombre</label>
+              <label style={labelStyle}>Name</label>
               <input style={inputStyle} value={className} onChange={e => setClassName(e.target.value)} />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Descripción</label>
+              <label style={labelStyle}>Description</label>
               <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={3}
                 value={classDescription} onChange={e => setClassDescription(e.target.value)} />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Dado de Golpe</label>
+              <label style={labelStyle}>Hit Dice</label>
               <input style={inputStyle} type="number" min={1} max={20}
                 value={classHitDice} onChange={e => setClassHitDice(Number(e.target.value))} />
             </div>
@@ -627,20 +627,20 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
               </div>
             </div>
             <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
-              <h4 style={{ marginTop: 0 }}>Características por nivel</h4>
+              <h4 style={{ marginTop: 0 }}>Level features</h4>
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <input type="number" placeholder="Nivel" value={newLevel} min={1} max={20}
+                <input type="number" placeholder="Level" value={newLevel} min={1} max={20}
                   onChange={e => setNewLevel(Number(e.target.value))}
                   style={{ width: '80px', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
-                <input type="text" placeholder="Título" value={newFeatureTitle}
+                <input type="text" placeholder="Title" value={newFeatureTitle}
                   onChange={e => setNewFeatureTitle(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddLevelCharacteristic()}
                   style={{ flex: 1, padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
-                <button type="button" onClick={handleAddLevelCharacteristic} className="section-action-button" style={{ padding: '0.4rem 0.75rem' }}>Agregar</button>
+                <button type="button" onClick={handleAddLevelCharacteristic} className="section-action-button" style={{ padding: '0.4rem 0.75rem' }}>Add</button>
               </div>
               <div style={{ marginBottom: '0.75rem' }}>
                 <textarea
-                  placeholder="Descripción"
+                  placeholder="Description"
                   value={newFeatureDescription}
                   onChange={e => setNewFeatureDescription(e.target.value)}
                   rows={3}
@@ -651,7 +651,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                 {Object.entries(levelCharacteristics).sort(([a], [b]) => Number(a) - Number(b)).map(([lvl, feat]) => (
                   <div key={lvl} style={rowItemStyle}>
                     <span>
-                      <strong>Nivel {lvl}:</strong> {parseFeature(feat).title}
+                      <strong>Level {lvl}:</strong> {parseFeature(feat).title}
                       {parseFeature(feat).description ? ` — ${parseFeature(feat).description}` : ''}
                     </span>
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -659,8 +659,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                         type="button"
                         onClick={() => handleEditLevelCharacteristic(Number(lvl))}
                         style={editIconStyle}
-                        title="Editar característica"
-                        aria-label="Editar característica"
+                        title="Edit feature"
+                        aria-label="Edit feature"
                       >
                         ✎
                       </button>
@@ -668,22 +668,22 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                         type="button"
                         onClick={() => handleRemoveLevelCharacteristic(Number(lvl))}
                         style={deleteIconStyle}
-                        title="Eliminar característica"
-                        aria-label="Eliminar característica"
+                        title="Delete feature"
+                        aria-label="Delete feature"
                       >
                         🗑
                       </button>
                     </div>
                   </div>
                 ))}
-                {Object.keys(levelCharacteristics).length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>Sin características configuradas</p>}
+                {Object.keys(levelCharacteristics).length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>No features configured</p>}
               </div>
             </div>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button type="button" onClick={handleSaveClass} className="section-action-button" disabled={!className || !classDescription}>
-                {isCreate ? 'Crear Clase' : 'Actualizar Clase'}
+                {isCreate ? 'Create Class' : 'Update Class'}
               </button>
-              <button type="button" onClick={handleCancelClassEdit} style={cancelBtnStyle}>Cancelar</button>
+              <button type="button" onClick={handleCancelClassEdit} style={cancelBtnStyle}>Cancel</button>
             </div>
           </div>
         </div>
@@ -693,19 +693,19 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     return (
       <>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-          <button type="button" className="section-action-button" onClick={handleOpenCreateClass}>+ Crear Clase</button>
+          <button type="button" className="section-action-button" onClick={handleOpenCreateClass}>+ Create Class</button>
         </div>
-        {classes.length === 0 && <p style={{ color: '#888' }}>No hay clases registradas.</p>}
+        {classes.length === 0 && <p style={{ color: '#888' }}>No classes registered.</p>}
         <div style={gridStyle}>
           {classes.map(c => (
             <div key={c.id} style={cardStyle}>
               <h3 style={{ margin: '0 0 0.4rem 0' }}>{c.name}</h3>
               <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.4rem' }}>{c.description}</p>
               <p style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Hit Dice:</strong> d{c.hitDice}</p>
-              <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}><strong>Niveles:</strong> {Object.keys(c.levelCharacteristics || {}).length} configurados</p>
+              <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}><strong>Levels:</strong> {Object.keys(c.levelCharacteristics || {}).length} configured</p>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="button" onClick={() => handleOpenEditClass(c)} className="section-action-button" style={cardBtnStyle}>Editar</button>
-                <button type="button" onClick={() => handleDeleteClass(c.id!)} className="sheet-delete-button" style={cardBtnStyle}>Eliminar</button>
+                <button type="button" onClick={() => handleOpenEditClass(c)} className="section-action-button" style={cardBtnStyle}>Edit</button>
+                <button type="button" onClick={() => handleDeleteClass(c.id!)} className="sheet-delete-button" style={cardBtnStyle}>Delete</button>
               </div>
             </div>
           ))}
@@ -715,35 +715,35 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const renderRacesTab = () => {
-    if (racesLoading) return <p>Cargando razas...</p>
+    if (racesLoading) return <p>Loading races...</p>
     if (raceEditMode !== 'none') {
       const isCreate = raceEditMode === 'create'
       return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <button className="link-button" onClick={handleCancelRaceEdit}>← Volver a Razas</button>
+          <button className="link-button" onClick={handleCancelRaceEdit}>← Back to Races</button>
           <div style={sectionCardStyle}>
-            <h2 style={{ marginTop: 0, textAlign: 'center' }}>{isCreate ? 'Crear Raza' : 'Editar Raza'}</h2>
+            <h2 style={{ marginTop: 0, textAlign: 'center' }}>{isCreate ? 'Create Race' : 'Edit Race'}</h2>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Nombre</label>
+              <label style={labelStyle}>Name</label>
               <input style={inputStyle} value={raceName} onChange={e => setRaceName(e.target.value)} />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Descripción</label>
+              <label style={labelStyle}>Description</label>
               <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={3}
                 value={raceDescription} onChange={e => setRaceDescription(e.target.value)} />
             </div>
             <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
-              <h4 style={{ marginTop: 0 }}>Características Raciales</h4>
+              <h4 style={{ marginTop: 0 }}>Racial Features</h4>
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <input type="text" placeholder="Título" value={newRacialFeatTitle}
+                <input type="text" placeholder="Title" value={newRacialFeatTitle}
                   onChange={e => setNewRacialFeatTitle(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddRacialFeat()}
                   style={{ flex: 1, padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
-                <button type="button" onClick={handleAddRacialFeat} className="section-action-button" style={{ padding: '0.4rem 0.75rem' }}>Agregar</button>
+                <button type="button" onClick={handleAddRacialFeat} className="section-action-button" style={{ padding: '0.4rem 0.75rem' }}>Add</button>
               </div>
               <div style={{ marginBottom: '0.75rem' }}>
                 <textarea
-                  placeholder="Descripción"
+                  placeholder="Description"
                   value={newRacialFeatDescription}
                   onChange={e => setNewRacialFeatDescription(e.target.value)}
                   rows={3}
@@ -762,8 +762,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                         type="button"
                         onClick={() => handleEditRacialFeat(i)}
                         style={editIconStyle}
-                        title="Editar característica"
-                        aria-label="Editar característica"
+                        title="Edit feature"
+                        aria-label="Edit feature"
                       >
                         ✎
                       </button>
@@ -771,22 +771,22 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                         type="button"
                         onClick={() => handleRemoveRacialFeat(i)}
                         style={deleteIconStyle}
-                        title="Eliminar característica"
-                        aria-label="Eliminar característica"
+                        title="Delete feature"
+                        aria-label="Delete feature"
                       >
                         🗑
                       </button>
                     </div>
                   </div>
                 ))}
-                {racialFeats.length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>Sin características raciales</p>}
+                {racialFeats.length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>No racial features</p>}
               </div>
             </div>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button type="button" onClick={handleSaveRace} className="section-action-button" disabled={!raceName || !raceDescription}>
-                {isCreate ? 'Crear Raza' : 'Actualizar Raza'}
+                {isCreate ? 'Create Race' : 'Update Race'}
               </button>
-              <button type="button" onClick={handleCancelRaceEdit} style={cancelBtnStyle}>Cancelar</button>
+              <button type="button" onClick={handleCancelRaceEdit} style={cancelBtnStyle}>Cancel</button>
             </div>
           </div>
         </div>
@@ -796,18 +796,18 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     return (
       <>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-          <button type="button" className="section-action-button" onClick={handleOpenCreateRace}>+ Crear Raza</button>
+          <button type="button" className="section-action-button" onClick={handleOpenCreateRace}>+ Create Race</button>
         </div>
-        {races.length === 0 && <p style={{ color: '#888' }}>No hay razas registradas.</p>}
+        {races.length === 0 && <p style={{ color: '#888' }}>No races registered.</p>}
         <div style={gridStyle}>
           {races.map(r => (
             <div key={r.id} style={cardStyle}>
               <h3 style={{ margin: '0 0 0.4rem 0' }}>{r.name}</h3>
               <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.4rem' }}>{r.description}</p>
-              <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}><strong>Características:</strong> {r.racialFeats?.length || 0}</p>
+              <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}><strong>Features:</strong> {r.racialFeats?.length || 0}</p>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="button" onClick={() => handleOpenEditRace(r)} className="section-action-button" style={cardBtnStyle}>Editar</button>
-                <button type="button" onClick={() => handleDeleteRace(r.id!)} className="sheet-delete-button" style={cardBtnStyle}>Eliminar</button>
+                <button type="button" onClick={() => handleOpenEditRace(r)} className="section-action-button" style={cardBtnStyle}>Edit</button>
+                <button type="button" onClick={() => handleDeleteRace(r.id!)} className="sheet-delete-button" style={cardBtnStyle}>Delete</button>
               </div>
             </div>
           ))}
@@ -817,29 +817,29 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const renderCharactersTab = () => {
-    if (charactersLoading) return <p>Cargando personajes...</p>
+    if (charactersLoading) return <p>Loading characters...</p>
     return (
       <>
-        {characters.length === 0 && <p style={{ color: '#888' }}>No hay personajes registrados.</p>}
+        {characters.length === 0 && <p style={{ color: '#888' }}>No characters registered.</p>}
         <div style={gridStyle}>
           {characters.map(c => (
             <div key={c.id} style={cardStyle}>
               <h3 style={{ margin: '0 0 0.4rem 0' }}>{c.name}</h3>
               <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.25rem' }}>
-                <strong>Jugador:</strong> {c.user?.username ?? '—'}
+                <strong>Player:</strong> {c.user?.username ?? '—'}
               </p>
               <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.25rem' }}>
-                <strong>Campaña:</strong> {(c.campaign as { name?: string } | null)?.name ?? '—'}
+                <strong>Campaign:</strong> {(c.campaign as { name?: string } | null)?.name ?? '—'}
               </p>
               <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.25rem' }}>
-                <strong>Raza:</strong> {c.race?.name ?? '—'}
+                <strong>Race:</strong> {c.race?.name ?? '—'}
               </p>
               <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-                <strong>Alineamiento:</strong> {c.alignment || '—'}
+                <strong>Alignment:</strong> {c.alignment || '—'}
               </p>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="button" onClick={() => handleOpenEditCharacter(c)} className="section-action-button" style={cardBtnStyle}>Editar</button>
-                <button type="button" onClick={() => handleDeleteCharacter(c.id)} className="sheet-delete-button" style={cardBtnStyle}>Eliminar</button>
+                <button type="button" onClick={() => handleOpenEditCharacter(c)} className="section-action-button" style={cardBtnStyle}>Edit</button>
+                <button type="button" onClick={() => handleDeleteCharacter(c.id)} className="sheet-delete-button" style={cardBtnStyle}>Delete</button>
               </div>
             </div>
           ))}
@@ -849,21 +849,21 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const renderUsersTab = () => {
-    if (usersLoading) return <p>Cargando usuarios...</p>
+    if (usersLoading) return <p>Loading users...</p>
     return (
       <>
-        {users.length === 0 && <p style={{ color: '#888' }}>No hay usuarios registrados.</p>}
+        {users.length === 0 && <p style={{ color: '#888' }}>No users registered.</p>}
         <div style={gridStyle}>
           {users.map(u => (
             <div key={u.id} style={cardStyle}>
               <h3 style={{ margin: '0 0 0.4rem 0' }}>{u.username}</h3>
               <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.25rem' }}>{u.email}</p>
               <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-                <strong>Rol:</strong> {u.role === 'ROLE_ADMIN' ? 'Admin' : 'Usuario'}
+                <strong>Role:</strong> {u.role === 'ROLE_ADMIN' ? 'Admin' : 'User'}
               </p>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="button" onClick={() => handleOpenEditUser(u)} className="section-action-button" style={cardBtnStyle}>Editar</button>
-                <button type="button" onClick={() => handleDeleteUser(u.id)} className="sheet-delete-button" style={cardBtnStyle}>Eliminar</button>
+                <button type="button" onClick={() => handleOpenEditUser(u)} className="section-action-button" style={cardBtnStyle}>Edit</button>
+                <button type="button" onClick={() => handleDeleteUser(u.id)} className="sheet-delete-button" style={cardBtnStyle}>Delete</button>
               </div>
             </div>
           ))}
@@ -873,17 +873,17 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const renderCampaignsTab = () => {
-    if (campaignsLoading) return <p>Cargando campañas...</p>
+    if (campaignsLoading) return <p>Loading campaigns...</p>
     return (
       <>
-        {campaignsList.length === 0 && <p style={{ color: '#888' }}>No hay campañas registradas.</p>}
+        {campaignsList.length === 0 && <p style={{ color: '#888' }}>No campaigns registered.</p>}
         <div style={gridStyle}>
           {campaignsList.map(c => (
             <div key={c.id} style={cardStyle}>
               <h3 style={{ margin: '0 0 0.4rem 0' }}>{c.name}</h3>
               <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.25rem' }}>{c.description}</p>
               <p style={{ fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                <strong>Privacidad:</strong> {c.privacy ? 'Privada' : 'Pública'}
+                <strong>Privacy:</strong> {c.privacy ? 'Private' : 'Public'}
               </p>
               {c.joinCode && (
                 <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
@@ -891,8 +891,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                 </p>
               )}
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="button" onClick={() => handleOpenEditCampaign(c)} className="section-action-button" style={cardBtnStyle}>Editar</button>
-                <button type="button" onClick={() => handleDeleteCampaign(c.id)} className="sheet-delete-button" style={cardBtnStyle}>Eliminar</button>
+                <button type="button" onClick={() => handleOpenEditCampaign(c)} className="section-action-button" style={cardBtnStyle}>Edit</button>
+                <button type="button" onClick={() => handleDeleteCampaign(c.id)} className="sheet-delete-button" style={cardBtnStyle}>Delete</button>
               </div>
             </div>
           ))}
@@ -905,12 +905,12 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   return (
     <div>
       <header className="app-header">
-        <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager — Panel de Admin</h1>
+        <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager — Admin Panel</h1>
         <button onClick={onLogout} className="logout-button">Logout</button>
       </header>
 
       <div style={{ padding: '1.5rem 2rem' }}>
-        <button className="link-button" onClick={onBack}>← Volver al inicio</button>
+        <button className="link-button" onClick={onBack}>← Back to home</button>
 
         {/* Feedback banner */}
         {feedback && (
@@ -927,8 +927,8 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
             <div style={{ ...modalStyle, maxWidth: '420px' }}>
               <p style={{ margin: '0 0 1.5rem 0', lineHeight: '1.5' }}>{confirmModal.message}</p>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setConfirmModal(null)} style={cancelBtnStyle}>Cancelar</button>
-                <button type="button" onClick={() => { confirmModal.onConfirm(); setConfirmModal(null) }} className="sheet-delete-button" style={{ padding: '0.5rem 1.25rem' }}>Confirmar</button>
+                <button type="button" onClick={() => setConfirmModal(null)} style={cancelBtnStyle}>Cancel</button>
+                <button type="button" onClick={() => { confirmModal.onConfirm(); setConfirmModal(null) }} className="sheet-delete-button" style={{ padding: '0.5rem 1.25rem' }}>Confirm</button>
               </div>
             </div>
           </div>
