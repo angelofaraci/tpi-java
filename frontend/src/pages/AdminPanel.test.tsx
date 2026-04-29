@@ -74,44 +74,44 @@ describe('AdminPanel — Tabs', () => {
 
   it('renders the five tab buttons', () => {
     render(<AdminPanel {...defaultProps} />)
-    expect(screen.getByRole('tab', { name: 'Clases' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Razas' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Personajes' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Usuarios' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Campañas' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Classes' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Races' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Characters' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Users' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Campaigns' })).toBeInTheDocument()
   })
 
   it('Classes tab is active by default', () => {
     render(<AdminPanel {...defaultProps} />)
-    expect(screen.getByRole('tab', { name: 'Clases' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'Classes' })).toHaveAttribute('aria-selected', 'true')
   })
 
-  it('clicking Usuarios tab loads and shows users', async () => {
+  it('clicking Users tab loads and shows users', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
 
-    await user.click(screen.getByRole('tab', { name: 'Usuarios' }))
+    await user.click(screen.getByRole('tab', { name: 'Users' }))
 
     expect(await screen.findByText('player1')).toBeInTheDocument()
     expect(screen.getByText('admin1')).toBeInTheDocument()
     expect(api.admin.users.findAll).toHaveBeenCalledOnce()
   })
 
-  it('clicking Personajes tab loads and shows characters', async () => {
+  it('clicking Characters tab loads and shows characters', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
 
-    await user.click(screen.getByRole('tab', { name: 'Personajes' }))
+    await user.click(screen.getByRole('tab', { name: 'Characters' }))
 
     expect(await screen.findByText('Gandalf')).toBeInTheDocument()
     expect(api.admin.characters.findAll).toHaveBeenCalledOnce()
   })
 
-  it('clicking Campañas tab loads and shows campaigns', async () => {
+  it('clicking Campaigns tab loads and shows campaigns', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
 
-    await user.click(screen.getByRole('tab', { name: 'Campañas' }))
+    await user.click(screen.getByRole('tab', { name: 'Campaigns' }))
 
     expect(await screen.findByText('Lost Mines')).toBeInTheDocument()
     expect(screen.getByText('Secret Campaign')).toBeInTheDocument()
@@ -126,21 +126,21 @@ describe('AdminPanel — Users CRUD', () => {
   it('shows Edit and Delete buttons for each user', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Usuarios' }))
+    await user.click(screen.getByRole('tab', { name: 'Users' }))
 
     const playerCard = await screen.findByText('player1')
     const card = playerCard.closest('div')!
-    expect(within(card).getByRole('button', { name: 'Editar' })).toBeInTheDocument()
-    expect(within(card).getByRole('button', { name: 'Eliminar' })).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
   })
 
   it('opens edit modal with prefilled username and email', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Usuarios' }))
+    await user.click(screen.getByRole('tab', { name: 'Users' }))
 
     const playerCard = (await screen.findByText('player1')).closest('div')!
-    await user.click(within(playerCard).getByRole('button', { name: 'Editar' }))
+    await user.click(within(playerCard).getByRole('button', { name: 'Edit' }))
 
     expect(screen.getByDisplayValue('player1')).toBeInTheDocument()
     expect(screen.getByDisplayValue('player1@test.com')).toBeInTheDocument()
@@ -149,10 +149,10 @@ describe('AdminPanel — Users CRUD', () => {
   it('password field is empty in edit modal (not pre-filled)', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Usuarios' }))
+    await user.click(screen.getByRole('tab', { name: 'Users' }))
 
     const playerCard = (await screen.findByText('player1')).closest('div')!
-    await user.click(within(playerCard).getByRole('button', { name: 'Editar' }))
+    await user.click(within(playerCard).getByRole('button', { name: 'Edit' }))
 
     const passwordInput = screen.getByPlaceholderText('••••••••')
     expect(passwordInput).toHaveValue('')
@@ -162,15 +162,15 @@ describe('AdminPanel — Users CRUD', () => {
     const user = userEvent.setup()
     vi.mocked(api.admin.users.update).mockResolvedValue({ id: 1, username: 'new-name', email: 'player1@test.com', role: 'ROLE_USER' })
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Usuarios' }))
+    await user.click(screen.getByRole('tab', { name: 'Users' }))
 
     const playerCard = (await screen.findByText('player1')).closest('div')!
-    await user.click(within(playerCard).getByRole('button', { name: 'Editar' }))
+    await user.click(within(playerCard).getByRole('button', { name: 'Edit' }))
 
     const usernameInput = screen.getByDisplayValue('player1')
     await user.clear(usernameInput)
     await user.type(usernameInput, 'new-name')
-    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(api.admin.users.update).toHaveBeenCalledWith(1, expect.objectContaining({ username: 'new-name' }))
     expect(api.admin.users.findAll).toHaveBeenCalledTimes(2) // initial + reload
@@ -179,25 +179,25 @@ describe('AdminPanel — Users CRUD', () => {
   it('shows confirm modal before deleting a user', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Usuarios' }))
+    await user.click(screen.getByRole('tab', { name: 'Users' }))
 
     const playerCard = (await screen.findByText('player1')).closest('div')!
-    await user.click(within(playerCard).getByRole('button', { name: 'Eliminar' }))
+    await user.click(within(playerCard).getByRole('button', { name: 'Delete' }))
 
-    expect(screen.getByText(/Eliminar al usuario "player1"/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Confirmar' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
+    expect(screen.getByText(/Delete user "player1"/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Confirm' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
   })
 
   it('calls api.admin.users.delete when confirm is clicked', async () => {
     const user = userEvent.setup()
     vi.mocked(api.admin.users.delete).mockResolvedValue(null as never)
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Usuarios' }))
+    await user.click(screen.getByRole('tab', { name: 'Users' }))
 
     const playerCard = (await screen.findByText('player1')).closest('div')!
-    await user.click(within(playerCard).getByRole('button', { name: 'Eliminar' }))
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await user.click(within(playerCard).getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
 
     expect(api.admin.users.delete).toHaveBeenCalledWith(1)
   })
@@ -205,11 +205,11 @@ describe('AdminPanel — Users CRUD', () => {
   it('does NOT delete when cancel is clicked in confirm modal', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Usuarios' }))
+    await user.click(screen.getByRole('tab', { name: 'Users' }))
 
     const playerCard = (await screen.findByText('player1')).closest('div')!
-    await user.click(within(playerCard).getByRole('button', { name: 'Eliminar' }))
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await user.click(within(playerCard).getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(api.admin.users.delete).not.toHaveBeenCalled()
   })
@@ -222,21 +222,21 @@ describe('AdminPanel — Characters CRUD', () => {
   it('shows character cards with Edit and Delete buttons', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Personajes' }))
+    await user.click(screen.getByRole('tab', { name: 'Characters' }))
 
     const card = (await screen.findByText('Gandalf')).closest('div')!
-    expect(within(card).getByRole('button', { name: 'Editar' })).toBeInTheDocument()
-    expect(within(card).getByRole('button', { name: 'Eliminar' })).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
   })
 
   it('opens edit modal with prefilled name', async () => {
     const user = userEvent.setup()
     vi.mocked(api.races.findAll).mockResolvedValue(mockRaces as never)
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Personajes' }))
+    await user.click(screen.getByRole('tab', { name: 'Characters' }))
 
     const card = (await screen.findByText('Gandalf')).closest('div')!
-    await user.click(within(card).getByRole('button', { name: 'Editar' }))
+    await user.click(within(card).getByRole('button', { name: 'Edit' }))
 
     expect(screen.getByDisplayValue('Gandalf')).toBeInTheDocument()
   })
@@ -246,15 +246,15 @@ describe('AdminPanel — Characters CRUD', () => {
     vi.mocked(api.races.findAll).mockResolvedValue(mockRaces as never)
     vi.mocked(api.admin.characters.update).mockResolvedValue(mockCharacters[0] as never)
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Personajes' }))
+    await user.click(screen.getByRole('tab', { name: 'Characters' }))
 
     const card = (await screen.findByText('Gandalf')).closest('div')!
-    await user.click(within(card).getByRole('button', { name: 'Editar' }))
+    await user.click(within(card).getByRole('button', { name: 'Edit' }))
 
     const nameInput = screen.getByDisplayValue('Gandalf')
     await user.clear(nameInput)
     await user.type(nameInput, 'Saruman')
-    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(api.admin.characters.update).toHaveBeenCalledWith(10, expect.objectContaining({ name: 'Saruman' }))
   })
@@ -263,11 +263,11 @@ describe('AdminPanel — Characters CRUD', () => {
     const user = userEvent.setup()
     vi.mocked(api.admin.characters.delete).mockResolvedValue(null as never)
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Personajes' }))
+    await user.click(screen.getByRole('tab', { name: 'Characters' }))
 
     const card = (await screen.findByText('Gandalf')).closest('div')!
-    await user.click(within(card).getByRole('button', { name: 'Eliminar' }))
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await user.click(within(card).getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
 
     expect(api.admin.characters.delete).toHaveBeenCalledWith(10)
   })
@@ -280,7 +280,7 @@ describe('AdminPanel — Campaigns CRUD', () => {
   it('shows both public and private campaigns', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Campañas' }))
+    await user.click(screen.getByRole('tab', { name: 'Campaigns' }))
 
     expect(await screen.findByText('Lost Mines')).toBeInTheDocument()
     expect(screen.getByText('Secret Campaign')).toBeInTheDocument()
@@ -289,10 +289,10 @@ describe('AdminPanel — Campaigns CRUD', () => {
   it('opens edit modal with prefilled campaign data', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Campañas' }))
+    await user.click(screen.getByRole('tab', { name: 'Campaigns' }))
 
     const card = (await screen.findByText('Lost Mines')).closest('div')!
-    await user.click(within(card).getByRole('button', { name: 'Editar' }))
+    await user.click(within(card).getByRole('button', { name: 'Edit' }))
 
     expect(screen.getByDisplayValue('Lost Mines')).toBeInTheDocument()
     expect(screen.getByDisplayValue('A classic adventure')).toBeInTheDocument()
@@ -302,15 +302,15 @@ describe('AdminPanel — Campaigns CRUD', () => {
     const user = userEvent.setup()
     vi.mocked(api.admin.campaigns.update).mockResolvedValue(mockCampaigns[0])
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Campañas' }))
+    await user.click(screen.getByRole('tab', { name: 'Campaigns' }))
 
     const card = (await screen.findByText('Lost Mines')).closest('div')!
-    await user.click(within(card).getByRole('button', { name: 'Editar' }))
+    await user.click(within(card).getByRole('button', { name: 'Edit' }))
 
     const nameInput = screen.getByDisplayValue('Lost Mines')
     await user.clear(nameInput)
     await user.type(nameInput, 'Renamed Campaign')
-    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(api.admin.campaigns.update).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'Renamed Campaign' }))
   })
@@ -319,11 +319,11 @@ describe('AdminPanel — Campaigns CRUD', () => {
     const user = userEvent.setup()
     vi.mocked(api.admin.campaigns.delete).mockResolvedValue(null as never)
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Campañas' }))
+    await user.click(screen.getByRole('tab', { name: 'Campaigns' }))
 
     const card = (await screen.findByText('Lost Mines')).closest('div')!
-    await user.click(within(card).getByRole('button', { name: 'Eliminar' }))
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await user.click(within(card).getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
 
     expect(api.admin.campaigns.delete).toHaveBeenCalledWith(1)
   })
@@ -331,15 +331,15 @@ describe('AdminPanel — Campaigns CRUD', () => {
   it('disables Save button when campaign name is empty', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Campañas' }))
+    await user.click(screen.getByRole('tab', { name: 'Campaigns' }))
 
     const card = (await screen.findByText('Lost Mines')).closest('div')!
-    await user.click(within(card).getByRole('button', { name: 'Editar' }))
+    await user.click(within(card).getByRole('button', { name: 'Edit' }))
 
     const nameInput = screen.getByDisplayValue('Lost Mines')
     await user.clear(nameInput)
 
-    expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
   })
 })
 
@@ -356,7 +356,7 @@ describe('AdminPanel — Classes tab (smoke)', () => {
   it('shows Create Class button', async () => {
     render(<AdminPanel {...defaultProps} />)
     await screen.findByText('Wizard') // wait for classes to load
-    expect(screen.getByRole('button', { name: '+ Crear Clase' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '+ Create Class' })).toBeInTheDocument()
   })
 })
 
@@ -364,23 +364,23 @@ describe('AdminPanel — Classes tab (smoke)', () => {
 describe('AdminPanel — Races tab (smoke)', () => {
   beforeEach(() => { vi.clearAllMocks(); setupMocks() })
 
-  it('loads and renders race cards when Razas tab is clicked', async () => {
+  it('loads and renders race cards when Races tab is clicked', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
 
-    await user.click(screen.getByRole('tab', { name: 'Razas' }))
+    await user.click(screen.getByRole('tab', { name: 'Races' }))
 
     expect(await screen.findByText('Elf')).toBeInTheDocument()
     expect(api.races.findAll).toHaveBeenCalledOnce()
   })
 
-  it('shows Create Race button in Razas tab', async () => {
+  it('shows Create Race button in Races tab', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
 
-    await user.click(screen.getByRole('tab', { name: 'Razas' }))
+    await user.click(screen.getByRole('tab', { name: 'Races' }))
 
-    expect(await screen.findByRole('button', { name: '+ Crear Raza' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '+ Create Race' })).toBeInTheDocument()
   })
 })
 
@@ -388,46 +388,46 @@ describe('AdminPanel — Races tab (smoke)', () => {
 describe('AdminPanel — Cancel edit flows', () => {
   beforeEach(() => { vi.clearAllMocks(); setupMocks() })
 
-  it('closes user edit modal when Cancelar is clicked', async () => {
+  it('closes user edit modal when Cancel is clicked', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Usuarios' }))
+    await user.click(screen.getByRole('tab', { name: 'Users' }))
 
     const playerCard = (await screen.findByText('player1')).closest('div')!
-    await user.click(within(playerCard).getByRole('button', { name: 'Editar' }))
+    await user.click(within(playerCard).getByRole('button', { name: 'Edit' }))
     expect(screen.getByDisplayValue('player1')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByDisplayValue('player1')).not.toBeInTheDocument()
     expect(api.admin.users.update).not.toHaveBeenCalled()
   })
 
-  it('closes character edit modal when Cancelar is clicked', async () => {
+  it('closes character edit modal when Cancel is clicked', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Personajes' }))
+    await user.click(screen.getByRole('tab', { name: 'Characters' }))
 
     const card = (await screen.findByText('Gandalf')).closest('div')!
-    await user.click(within(card).getByRole('button', { name: 'Editar' }))
+    await user.click(within(card).getByRole('button', { name: 'Edit' }))
     expect(screen.getByDisplayValue('Gandalf')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByDisplayValue('Gandalf')).not.toBeInTheDocument()
     expect(api.admin.characters.update).not.toHaveBeenCalled()
   })
 
-  it('closes campaign edit modal when Cancelar is clicked', async () => {
+  it('closes campaign edit modal when Cancel is clicked', async () => {
     const user = userEvent.setup()
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Campañas' }))
+    await user.click(screen.getByRole('tab', { name: 'Campaigns' }))
 
     const card = (await screen.findByText('Lost Mines')).closest('div')!
-    await user.click(within(card).getByRole('button', { name: 'Editar' }))
+    await user.click(within(card).getByRole('button', { name: 'Edit' }))
     expect(screen.getByDisplayValue('Lost Mines')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByDisplayValue('Lost Mines')).not.toBeInTheDocument()
     expect(api.admin.campaigns.update).not.toHaveBeenCalled()
@@ -442,11 +442,11 @@ describe('AdminPanel — Error feedback', () => {
     const user = userEvent.setup()
     vi.mocked(api.admin.users.update).mockRejectedValue(new Error('Server error'))
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Usuarios' }))
+    await user.click(screen.getByRole('tab', { name: 'Users' }))
 
     const playerCard = (await screen.findByText('player1')).closest('div')!
-    await user.click(within(playerCard).getByRole('button', { name: 'Editar' }))
-    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await user.click(within(playerCard).getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Server error')).toBeInTheDocument()
   })
@@ -455,11 +455,11 @@ describe('AdminPanel — Error feedback', () => {
     const user = userEvent.setup()
     vi.mocked(api.admin.campaigns.update).mockRejectedValue(new Error('Campaign update failed'))
     render(<AdminPanel {...defaultProps} />)
-    await user.click(screen.getByRole('tab', { name: 'Campañas' }))
+    await user.click(screen.getByRole('tab', { name: 'Campaigns' }))
 
     const card = (await screen.findByText('Lost Mines')).closest('div')!
-    await user.click(within(card).getByRole('button', { name: 'Editar' }))
-    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await user.click(within(card).getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Campaign update failed')).toBeInTheDocument()
   })
@@ -474,7 +474,7 @@ describe('AdminPanel — Classes saving throws', () => {
     render(<AdminPanel {...defaultProps} />)
     await screen.findByText('Wizard') // wait for classes to load
 
-    await user.click(screen.getByRole('button', { name: '+ Crear Clase' }))
+    await user.click(screen.getByRole('button', { name: '+ Create Class' }))
 
     for (const ability of ['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma']) {
       expect(screen.getByRole('checkbox', { name: ability })).toBeInTheDocument()
@@ -487,7 +487,7 @@ describe('AdminPanel — Classes saving throws', () => {
     await screen.findByText('Wizard')
 
     const wizardCard = screen.getByText('Wizard').closest('div')!
-    await user.click(within(wizardCard).getByRole('button', { name: 'Editar' }))
+    await user.click(within(wizardCard).getByRole('button', { name: 'Edit' }))
 
     expect(screen.getByRole('checkbox', { name: 'Intelligence' })).toBeChecked()
     expect(screen.getByRole('checkbox', { name: 'Wisdom' })).toBeChecked()
@@ -503,7 +503,7 @@ describe('AdminPanel — Classes saving throws', () => {
     render(<AdminPanel {...defaultProps} />)
     await screen.findByText('Wizard')
 
-    await user.click(screen.getByRole('button', { name: '+ Crear Clase' }))
+    await user.click(screen.getByRole('button', { name: '+ Create Class' }))
 
     // First textbox is Nombre, second is Descripción (inside level characteristics section is "Título" with placeholder)
     const textboxes = screen.getAllByRole('textbox')
@@ -513,7 +513,7 @@ describe('AdminPanel — Classes saving throws', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Dexterity' }))
     await user.click(screen.getByRole('checkbox', { name: 'Charisma' }))
 
-    await user.click(screen.getByRole('button', { name: 'Crear Clase' }))
+    await user.click(screen.getByRole('button', { name: 'Create Class' }))
 
     expect(api.admin.classes.create).toHaveBeenCalledWith(
       expect.objectContaining({ savingThrows: expect.arrayContaining(['Dexterity', 'Charisma']) })
@@ -526,14 +526,14 @@ describe('AdminPanel — Classes saving throws', () => {
     render(<AdminPanel {...defaultProps} />)
     await screen.findByText('Wizard')
 
-    await user.click(screen.getByRole('button', { name: '+ Crear Clase' }))
+    await user.click(screen.getByRole('button', { name: '+ Create Class' }))
 
     const textboxes = screen.getAllByRole('textbox')
     await user.type(textboxes[0], 'Monk')              // Nombre
     await user.type(textboxes[1], 'A martial artist')  // Descripción
 
     // No checkboxes clicked — savingThrows should be []
-    await user.click(screen.getByRole('button', { name: 'Crear Clase' }))
+    await user.click(screen.getByRole('button', { name: 'Create Class' }))
 
     expect(api.admin.classes.create).toHaveBeenCalledWith(
       expect.objectContaining({ savingThrows: [] })
@@ -547,13 +547,13 @@ describe('AdminPanel — Classes saving throws', () => {
     await screen.findByText('Wizard')
 
     const wizardCard = screen.getByText('Wizard').closest('div')!
-    await user.click(within(wizardCard).getByRole('button', { name: 'Editar' }))
+    await user.click(within(wizardCard).getByRole('button', { name: 'Edit' }))
 
     // Wizard starts with Intelligence + Wisdom checked — uncheck Intelligence, check Strength
     await user.click(screen.getByRole('checkbox', { name: 'Intelligence' }))
     await user.click(screen.getByRole('checkbox', { name: 'Strength' }))
 
-    await user.click(screen.getByRole('button', { name: 'Actualizar Clase' }))
+    await user.click(screen.getByRole('button', { name: 'Update Class' }))
 
     expect(api.admin.classes.update).toHaveBeenCalledWith(
       1,
@@ -571,13 +571,13 @@ describe('AdminPanel — Classes saving throws', () => {
     await screen.findByText('Wizard')
 
     // Open create, check a checkbox, then cancel
-    await user.click(screen.getByRole('button', { name: '+ Crear Clase' }))
+    await user.click(screen.getByRole('button', { name: '+ Create Class' }))
     await user.click(screen.getByRole('checkbox', { name: 'Charisma' }))
     expect(screen.getByRole('checkbox', { name: 'Charisma' })).toBeChecked()
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     // Reopen create — checkboxes must be cleared
-    await user.click(screen.getByRole('button', { name: '+ Crear Clase' }))
+    await user.click(screen.getByRole('button', { name: '+ Create Class' }))
     expect(screen.getByRole('checkbox', { name: 'Charisma' })).not.toBeChecked()
   })
 })
