@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ScoreBox } from '../components/scoreBox'
 import '../styles/CharacterSheet.css'
-import { api } from '../services/api'
+import { api, API_BASE_URL } from '../services/api'
 import type { Character, CharacterCatalogClassOption, HydratedCharacterEditData, LevelRecord } from '../interfaces/character'
 import { hydrateCharacterEditData } from '../utils/characterDraft'
 
@@ -302,7 +302,7 @@ export function Characters({
           {characterSheetData.portraitUrl && (
             <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
               <img
-                src={characterSheetData.portraitUrl.startsWith('/') ? `http://localhost:8080${characterSheetData.portraitUrl}` : characterSheetData.portraitUrl}
+                src={characterSheetData.portraitUrl.startsWith('/') ? `${API_BASE_URL}${characterSheetData.portraitUrl}` : characterSheetData.portraitUrl}
                 alt={`${characterSheetData.name || 'Character'} portrait`}
                 style={{ maxWidth: '160px', maxHeight: '160px', borderRadius: '0.5rem', objectFit: 'cover', display: 'block' }}
               />

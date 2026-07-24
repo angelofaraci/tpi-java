@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Characters } from './Characters'
 
 vi.mock('../services/api', () => ({
+  API_BASE_URL: 'http://localhost:8080',
   api: {
     characters: {
       findById: vi.fn(),

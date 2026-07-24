@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { api } from './services/api'
+import type { User } from './interfaces/user'
+import type { Campaign } from './interfaces/campaign'
 
 vi.mock('./services/api', () => ({
   api: {
@@ -50,7 +52,7 @@ describe('App create campaign flow', () => {
     vi.resetAllMocks()
     localStorage.setItem('token', 'test-token')
 
-    vi.mocked(api.auth.me).mockResolvedValue({ id: 7 })
+    vi.mocked(api.auth.me).mockResolvedValue({ id: 7 } as User)
     vi.mocked(api.characters.findByUserId).mockResolvedValue([])
     vi.mocked(api.characters.findAll).mockResolvedValue([])
     vi.mocked(api.characters.findById).mockResolvedValue({
@@ -682,7 +684,7 @@ describe('App view campaign flow', () => {
     vi.resetAllMocks()
     localStorage.setItem('token', 'test-token')
 
-    vi.mocked(api.auth.me).mockResolvedValue({ id: 7 })
+    vi.mocked(api.auth.me).mockResolvedValue({ id: 7 } as User)
     vi.mocked(api.characters.findByUserId).mockResolvedValue([])
     vi.mocked(api.characters.findAll).mockResolvedValue([])
     vi.mocked(api.characters.findById).mockResolvedValue({} as never)
@@ -771,7 +773,7 @@ describe('App view campaign flow', () => {
   })
 
   it('shows loading state while fetching campaign details', async () => {
-    let resolveCampaign: ((value: unknown) => void) | undefined
+    let resolveCampaign: ((value: Campaign | PromiseLike<Campaign>) => void) | undefined
     vi.mocked(api.campaigns.findById).mockImplementationOnce(
       () => new Promise((resolve) => { resolveCampaign = resolve }),
     )

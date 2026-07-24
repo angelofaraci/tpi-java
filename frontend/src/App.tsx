@@ -9,8 +9,9 @@ import { AdminPanel } from './pages/AdminPanel'
 import { CopyCodeButton } from './components/CopyCodeButton'
 import { api } from './services/api'
 import type { OwnedCampaignSummary, PlayerCampaignSummary, PublicCampaignSummary } from './interfaces/campaign'
-import type { HydratedCharacterEditData } from './interfaces/character'
+import type { Character, HydratedCharacterEditData, LevelRecord } from './interfaces/character'
 import type { User } from './interfaces/user'
+import { hydrateCharacterEditData } from './utils/characterDraft'
 import './styles/CharacterSheet.css'
 
 type View = 'home' | 'character-sheet' | 'create-campaign' | 'create-character' | 'view-campaign' | 'admin' | 'view-character-readonly'
@@ -521,26 +522,29 @@ function App() {
 
   const handleEditCharacterFromCampaign = async (characterId: number) => {
     try {
-      const characterData = await api.characters.findById(characterId)
+      const [characterData, levelsResponse] = await Promise.all([
+        api.characters.findById(characterId),
+        api.levels.findAll().catch(() => []),
+      ])
       if (!characterData || typeof characterData !== 'object') return
 
-      const hydratedData: import('./interfaces/character').HydratedCharacterEditData = {
-        characterId,
-        name: (characterData as Record<string, unknown>).name as string | undefined,
-        alignment: (characterData as Record<string, unknown>).alignment as string | undefined,
-        background: (characterData as Record<string, unknown>).background as string | undefined,
-        campaignId: ((characterData as Record<string, unknown>).campaign as { id?: number } | undefined)?.id,
-        raceId: ((characterData as Record<string, unknown>).race as { id?: number } | undefined)?.id,
-        characteristics: (characterData as Record<string, unknown>).characteristics as string[] | undefined,
-        characterStatsId: ((characterData as Record<string, unknown>).characterStats as { id?: number } | undefined)?.id,
-        hp: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.hp as number | undefined,
-        xp: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.xp as number | undefined,
-        proficiency: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.proficiency as number | undefined,
-        abilityScores: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.abilityScores as Record<string, number> | undefined,
-        velocities: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.velocities as number[] | undefined,
-        proficiencies: ((characterData as Record<string, unknown>).characterStats as Record<string, unknown> | undefined)?.proficiencies as Record<string, number> | undefined,
-        existingClasses: (characterData as Record<string, unknown>).characterClasses as import('./interfaces/character').HydratedCharacterEditData['existingClasses'],
+      const characterPayload = characterData as Partial<Character> & Record<string, unknown>
+      const mappedData: Character = {
+        id: characterPayload.id ?? characterId,
+        user: characterPayload.user as Character['user'],
+        campaign: (characterPayload.campaign ?? { id: 0 }) as Character['campaign'],
+        name: characterPayload.name ?? '',
+        characterClasses: Array.isArray(characterPayload.characterClasses) ? characterPayload.characterClasses : [],
+        characteristics: Array.isArray(characterPayload.characteristics) ? characterPayload.characteristics : [],
+        alignment: characterPayload.alignment ?? '',
+        background: characterPayload.background ?? '',
+        characterStats: characterPayload.characterStats as Character['characterStats'],
+        race: characterPayload.race as Character['race'],
+        portraitUrl: typeof characterPayload.portraitUrl === 'string' ? characterPayload.portraitUrl : undefined,
       }
+
+      const normalizedLevels = Array.isArray(levelsResponse) ? (levelsResponse as LevelRecord[]) : []
+      const hydratedData: HydratedCharacterEditData = hydrateCharacterEditData(mappedData, normalizedLevels)
       handleOpenEditCharacter(hydratedData)
     } catch (err: unknown) {
       console.error('Failed to load character for editing:', err)

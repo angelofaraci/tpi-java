@@ -36,7 +36,7 @@ export interface RaceDto {
 }
 
 // Configuración base
-const API_BASE_URL = 'http://localhost:8080' // Tu backend
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 // Función helper para manejar respuestas
 async function handleResponse<T = unknown>(response: Response): Promise<T> {
