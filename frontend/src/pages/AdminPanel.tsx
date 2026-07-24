@@ -887,7 +887,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
               </p>
               {c.joinCode && (
                 <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-                  <strong>Código:</strong> {c.joinCode}
+                  <strong>Code:</strong> {c.joinCode}
                 </p>
               )}
               <div style={{ display: 'flex', gap: '0.5rem' }}>

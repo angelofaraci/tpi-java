@@ -35,17 +35,17 @@ export interface RaceDto {
   racialFeats: string[]
 }
 
-// Configuración base
+// Base configuration
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
-// Función helper para manejar respuestas
+// Helper function to handle responses
 async function handleResponse<T = unknown>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.text()
     throw new Error(`Error ${response.status}: ${error}`)
   }
 
-  // Si no hay contenido (ej: DELETE), retornar null
+  // If there's no content (e.g. DELETE), return null
   if (response.status === 204) return null as T
 
   // Get the raw response text first to debug JSON issues
@@ -63,7 +63,7 @@ async function handleResponse<T = unknown>(response: Response): Promise<T> {
   }
 }
 
-// Función helper para crear headers con autenticación
+// Helper function to create headers with authentication
 function createHeaders(additionalHeaders: Record<string, string> = {}): HeadersInit {
   return {
     'Content-Type': 'application/json',
@@ -309,7 +309,7 @@ export const api = {
     },
   },
 
-  // AUTENTICACIÓN
+  // AUTHENTICATION
   auth: {
     async login(credentials: { username: string; password: string }) {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
