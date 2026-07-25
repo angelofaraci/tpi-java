@@ -268,7 +268,9 @@ export function Characters({
       <div>
         <header className="app-header">
           <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager</h1>
-          <button onClick={onLogout} className="logout-button">Logout</button>
+          <button onClick={onLogout} className="logout-button">
+            {source === 'demo' ? 'Back to Demo' : 'Logout'}
+          </button>
         </header>
         <div style={{ padding: '2rem' }}>
           <button className="link-button" onClick={onBack}>← Back to Home</button>
@@ -298,7 +300,9 @@ export function Characters({
     <div>
       <header className="app-header">
         <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager</h1>
-        <button onClick={onLogout} className="logout-button">Logout</button>
+        <button onClick={onLogout} className="logout-button">
+          {source === 'demo' ? 'Back to Demo' : 'Logout'}
+        </button>
       </header>
       <div style={{ padding: '1rem 2rem' }}>
         <button className="link-button" onClick={onBack}>← Back to Home</button>

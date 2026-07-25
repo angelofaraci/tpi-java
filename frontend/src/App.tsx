@@ -577,7 +577,6 @@ function App() {
         <Characters
           characterId={demoCharacterId}
           source="demo"
-          readOnly
           onBack={() => setDemoCharacterId(null)}
           onEditCharacter={() => {}}
           onLogout={() => setDemoCharacterId(null)}

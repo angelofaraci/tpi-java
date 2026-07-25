@@ -310,25 +310,29 @@ export const api = {
     },
   },
 
-  // DEMO — anonymous, read-only browsing for unauthenticated visitors
+  // DEMO — anonymous, read-only browsing for unauthenticated visitors.
+  // Never attach an Authorization header here, even if a real session token
+  // is present in localStorage (e.g. briefly on page reload before the auth
+  // check settles): these calls must stay indistinguishable from a truly
+  // anonymous visitor's, regardless of the caller's own auth state.
   demo: {
     async campaigns() {
       const response = await fetch(`${API_BASE_URL}/demo/campaigns`, {
-        headers: createHeaders(),
+        headers: { 'Content-Type': 'application/json' },
       })
       return handleResponse<DemoCampaignSummary[]>(response)
     },
 
     async characters() {
       const response = await fetch(`${API_BASE_URL}/demo/characters`, {
-        headers: createHeaders(),
+        headers: { 'Content-Type': 'application/json' },
       })
       return handleResponse<DemoCharacterSummary[]>(response)
     },
 
     async characterById(id: number) {
       const response = await fetch(`${API_BASE_URL}/demo/characters/${id}`, {
-        headers: createHeaders(),
+        headers: { 'Content-Type': 'application/json' },
       })
       return handleResponse<DemoCharacterDetail>(response)
     },

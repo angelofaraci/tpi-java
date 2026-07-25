@@ -937,6 +937,34 @@ describe('App demo landing (unauthenticated)', () => {
 
     expect(await screen.findByText('Demo Campaign')).toBeInTheDocument()
   })
+
+  it('returns to the demo landing when "Back to Demo" is clicked from the demo character sheet', async () => {
+    vi.mocked(api.demo.characterById).mockResolvedValue({
+      id: 100,
+      name: 'Aldric',
+      raceName: 'Human',
+      background: 'Soldier',
+      alignment: 'Lawful Good',
+      proficiency: 2,
+      abilityScores: { Strength: 14, Dexterity: 12, Constitution: 13, Intelligence: 10, Wisdom: 11, Charisma: 8 },
+      proficiencies: {},
+      velocity: 30,
+      hp: 12,
+      classes: [],
+    } as never)
+
+    render(<App />)
+
+    await screen.findByText('Demo Campaign')
+    fireEvent.click(screen.getByText('Aldric'))
+
+    await screen.findByRole('heading', { level: 2, name: 'Aldric' })
+    expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Demo' }))
+
+    expect(await screen.findByText('Demo Campaign')).toBeInTheDocument()
+  })
 })
 
 describe('App logout returns to demo landing', () => {

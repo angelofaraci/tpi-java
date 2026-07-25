@@ -21,27 +21,27 @@ export function DemoLanding({ onLoginRequest, onSelectCharacter }: DemoLandingPr
       setLoading(true)
       setError(null)
 
-      try {
-        const [campaignsResult, charactersResult] = await Promise.all([
-          api.demo.campaigns(),
-          api.demo.characters(),
-        ])
+      // Settled independently so one endpoint failing doesn't blank out data
+      // the other endpoint successfully returned.
+      const [campaignsResult, charactersResult] = await Promise.allSettled([
+        api.demo.campaigns(),
+        api.demo.characters(),
+      ])
 
-        if (cancelled) return
+      if (cancelled) return
 
-        setCampaigns(Array.isArray(campaignsResult) ? campaignsResult : [])
-        setCharacters(Array.isArray(charactersResult) ? charactersResult : [])
-      } catch {
-        if (cancelled) return
+      setCampaigns(campaignsResult.status === 'fulfilled' && Array.isArray(campaignsResult.value) ? campaignsResult.value : [])
+      setCharacters(charactersResult.status === 'fulfilled' && Array.isArray(charactersResult.value) ? charactersResult.value : [])
 
+      if (campaignsResult.status === 'rejected' && charactersResult.status === 'rejected') {
         setError('Demo data is currently unavailable. Please try again later, or log in / sign up to start your own adventure.')
-        setCampaigns([])
-        setCharacters([])
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+      } else if (campaignsResult.status === 'rejected') {
+        setError('Sample campaign could not be loaded, but sample characters are shown below.')
+      } else if (charactersResult.status === 'rejected') {
+        setError('Sample characters could not be loaded, but a sample campaign is shown below.')
       }
+
+      setLoading(false)
     }
 
     void loadDemoData()
@@ -75,24 +75,30 @@ export function DemoLanding({ onLoginRequest, onSelectCharacter }: DemoLandingPr
 
           {!loading && error && <div className="error-message">{error}</div>}
 
-          {!loading && !error && (
+          {!loading && (
             <>
-              <div className="entity-grid">
-                {campaigns.map((campaign) => (
-                  <div key={campaign.id} className="campaign-placeholder-card">
-                    <div style={{ backgroundColor: 'var(--color-background)', padding: '2rem 1.5rem', textAlign: 'center' }}>
-                      <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem', fontWeight: 'normal', color: 'var(--color-foreground)' }}>
-                        {campaign.name}
-                      </h3>
-                      {campaign.description && (
-                        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-foreground-muted)' }}>
-                          {campaign.description}
-                        </p>
-                      )}
+              {campaigns.length === 0 ? (
+                <div className="campaign-section-message campaign-section-empty">
+                  No sample campaign is available right now. Log in or sign up to create your own.
+                </div>
+              ) : (
+                <div className="entity-grid">
+                  {campaigns.map((campaign) => (
+                    <div key={campaign.id} className="campaign-placeholder-card">
+                      <div style={{ backgroundColor: 'var(--color-background)', padding: '2rem 1.5rem', textAlign: 'center' }}>
+                        <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem', fontWeight: 'normal', color: 'var(--color-foreground)' }}>
+                          {campaign.name}
+                        </h3>
+                        {campaign.description && (
+                          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-foreground-muted)' }}>
+                            {campaign.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               <div className="section-header" style={{ marginTop: '2rem' }}>
                 <div>

@@ -950,6 +950,19 @@ describe('api.demo.campaigns', () => {
     ])
     expect(logSpy).toHaveBeenCalled()
   })
+
+  it('does not attach a real session token to /demo/campaigns even when one is present', async () => {
+    localStorage.setItem('token', 'a-real-session-token')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.demo.campaigns()
+
+    const [, options] = fetchMock.mock.calls[0]
+    expect(options.headers).not.toHaveProperty('Authorization')
+  })
 })
 
 describe('api.demo.characters', () => {
