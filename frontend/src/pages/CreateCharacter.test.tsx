@@ -302,12 +302,15 @@ describe('CreateCharacter', () => {
   })
 
   it('preserves the filled draft and shows submit feedback when creation fails', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.mocked(api.characters.create).mockRejectedValueOnce(new Error('Error 500: Backend failed'))
 
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
+    // Enable fake timers only after the initial async render settles — findByRole's
+    // internal polling relies on real timers, so activating fake timers earlier can
+    // let it resolve before the creation catalogs (races/classes) finish loading.
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     fireEvent.change(screen.getByLabelText('Campaign Code'), { target: { value: 'OPEN-TABL' } })
     await vi.runAllTimersAsync()
     fireEvent.change(screen.getByLabelText('Character Name'), { target: { value: 'Mira' } })
