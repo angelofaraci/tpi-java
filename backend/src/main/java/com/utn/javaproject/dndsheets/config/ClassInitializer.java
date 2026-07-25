@@ -6,6 +6,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +22,12 @@ public class ClassInitializer implements CommandLineRunner {
     }
 
     @Override
+    @Transactional
     public void run(String... args) {
+        // Keeps the Hibernate session open for the whole method: the update
+        // branch below reads a lazy collection (savingThrows) on an entity
+        // fetched earlier in the same run, which otherwise fails with
+        // LazyInitializationException once the per-call session closes.
         List<DndClassSeed> seeds = List.of(
                 createArtificer(),
                 createBarbarian(),
