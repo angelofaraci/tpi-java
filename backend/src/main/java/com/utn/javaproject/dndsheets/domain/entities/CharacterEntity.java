@@ -35,5 +35,6 @@ public class CharacterEntity {
     @JoinColumn(name = "race_id")
     private RaceEntity race;
     private String portraitUrl;
+    private Boolean isDemo;
 
 }

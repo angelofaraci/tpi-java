@@ -32,6 +32,7 @@ public class CampaignEntity {
     private String name;
     private String description;
     private Boolean privacy;
+    private Boolean isDemo;
     @Column(name = "CreationDate")
     private Date creationDate;
     @ManyToMany
@@ -94,6 +95,14 @@ public class CampaignEntity {
 
     public void setPrivacy(Boolean privacy) {
         this.privacy = privacy;
+    }
+
+    public Boolean getIsDemo() {
+        return isDemo;
+    }
+
+    public void setIsDemo(Boolean isDemo) {
+        this.isDemo = isDemo;
     }
 
     public Date getCreationDate() {

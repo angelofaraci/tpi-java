@@ -20,4 +20,6 @@ public interface CampaignRepository extends JpaRepository<CampaignEntity, Long> 
 
     @Query("SELECT c FROM CampaignEntity c WHERE c.privacy = false OR c.privacy IS NULL")
     List<CampaignEntity> findAllPublic();
+
+    List<CampaignEntity> findByIsDemoTrue();
 }
