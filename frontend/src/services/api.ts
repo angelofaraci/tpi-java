@@ -12,6 +12,7 @@ import type {
   LevelRecord,
 } from '../interfaces/character'
 import type { User } from '../interfaces/user'
+import type { DemoCampaignSummary, DemoCharacterDetail, DemoCharacterSummary } from '../interfaces/demo'
 
 type JsonObject = Record<string, unknown>
 
@@ -306,6 +307,34 @@ export const api = {
         headers: createHeaders(),
       })
       return handleResponse<CharacterCatalogClassOption[]>(response)
+    },
+  },
+
+  // DEMO — anonymous, read-only browsing for unauthenticated visitors.
+  // Never attach an Authorization header here, even if a real session token
+  // is present in localStorage (e.g. briefly on page reload before the auth
+  // check settles): these calls must stay indistinguishable from a truly
+  // anonymous visitor's, regardless of the caller's own auth state.
+  demo: {
+    async campaigns() {
+      const response = await fetch(`${API_BASE_URL}/demo/campaigns`, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      return handleResponse<DemoCampaignSummary[]>(response)
+    },
+
+    async characters() {
+      const response = await fetch(`${API_BASE_URL}/demo/characters`, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      return handleResponse<DemoCharacterSummary[]>(response)
+    },
+
+    async characterById(id: number) {
+      const response = await fetch(`${API_BASE_URL}/demo/characters/${id}`, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      return handleResponse<DemoCharacterDetail>(response)
     },
   },
 
