@@ -1,5 +1,6 @@
 package com.utn.javaproject.dndsheets.controllers;
 
+import com.utn.javaproject.dndsheets.domain.dto.DemoCampaignDetailDto;
 import com.utn.javaproject.dndsheets.domain.dto.DemoCampaignDto;
 import com.utn.javaproject.dndsheets.domain.dto.DemoCharacterDetailDto;
 import com.utn.javaproject.dndsheets.domain.dto.DemoCharacterSummaryDto;
@@ -40,6 +41,13 @@ public class DemoController {
     @GetMapping(path = "/demo/characters/{id}")
     public ResponseEntity<DemoCharacterDetailDto> getDemoCharacter(@PathVariable("id") Long id) {
         return demoService.findCharacterDetail(id)
+                .map(dto -> new ResponseEntity<>(dto, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @GetMapping(path = "/demo/campaigns/{id}")
+    public ResponseEntity<DemoCampaignDetailDto> getDemoCampaign(@PathVariable("id") Long id) {
+        return demoService.findCampaignDetail(id)
                 .map(dto -> new ResponseEntity<>(dto, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }

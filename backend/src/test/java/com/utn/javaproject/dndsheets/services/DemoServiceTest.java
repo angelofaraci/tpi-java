@@ -1,5 +1,6 @@
 package com.utn.javaproject.dndsheets.services;
 
+import com.utn.javaproject.dndsheets.domain.dto.DemoCampaignDetailDto;
 import com.utn.javaproject.dndsheets.domain.dto.DemoCampaignDto;
 import com.utn.javaproject.dndsheets.domain.dto.DemoCharacterDetailDto;
 import com.utn.javaproject.dndsheets.domain.dto.DemoCharacterSummaryDto;
@@ -170,6 +171,62 @@ class DemoServiceTest {
         when(characterRepository.findDemoById(999L)).thenReturn(Optional.empty());
 
         Optional<DemoCharacterDetailDto> result = demoService().findCharacterDetail(999L);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void findCampaignDetail_mapsToDto_withCharacters_withoutJoinCodeOrDmOrPlayers() {
+        UserEntity dm = demoUser();
+        CampaignEntity campaign = demoCampaign(dm);
+
+        RaceEntity race = RaceEntity.builder().id(2L).name("Elf").racialFeats(List.of("Darkvision")).build();
+        CharacterEntity character = new CharacterEntity();
+        character.setId(10L);
+        character.setUser(dm);
+        character.setName("Aria Windwhisper");
+        character.setRace(race);
+        character.setAlignment("Chaotic Good");
+        character.setIsDemo(true);
+        campaign.setCharacters(List.of(character));
+
+        when(campaignRepository.findDemoById(1L)).thenReturn(Optional.of(campaign));
+        when(levelRepository.findByIdCharacterId(10L)).thenReturn(List.of());
+
+        Optional<DemoCampaignDetailDto> result = demoService().findCampaignDetail(1L);
+
+        assertThat(result).isPresent();
+        DemoCampaignDetailDto dto = result.get();
+        assertThat(dto.getId()).isEqualTo(1L);
+        assertThat(dto.getName()).isEqualTo("Demo Campaign");
+        assertThat(dto.getDescription()).isEqualTo("A sample campaign");
+        assertThat(dto.getCharacters()).hasSize(1);
+        assertThat(dto.getCharacters().get(0).getId()).isEqualTo(10L);
+        assertThat(dto.getCharacters().get(0).getName()).isEqualTo("Aria Windwhisper");
+        assertThat(dto.getCharacters().get(0).getRaceName()).isEqualTo("Elf");
+        assertThat(fieldNames(DemoCampaignDetailDto.class))
+                .doesNotContain("joinCode", "dm", "players", "user");
+    }
+
+    @Test
+    void findCampaignDetail_handlesNoCharacters_gracefully() {
+        UserEntity dm = demoUser();
+        CampaignEntity campaign = demoCampaign(dm);
+        campaign.setCharacters(List.of());
+
+        when(campaignRepository.findDemoById(1L)).thenReturn(Optional.of(campaign));
+
+        Optional<DemoCampaignDetailDto> result = demoService().findCampaignDetail(1L);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getCharacters()).isEmpty();
+    }
+
+    @Test
+    void findCampaignDetail_returnsEmpty_whenCampaignIsNotDemo() {
+        when(campaignRepository.findDemoById(999L)).thenReturn(Optional.empty());
+
+        Optional<DemoCampaignDetailDto> result = demoService().findCampaignDetail(999L);
 
         assertThat(result).isEmpty();
     }

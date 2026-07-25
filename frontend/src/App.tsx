@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import { Login } from './pages/Login'
 import { DemoLanding } from './pages/DemoLanding'
+import { DemoCampaignDetail } from './pages/DemoCampaignDetail'
 import { Characters } from './pages/Characters'
 import { CreateCampaign } from './pages/CreateCampaign'
 import { CreateCharacter } from './pages/CreateCharacter'
@@ -94,6 +95,7 @@ function App() {
   const [characterSheetRefreshToken, setCharacterSheetRefreshToken] = useState(0)
   const [authView, setAuthView] = useState<AuthView>('demo')
   const [demoCharacterId, setDemoCharacterId] = useState<number | null>(null)
+  const [demoCampaignId, setDemoCampaignId] = useState<number | null>(null)
   const currentUserIdRef = useRef<number | null>(null)
   const latestCharacterRequestId = useRef(0)
   const latestCampaignRequestId = useRef(0)
@@ -294,6 +296,7 @@ function App() {
     setEditCharacterData(null)
     setAuthView('demo')
     setDemoCharacterId(null)
+    setDemoCampaignId(null)
   }
 
   const handleViewCharacter = (characterId: number) => {
@@ -569,6 +572,7 @@ function App() {
             setCampaignFeedback(null)
             setAuthView('demo')
             setDemoCharacterId(null)
+            setDemoCampaignId(null)
           }}
         />
       )
@@ -585,11 +589,20 @@ function App() {
           deleteError={null}
         />
       )
+    } else if (demoCampaignId) {
+      content = (
+        <DemoCampaignDetail
+          campaignId={demoCampaignId}
+          onBack={() => setDemoCampaignId(null)}
+          onSelectCharacter={(characterId) => setDemoCharacterId(characterId)}
+        />
+      )
     } else {
       content = (
         <DemoLanding
           onLoginRequest={() => setAuthView('login')}
           onSelectCharacter={(characterId) => setDemoCharacterId(characterId)}
+          onSelectCampaign={(campaignId) => setDemoCampaignId(campaignId)}
         />
       )
     }

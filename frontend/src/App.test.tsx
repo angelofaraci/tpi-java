@@ -48,6 +48,7 @@ vi.mock('./services/api', () => ({
       campaigns: vi.fn(),
       characters: vi.fn(),
       characterById: vi.fn(),
+      campaignById: vi.fn(),
     },
   },
 }))
@@ -964,6 +965,60 @@ describe('App demo landing (unauthenticated)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to Demo' }))
 
     expect(await screen.findByText('Demo Campaign')).toBeInTheDocument()
+  })
+
+  it('opens the demo campaign detail view when the demo campaign card is clicked', async () => {
+    vi.mocked(api.demo.campaignById).mockResolvedValue({
+      id: 1,
+      name: 'Demo Campaign',
+      description: 'A sample adventure',
+      creationDate: '2025-01-01T00:00:00.000+00:00',
+      characters: [{ id: 100, name: 'Aldric', raceName: 'Human', level: 3, alignment: 'Lawful Good' }],
+    } as never)
+
+    render(<App />)
+
+    await screen.findByText('Demo Campaign')
+    fireEvent.click(screen.getByRole('button', { name: /Demo Campaign/ }))
+
+    expect(await screen.findByText('A sample adventure')).toBeInTheDocument()
+    expect(screen.getByText('Aldric')).toBeInTheDocument()
+  })
+
+  it('opens a character sheet from within the demo campaign detail view and returns there on back', async () => {
+    vi.mocked(api.demo.campaignById).mockResolvedValue({
+      id: 1,
+      name: 'Demo Campaign',
+      description: 'A sample adventure',
+      characters: [{ id: 100, name: 'Aldric', raceName: 'Human', level: 3, alignment: 'Lawful Good' }],
+    } as never)
+    vi.mocked(api.demo.characterById).mockResolvedValue({
+      id: 100,
+      name: 'Aldric',
+      raceName: 'Human',
+      background: 'Soldier',
+      alignment: 'Lawful Good',
+      proficiency: 2,
+      abilityScores: { Strength: 14, Dexterity: 12, Constitution: 13, Intelligence: 10, Wisdom: 11, Charisma: 8 },
+      proficiencies: {},
+      velocity: 30,
+      hp: 12,
+      classes: [],
+    } as never)
+
+    render(<App />)
+
+    await screen.findByText('Demo Campaign')
+    fireEvent.click(screen.getByRole('button', { name: /Demo Campaign/ }))
+    await screen.findByText('A sample adventure')
+
+    fireEvent.click(screen.getByText('Aldric'))
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Aldric' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('← Back to Home'))
+
+    expect(await screen.findByText('A sample adventure')).toBeInTheDocument()
   })
 })
 

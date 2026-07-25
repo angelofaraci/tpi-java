@@ -24,6 +24,14 @@ export interface DemoClassLevel {
   features: Array<{ level: number; text: string }>
 }
 
+export interface DemoCampaignDetail {
+  id: number
+  name: string
+  description?: string
+  creationDate?: string
+  characters: DemoCharacterSummary[]
+}
+
 export interface DemoCharacterDetail {
   id: number
   name: string

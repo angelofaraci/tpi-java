@@ -1,5 +1,6 @@
 package com.utn.javaproject.dndsheets.services;
 
+import com.utn.javaproject.dndsheets.domain.dto.DemoCampaignDetailDto;
 import com.utn.javaproject.dndsheets.domain.dto.DemoCampaignDto;
 import com.utn.javaproject.dndsheets.domain.dto.DemoCharacterDetailDto;
 import com.utn.javaproject.dndsheets.domain.dto.DemoCharacterSummaryDto;
@@ -49,6 +50,10 @@ public class DemoService {
 
     public Optional<DemoCharacterDetailDto> findCharacterDetail(Long id) {
         return characterRepository.findDemoById(id).map(this::toDetailDto);
+    }
+
+    public Optional<DemoCampaignDetailDto> findCampaignDetail(Long id) {
+        return campaignRepository.findDemoById(id).map(this::toCampaignDetailDto);
     }
 
     // ---- private mapping helpers ----
@@ -101,6 +106,20 @@ public class DemoService {
                         ? stats.getVelocities().get(0) : null)
                 .hp(stats != null ? stats.getHp() : null)
                 .classes(toClassLevels(character.getId()))
+                .build();
+    }
+
+    private DemoCampaignDetailDto toCampaignDetailDto(CampaignEntity campaign) {
+        requireDemo(campaign.getIsDemo(), "campaign", campaign.getId());
+        List<DemoCharacterSummaryDto> characters = campaign.getCharacters() == null
+                ? List.of()
+                : campaign.getCharacters().stream().map(this::toSummaryDto).toList();
+        return DemoCampaignDetailDto.builder()
+                .id(campaign.getId())
+                .name(campaign.getName())
+                .description(campaign.getDescription())
+                .creationDate(campaign.getCreationDate())
+                .characters(characters)
                 .build();
     }
 

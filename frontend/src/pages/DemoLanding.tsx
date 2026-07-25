@@ -6,9 +6,10 @@ import '../App.css'
 interface DemoLandingProps {
   onLoginRequest: () => void
   onSelectCharacter: (characterId: number) => void
+  onSelectCampaign: (campaignId: number) => void
 }
 
-export function DemoLanding({ onLoginRequest, onSelectCharacter }: DemoLandingProps) {
+export function DemoLanding({ onLoginRequest, onSelectCharacter, onSelectCampaign }: DemoLandingProps) {
   const [campaigns, setCampaigns] = useState<DemoCampaignSummary[]>([])
   const [characters, setCharacters] = useState<DemoCharacterSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -84,7 +85,13 @@ export function DemoLanding({ onLoginRequest, onSelectCharacter }: DemoLandingPr
               ) : (
                 <div className="entity-grid">
                   {campaigns.map((campaign) => (
-                    <div key={campaign.id} className="campaign-placeholder-card">
+                    <button
+                      key={campaign.id}
+                      type="button"
+                      className="campaign-placeholder-card"
+                      onClick={() => onSelectCampaign(campaign.id)}
+                      style={{ cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left', padding: 0 }}
+                    >
                       <div style={{ backgroundColor: 'var(--color-background)', padding: '2rem 1.5rem', textAlign: 'center' }}>
                         <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem', fontWeight: 'normal', color: 'var(--color-foreground)' }}>
                           {campaign.name}
@@ -95,7 +102,7 @@ export function DemoLanding({ onLoginRequest, onSelectCharacter }: DemoLandingPr
                           </p>
                         )}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}

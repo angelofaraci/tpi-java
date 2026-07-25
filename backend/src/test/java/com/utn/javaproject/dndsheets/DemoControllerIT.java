@@ -90,16 +90,25 @@ class DemoControllerIT {
         });
     }
 
+    // isDemo has a DB-level unique constraint (at most one campaign can ever be
+    // isDemo=false, mirroring the isDemo=true guard), so reuse the first
+    // existing non-demo campaign in this @SpringBootTest's shared context
+    // instead of racing that same constraint with a second insert.
     private CampaignEntity realCampaign(UserEntity owner) {
-        CampaignEntity campaign = new CampaignEntity();
-        campaign.setDm(owner);
-        campaign.setName("IT Real Campaign " + System.nanoTime());
-        campaign.setDescription("desc");
-        campaign.setPrivacy(true);
-        campaign.setIsDemo(false);
-        campaign.setCreationDate(new Date());
-        campaign.setPlayers(List.of());
-        return campaignRepository.save(campaign);
+        return campaignRepository.findAll().stream()
+                .filter(c -> Boolean.FALSE.equals(c.getIsDemo()))
+                .findFirst()
+                .orElseGet(() -> {
+                    CampaignEntity campaign = new CampaignEntity();
+                    campaign.setDm(owner);
+                    campaign.setName("IT Real Campaign " + System.nanoTime());
+                    campaign.setDescription("desc");
+                    campaign.setPrivacy(true);
+                    campaign.setIsDemo(false);
+                    campaign.setCreationDate(new Date());
+                    campaign.setPlayers(List.of());
+                    return campaignRepository.save(campaign);
+                });
     }
 
     private CharacterEntity demoCharacter(UserEntity owner, CampaignEntity campaign, RaceEntity race) {
@@ -179,6 +188,38 @@ class DemoControllerIT {
     @Test
     void getDemoCharacterById_anonymous_nonExistentId_returns404() throws Exception {
         mockMvc.perform(get("/demo/characters/{id}", 999_999_999L))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getDemoCampaignById_anonymous_demoCampaign_returns200WithCampaignAndCharacters() throws Exception {
+        UserEntity owner = demoOwner();
+        RaceEntity race = race();
+        CampaignEntity campaign = demoCampaign(owner);
+        CharacterEntity character = demoCharacter(owner, campaign, race);
+
+        mockMvc.perform(get("/demo/campaigns/{id}", campaign.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(campaign.getId()))
+                .andExpect(jsonPath("$.name").value(campaign.getName()))
+                .andExpect(jsonPath("$.joinCode").doesNotExist())
+                .andExpect(jsonPath("$.dm").doesNotExist())
+                .andExpect(jsonPath("$.players").doesNotExist())
+                .andExpect(jsonPath("$.characters[?(@.id == " + character.getId() + ")]").exists());
+    }
+
+    @Test
+    void getDemoCampaignById_anonymous_realCampaign_returns404() throws Exception {
+        UserEntity owner = realOwner();
+        CampaignEntity campaign = realCampaign(owner);
+
+        mockMvc.perform(get("/demo/campaigns/{id}", campaign.getId()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getDemoCampaignById_anonymous_nonExistentId_returns404() throws Exception {
+        mockMvc.perform(get("/demo/campaigns/{id}", 999_999_999L))
                 .andExpect(status().isNotFound());
     }
 

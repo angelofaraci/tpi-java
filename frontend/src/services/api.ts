@@ -12,7 +12,7 @@ import type {
   LevelRecord,
 } from '../interfaces/character'
 import type { User } from '../interfaces/user'
-import type { DemoCampaignSummary, DemoCharacterDetail, DemoCharacterSummary } from '../interfaces/demo'
+import type { DemoCampaignDetail, DemoCampaignSummary, DemoCharacterDetail, DemoCharacterSummary } from '../interfaces/demo'
 
 type JsonObject = Record<string, unknown>
 
@@ -335,6 +335,13 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
       })
       return handleResponse<DemoCharacterDetail>(response)
+    },
+
+    async campaignById(id: number) {
+      const response = await fetch(`${API_BASE_URL}/demo/campaigns/${id}`, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      return handleResponse<DemoCampaignDetail>(response)
     },
   },
 

@@ -22,4 +22,7 @@ public interface CampaignRepository extends JpaRepository<CampaignEntity, Long> 
     List<CampaignEntity> findAllPublic();
 
     List<CampaignEntity> findByIsDemoTrue();
+
+    @Query("SELECT c FROM CampaignEntity c WHERE c.isDemo = true AND c.id = ?1")
+    Optional<CampaignEntity> findDemoById(Long id);
 }

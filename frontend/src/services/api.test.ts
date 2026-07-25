@@ -1020,6 +1020,61 @@ describe('api.demo.characterById', () => {
   })
 })
 
+describe('api.demo.campaignById', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.clear()
+  })
+
+  it('requests GET /demo/campaigns/{id} without an Authorization header', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 1,
+          name: 'Demo Campaign',
+          description: 'A sample adventure',
+          creationDate: '2025-01-01T00:00:00.000+00:00',
+          characters: [{ id: 100, name: 'Aldric', raceName: 'Human', level: 3, alignment: 'Lawful Good' }],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.demo.campaignById(1)
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/demo/campaigns/1')
+    expect(options.headers).not.toHaveProperty('Authorization')
+    expect(result).toMatchObject({ id: 1, name: 'Demo Campaign' })
+    expect(result.characters).toHaveLength(1)
+  })
+
+  it('does not attach a real session token even when one is present', async () => {
+    localStorage.setItem('token', 'a-real-session-token')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: 1, name: 'Demo Campaign', characters: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.demo.campaignById(1)
+
+    const [, options] = fetchMock.mock.calls[0]
+    expect(options.headers).not.toHaveProperty('Authorization')
+  })
+
+  it('propagates a 404 error for a non-demo or missing id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('Not Found', { status: 404 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(api.demo.campaignById(999)).rejects.toThrow('Error 404')
+  })
+})
+
 // ══════════════════════════════════════════════════════════════════════════════
 // characters.uploadPortrait
 // ══════════════════════════════════════════════════════════════════════════════
