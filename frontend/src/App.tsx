@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import { Login } from './pages/Login'
+import { DemoLanding } from './pages/DemoLanding'
 import { Characters } from './pages/Characters'
 import { CreateCampaign } from './pages/CreateCampaign'
 import { CreateCharacter } from './pages/CreateCharacter'
@@ -17,6 +18,7 @@ import './styles/CharacterSheet.css'
 type View = 'home' | 'character-sheet' | 'create-campaign' | 'create-character' | 'view-campaign' | 'admin' | 'view-character-readonly'
 type CharacterFormMode = 'create' | 'edit'
 type CharacterReturnView = 'home' | 'character-sheet'
+type AuthView = 'demo' | 'login'
 
 interface CharacterCard {
   id: number
@@ -90,6 +92,8 @@ function App() {
   const [characterReturnView, setCharacterReturnView] = useState<CharacterReturnView>('home')
   const [editCharacterData, setEditCharacterData] = useState<HydratedCharacterEditData | null>(null)
   const [characterSheetRefreshToken, setCharacterSheetRefreshToken] = useState(0)
+  const [authView, setAuthView] = useState<AuthView>('demo')
+  const [demoCharacterId, setDemoCharacterId] = useState<number | null>(null)
   const currentUserIdRef = useRef<number | null>(null)
   const latestCharacterRequestId = useRef(0)
   const latestCampaignRequestId = useRef(0)
@@ -288,6 +292,8 @@ function App() {
     setCharacterFormMode('create')
     setCharacterReturnView('home')
     setEditCharacterData(null)
+    setAuthView('demo')
+    setDemoCharacterId(null)
   }
 
   const handleViewCharacter = (characterId: number) => {
@@ -554,15 +560,39 @@ function App() {
   let content
 
   if (!isAuthenticated) {
-    content = (
-      <Login
-        onAuthSuccess={() => {
-          setIsAuthenticated(true)
-          setView('home')
-          setCampaignFeedback(null)
-        }}
-      />
-    )
+    if (authView === 'login') {
+      content = (
+        <Login
+          onAuthSuccess={() => {
+            setIsAuthenticated(true)
+            setView('home')
+            setCampaignFeedback(null)
+            setAuthView('demo')
+            setDemoCharacterId(null)
+          }}
+        />
+      )
+    } else if (demoCharacterId) {
+      content = (
+        <Characters
+          characterId={demoCharacterId}
+          source="demo"
+          onBack={() => setDemoCharacterId(null)}
+          onEditCharacter={() => {}}
+          onLogout={() => setDemoCharacterId(null)}
+          onDeleteCharacter={() => {}}
+          deletingCharacterId={null}
+          deleteError={null}
+        />
+      )
+    } else {
+      content = (
+        <DemoLanding
+          onLoginRequest={() => setAuthView('login')}
+          onSelectCharacter={(characterId) => setDemoCharacterId(characterId)}
+        />
+      )
+    }
   } else if (view === 'character-sheet' && selectedCharacterId) {
     content = (
       <Characters
