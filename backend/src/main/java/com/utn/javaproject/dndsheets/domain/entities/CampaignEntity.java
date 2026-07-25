@@ -32,6 +32,11 @@ public class CampaignEntity {
     private String name;
     private String description;
     private Boolean privacy;
+
+    // Unique so at most one campaign can ever be flagged as demo at the DB level,
+    // closing the race window a check-then-insert seeder alone cannot close.
+    @Column(unique = true)
+    private Boolean isDemo;
     @Column(name = "CreationDate")
     private Date creationDate;
     @ManyToMany
@@ -94,6 +99,14 @@ public class CampaignEntity {
 
     public void setPrivacy(Boolean privacy) {
         this.privacy = privacy;
+    }
+
+    public Boolean getIsDemo() {
+        return isDemo;
+    }
+
+    public void setIsDemo(Boolean isDemo) {
+        this.isDemo = isDemo;
     }
 
     public Date getCreationDate() {
