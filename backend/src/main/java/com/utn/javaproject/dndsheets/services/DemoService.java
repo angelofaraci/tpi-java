@@ -54,6 +54,7 @@ public class DemoService {
     // ---- private mapping helpers ----
 
     private DemoCampaignDto toCampaignDto(CampaignEntity campaign) {
+        requireDemo(campaign.getIsDemo(), "campaign", campaign.getId());
         int characterCount = campaign.getCharacters() == null ? 0 : campaign.getCharacters().size();
         return DemoCampaignDto.builder()
                 .id(campaign.getId())
@@ -65,6 +66,7 @@ public class DemoService {
     }
 
     private DemoCharacterSummaryDto toSummaryDto(CharacterEntity character) {
+        requireDemo(character.getIsDemo(), "character", character.getId());
         RaceEntity race = character.getRace();
         return DemoCharacterSummaryDto.builder()
                 .id(character.getId())
@@ -77,6 +79,7 @@ public class DemoService {
     }
 
     private DemoCharacterDetailDto toDetailDto(CharacterEntity character) {
+        requireDemo(character.getIsDemo(), "character", character.getId());
         RaceEntity race = character.getRace();
         CharacterStatsEntity stats = character.getCharacterStats();
 
@@ -134,6 +137,16 @@ public class DemoService {
                 .level(classLevel)
                 .features(features)
                 .build();
+    }
+
+    // Defense-in-depth: the real filter lives in the repository queries
+    // (findByIsDemoTrue/findAllDemo/findDemoById), but a mapper called on a
+    // non-demo row anywhere in this service must fail loudly, not leak silently.
+    private void requireDemo(Boolean isDemo, String entityType, Long id) {
+        if (!Boolean.TRUE.equals(isDemo)) {
+            throw new IllegalStateException(
+                    "DemoService mapped a non-demo " + entityType + " (id=" + id + "); refusing to expose it anonymously.");
+        }
     }
 
     private int totalLevel(Long characterId) {

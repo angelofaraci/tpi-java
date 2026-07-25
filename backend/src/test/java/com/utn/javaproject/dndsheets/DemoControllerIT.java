@@ -73,16 +73,21 @@ class DemoControllerIT {
                 .build());
     }
 
+    // isDemo is DB-unique (at most one demo campaign ever), and DemoInitializer
+    // already seeds one in this @SpringBootTest's full context — reuse it instead
+    // of racing that same constraint with a second insert.
     private CampaignEntity demoCampaign(UserEntity owner) {
-        CampaignEntity campaign = new CampaignEntity();
-        campaign.setDm(owner);
-        campaign.setName("IT Demo Campaign " + System.nanoTime());
-        campaign.setDescription("desc");
-        campaign.setPrivacy(true);
-        campaign.setIsDemo(true);
-        campaign.setCreationDate(new Date());
-        campaign.setPlayers(List.of());
-        return campaignRepository.save(campaign);
+        return campaignRepository.findByIsDemoTrue().stream().findFirst().orElseGet(() -> {
+            CampaignEntity campaign = new CampaignEntity();
+            campaign.setDm(owner);
+            campaign.setName("IT Demo Campaign " + System.nanoTime());
+            campaign.setDescription("desc");
+            campaign.setPrivacy(true);
+            campaign.setIsDemo(true);
+            campaign.setCreationDate(new Date());
+            campaign.setPlayers(List.of());
+            return campaignRepository.save(campaign);
+        });
     }
 
     private CampaignEntity realCampaign(UserEntity owner) {
