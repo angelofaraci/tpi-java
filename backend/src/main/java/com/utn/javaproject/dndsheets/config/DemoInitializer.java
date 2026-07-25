@@ -76,9 +76,9 @@ public class DemoInitializer implements CommandLineRunner {
         RaceEntity firstRace = races.get(0);
         RaceEntity secondRace = races.size() > 1 ? races.get(1) : races.get(0);
 
-        saveCharacter(buildDemoCharacter("Aria Windwhisper", firstRace, "Chaotic Good",
+        saveCharacter(buildDemoCharacter("aria-windwhisper", "Aria Windwhisper", firstRace, "Chaotic Good",
                 "A wandering scout raised at the edge of the forest.", demoUser, savedCampaign));
-        saveCharacter(buildDemoCharacter("Borin Stonefist", secondRace, "Lawful Neutral",
+        saveCharacter(buildDemoCharacter("borin-stonefist", "Borin Stonefist", secondRace, "Lawful Neutral",
                 "A steadfast guardian sworn to protect the demo party.", demoUser, savedCampaign));
     }
 
@@ -117,12 +117,12 @@ public class DemoInitializer implements CommandLineRunner {
         try {
             return campaignRepository.save(campaign);
         } catch (DataIntegrityViolationException ex) {
-            // Handles concurrent startup races when another instance seeds first.
+            // isDemo is DB-unique: a concurrent instance won this race, back off.
             return null;
         }
     }
 
-    private CharacterEntity buildDemoCharacter(String name, RaceEntity race, String alignment,
+    private CharacterEntity buildDemoCharacter(String slug, String name, RaceEntity race, String alignment,
                                                 String background, UserEntity demoUser, CampaignEntity campaign) {
         CharacterEntity character = new CharacterEntity();
         character.setUser(demoUser);
@@ -133,14 +133,18 @@ public class DemoInitializer implements CommandLineRunner {
         character.setBackground(background);
         character.setCharacteristics(List.of());
         character.setIsDemo(true);
+        character.setDemoSlug(slug);
         return character;
     }
 
     private void saveCharacter(CharacterEntity character) {
+        if (characterRepository.existsByDemoSlug(character.getDemoSlug())) {
+            return;
+        }
         try {
             characterRepository.save(character);
         } catch (DataIntegrityViolationException ex) {
-            // Handles concurrent startup races when another instance seeds first.
+            // demoSlug is DB-unique: a concurrent instance won this race, nothing to do.
         }
     }
 }

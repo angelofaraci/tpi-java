@@ -18,4 +18,6 @@ public interface CharacterRepository extends JpaRepository<CharacterEntity, Long
 
     @Query("SELECT c FROM CharacterEntity c WHERE c.isDemo = true AND c.id = ?1")
     Optional<CharacterEntity> findDemoById(Long id);
+
+    boolean existsByDemoSlug(String demoSlug);
 }

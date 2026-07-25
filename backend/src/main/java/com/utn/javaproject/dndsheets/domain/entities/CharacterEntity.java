@@ -37,4 +37,9 @@ public class CharacterEntity {
     private String portraitUrl;
     private Boolean isDemo;
 
+    // Unique per-character natural key for the fixed demo cast, so a check-then-insert
+    // seeder race can never create two rows for the same demo character.
+    @Column(unique = true)
+    private String demoSlug;
+
 }

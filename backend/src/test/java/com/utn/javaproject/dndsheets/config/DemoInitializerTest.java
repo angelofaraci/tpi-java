@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
@@ -59,6 +60,7 @@ class DemoInitializerTest {
         setId(savedDemoUser, 500L);
         when(userRepository.save(any())).thenReturn(savedDemoUser);
 
+        when(characterRepository.existsByDemoSlug(any())).thenReturn(false);
         when(campaignRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(characterRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -73,13 +75,78 @@ class DemoInitializerTest {
         assertThat(savedCampaign.getPrivacy()).isTrue();
         assertThat(savedCampaign.getDm().getUsername()).isEqualTo("demo");
 
-        // AND exactly two demo characters are created, both flagged as demo
+        // AND exactly two demo characters are created, both flagged as demo with distinct slugs
         ArgumentCaptor<CharacterEntity> characterCaptor = ArgumentCaptor.forClass(CharacterEntity.class);
         verify(characterRepository, times(2)).save(characterCaptor.capture());
         List<CharacterEntity> savedCharacters = characterCaptor.getAllValues();
         assertThat(savedCharacters).hasSize(2);
         assertThat(savedCharacters).allMatch(c -> Boolean.TRUE.equals(c.getIsDemo()));
         assertThat(savedCharacters).allMatch(c -> "demo".equals(c.getUser().getUsername()));
+        assertThat(savedCharacters).extracting(CharacterEntity::getDemoSlug)
+                .containsExactlyInAnyOrder("aria-windwhisper", "borin-stonefist");
+    }
+
+    @Test
+    void saveCharacter_skipsInsert_whenAnotherInstanceAlreadySeededThatSlug() {
+        // GIVEN no demo campaign yet in this instance's view, but a concurrent instance
+        // has already inserted a character with the same demoSlug
+        when(campaignRepository.existsByName("Demo Campaign")).thenReturn(false);
+        when(userRepository.findByUsername("demo")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(any())).thenReturn("encoded-password");
+        RaceEntity human = RaceEntity.builder().id(1L).name("Human").build();
+        when(raceRepository.findAll()).thenReturn(List.of(human));
+        UserEntity savedDemoUser = UserEntity.builder().username("demo").build();
+        setId(savedDemoUser, 500L);
+        when(userRepository.save(any())).thenReturn(savedDemoUser);
+        when(campaignRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(characterRepository.existsByDemoSlug(any())).thenReturn(true);
+
+        // WHEN
+        demoInitializer().run();
+
+        // THEN this instance backs off instead of racing the unique constraint
+        verify(characterRepository, never()).save(any());
+    }
+
+    @Test
+    void saveCharacter_backsOff_whenConcurrentInsertViolatesUniqueDemoSlug() {
+        // GIVEN the existence check races past a concurrent instance's insert, so the
+        // DB-level unique constraint on demoSlug is the only remaining guard
+        when(campaignRepository.existsByName("Demo Campaign")).thenReturn(false);
+        when(userRepository.findByUsername("demo")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(any())).thenReturn("encoded-password");
+        RaceEntity human = RaceEntity.builder().id(1L).name("Human").build();
+        when(raceRepository.findAll()).thenReturn(List.of(human));
+        UserEntity savedDemoUser = UserEntity.builder().username("demo").build();
+        setId(savedDemoUser, 500L);
+        when(userRepository.save(any())).thenReturn(savedDemoUser);
+        when(campaignRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(characterRepository.existsByDemoSlug(any())).thenReturn(false);
+        when(characterRepository.save(any())).thenThrow(new DataIntegrityViolationException("unique violation"));
+
+        // WHEN / THEN the exception is swallowed, not propagated
+        demoInitializer().run();
+        verify(characterRepository, times(2)).save(any());
+    }
+
+    @Test
+    void run_stopsBeforeCharacters_whenConcurrentInstanceWinsCampaignRace() {
+        // GIVEN this instance loses the isDemo-unique race on the campaign insert
+        when(campaignRepository.existsByName("Demo Campaign")).thenReturn(false);
+        when(userRepository.findByUsername("demo")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(any())).thenReturn("encoded-password");
+        RaceEntity human = RaceEntity.builder().id(1L).name("Human").build();
+        when(raceRepository.findAll()).thenReturn(List.of(human));
+        UserEntity savedDemoUser = UserEntity.builder().username("demo").build();
+        setId(savedDemoUser, 500L);
+        when(userRepository.save(any())).thenReturn(savedDemoUser);
+        when(campaignRepository.save(any())).thenThrow(new DataIntegrityViolationException("unique violation"));
+
+        // WHEN
+        demoInitializer().run();
+
+        // THEN no character rows are attempted for the campaign this instance failed to own
+        verify(characterRepository, never()).save(any());
     }
 
     @Test
