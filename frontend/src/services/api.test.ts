@@ -917,6 +917,97 @@ describe('api.admin.campaigns.delete', () => {
 })
 
 // ══════════════════════════════════════════════════════════════════════════════
+// api.demo — anonymous read-only endpoints
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('api.demo.campaigns', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.clear()
+  })
+
+  it('requests GET /demo/campaigns without an Authorization header', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          { id: 1, name: 'Demo Campaign', description: 'A sample adventure', creationDate: '2025-01-01T00:00:00.000+00:00', characterCount: 2 },
+        ]),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.demo.campaigns()
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/demo/campaigns')
+    expect(options.headers).not.toHaveProperty('Authorization')
+    expect(result).toEqual([
+      { id: 1, name: 'Demo Campaign', description: 'A sample adventure', creationDate: '2025-01-01T00:00:00.000+00:00', characterCount: 2 },
+    ])
+    expect(logSpy).toHaveBeenCalled()
+  })
+})
+
+describe('api.demo.characters', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.clear()
+  })
+
+  it('requests GET /demo/characters', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([{ id: 100, name: 'Aldric', raceName: 'Human', level: 3, alignment: 'Lawful Good' }]),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.demo.characters()
+
+    const [url] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/demo/characters')
+    expect(result).toEqual([{ id: 100, name: 'Aldric', raceName: 'Human', level: 3, alignment: 'Lawful Good' }])
+  })
+})
+
+describe('api.demo.characterById', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.stubGlobal('console', console)
+    localStorage.clear()
+  })
+
+  it('requests GET /demo/characters/{id}', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ id: 100, name: 'Aldric', raceName: 'Human', classes: [] }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await api.demo.characterById(100)
+
+    const [url] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://localhost:8080/demo/characters/100')
+    expect(result).toMatchObject({ id: 100, name: 'Aldric' })
+  })
+
+  it('propagates a 404 error for a non-demo or missing id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('Not Found', { status: 404 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(api.demo.characterById(999)).rejects.toThrow('Error 404')
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
 // characters.uploadPortrait
 // ══════════════════════════════════════════════════════════════════════════════
 

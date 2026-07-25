@@ -3,6 +3,7 @@ import { ScoreBox } from '../components/scoreBox'
 import '../styles/CharacterSheet.css'
 import { api, API_BASE_URL } from '../services/api'
 import type { Character, CharacterCatalogClassOption, HydratedCharacterEditData, LevelRecord } from '../interfaces/character'
+import type { DemoCharacterDetail } from '../interfaces/demo'
 import { hydrateCharacterEditData } from '../utils/characterDraft'
 
 type LevelResponse = {
@@ -65,6 +66,7 @@ interface CharactersProps {
   onDismissFeedback?: () => void;
   refreshToken?: number;
   readOnly?: boolean;
+  source?: 'user' | 'demo';
 }
 
 export function Characters({
@@ -80,7 +82,11 @@ export function Characters({
   onDismissFeedback,
   refreshToken,
   readOnly = false,
+  source = 'user',
 }: CharactersProps) {
+  // Demo characters are always read-only, regardless of what the caller passes,
+  // as a defensive guard against ever exposing mutation controls for demo data.
+  const isReadOnly = readOnly || source === 'demo'
   const [characterSheetData, setCharacterSheetData] = useState<FormCharacterData | null>(null)
   const [characterEditData, setCharacterEditData] = useState<HydratedCharacterEditData | null>(null)
   const [characterCampaign, setCharacterCampaign] = useState<{ id: number; name?: string } | null>(null)
@@ -199,8 +205,59 @@ export function Characters({
       }
     }
 
+    const fetchDemoCharacterSheet = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const demoData = await api.demo.characterById(characterId) as DemoCharacterDetail
+
+        setCharacterSheetData({
+          name: demoData.name || '',
+          classes: Array.isArray(demoData.classes)
+            ? demoData.classes.map((c) => ({
+                classId: c.classId,
+                description: c.description,
+                level: c.level,
+                features: Array.isArray(c.features) ? c.features : [],
+              }))
+            : [],
+          race: demoData.raceName || '',
+          racialFeats: Array.isArray(demoData.racialFeats) ? demoData.racialFeats : [],
+          background: demoData.background || '',
+          characteristics: Array.isArray(demoData.characteristics) ? demoData.characteristics : [],
+          alignment: demoData.alignment || '',
+          proficiency: demoData.proficiency || 0,
+          abilityScores: {
+            Strength: demoData.abilityScores?.Strength || 0,
+            Dexterity: demoData.abilityScores?.Dexterity || 0,
+            Constitution: demoData.abilityScores?.Constitution || 0,
+            Intelligence: demoData.abilityScores?.Intelligence || 0,
+            Wisdom: demoData.abilityScores?.Wisdom || 0,
+            Charisma: demoData.abilityScores?.Charisma || 0,
+          },
+          proficiencies: demoData.proficiencies || {},
+          velocity: demoData.velocity || 0,
+          hp: demoData.hp || 0,
+          portraitUrl: demoData.portraitUrl,
+        })
+        // Demo characters have no campaign or edit context.
+        setCharacterCampaign(null)
+        setCharacterEditData(null)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'An error occurred'
+        setError(message.includes('404') ? 'This demo sheet is unavailable.' : message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (source === 'demo') {
+      void fetchDemoCharacterSheet()
+      return
+    }
+
     fetchCharacterSheet()
-  }, [characterId, refreshToken])
+  }, [characterId, refreshToken, source])
 
   if (loading) {
     return <div className="loading-container">Loading character sheet...</div>
@@ -264,7 +321,7 @@ export function Characters({
       </div>
       <div className="character-sheet">
         <div className="sheet-actions-row">
-          {!readOnly && (
+          {!isReadOnly && (
             <>
               <button
                 type="button"
@@ -295,7 +352,7 @@ export function Characters({
             <div className="sheet-hero-content">
               <span className="sheet-hero-badge">Character Sheet</span>
               <h2 className="sheet-hero-title">{characterSheetData.name || 'Unnamed Character'}</h2>
-              {!readOnly && <p className="sheet-hero-copy">Review the current sheet, class features, and core stats before making your next table decision.</p>}
+              {!isReadOnly && <p className="sheet-hero-copy">Review the current sheet, class features, and core stats before making your next table decision.</p>}
             </div>
           </div>
 

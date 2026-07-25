@@ -44,6 +44,11 @@ vi.mock('./services/api', () => ({
     classes: {
       findAll: vi.fn(),
     },
+    demo: {
+      campaigns: vi.fn(),
+      characters: vi.fn(),
+      characterById: vi.fn(),
+    },
   },
 }))
 
@@ -867,5 +872,95 @@ describe('App view campaign flow', () => {
     await waitFor(() => expect(api.campaigns.remove).toHaveBeenCalledWith(11))
     await screen.findByRole('button', { name: '+ Create Campaign' })
     expect(screen.queryByText('Intro to Stormwreck Isle')).not.toBeInTheDocument()
+  })
+})
+
+describe('App demo landing (unauthenticated)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    localStorage.clear()
+
+    vi.mocked(api.demo.campaigns).mockResolvedValue([
+      {
+        id: 1,
+        name: 'Demo Campaign',
+        description: 'A sample adventure',
+        creationDate: '2025-01-01T00:00:00.000+00:00',
+        characterCount: 2,
+      },
+    ])
+    vi.mocked(api.demo.characters).mockResolvedValue([
+      { id: 100, name: 'Aldric', raceName: 'Human', level: 3, alignment: 'Lawful Good' },
+    ])
+  })
+
+  it('renders the demo landing instead of the login form when there is no token', async () => {
+    render(<App />)
+
+    expect(await screen.findByText('Demo Campaign')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Username:')).not.toBeInTheDocument()
+  })
+
+  it('switches to the login form when the demo CTA is clicked', async () => {
+    render(<App />)
+
+    await screen.findByText('Demo Campaign')
+    fireEvent.click(screen.getByRole('button', { name: /log in.*sign up/i }))
+
+    expect(await screen.findByLabelText('Username:')).toBeInTheDocument()
+  })
+
+  it('opens the read-only demo character sheet and returns to the demo landing on back', async () => {
+    vi.mocked(api.demo.characterById).mockResolvedValue({
+      id: 100,
+      name: 'Aldric',
+      raceName: 'Human',
+      background: 'Soldier',
+      alignment: 'Lawful Good',
+      proficiency: 2,
+      abilityScores: { Strength: 14, Dexterity: 12, Constitution: 13, Intelligence: 10, Wisdom: 11, Charisma: 8 },
+      proficiencies: {},
+      velocity: 30,
+      hp: 12,
+      classes: [],
+    } as never)
+
+    render(<App />)
+
+    await screen.findByText('Demo Campaign')
+    fireEvent.click(screen.getByText('Aldric'))
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Aldric' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit Character' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('← Back to Home'))
+
+    expect(await screen.findByText('Demo Campaign')).toBeInTheDocument()
+  })
+})
+
+describe('App logout returns to demo landing', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    localStorage.setItem('token', 'test-token')
+
+    vi.mocked(api.auth.me).mockResolvedValue({ id: 7 } as User)
+    vi.mocked(api.characters.findByUserId).mockResolvedValue([])
+    vi.mocked(api.characters.findAll).mockResolvedValue([])
+    vi.mocked(api.campaigns.findMine).mockResolvedValue([])
+    vi.mocked(api.campaigns.findAsPlayer).mockResolvedValue([])
+    vi.mocked(api.campaigns.findAllPublic).mockResolvedValue([])
+    vi.mocked(api.demo.campaigns).mockResolvedValue([])
+    vi.mocked(api.demo.characters).mockResolvedValue([])
+  })
+
+  it('shows the demo landing (not the login form) after logging out', async () => {
+    render(<App />)
+
+    await screen.findByRole('button', { name: '+ Create Character' })
+    fireEvent.click(screen.getByRole('button', { name: 'Logout' }))
+
+    expect(await screen.findByRole('button', { name: /log in.*sign up/i })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Username:')).not.toBeInTheDocument()
   })
 })

@@ -12,6 +12,7 @@ import type {
   LevelRecord,
 } from '../interfaces/character'
 import type { User } from '../interfaces/user'
+import type { DemoCampaignSummary, DemoCharacterDetail, DemoCharacterSummary } from '../interfaces/demo'
 
 type JsonObject = Record<string, unknown>
 
@@ -306,6 +307,30 @@ export const api = {
         headers: createHeaders(),
       })
       return handleResponse<CharacterCatalogClassOption[]>(response)
+    },
+  },
+
+  // DEMO — anonymous, read-only browsing for unauthenticated visitors
+  demo: {
+    async campaigns() {
+      const response = await fetch(`${API_BASE_URL}/demo/campaigns`, {
+        headers: createHeaders(),
+      })
+      return handleResponse<DemoCampaignSummary[]>(response)
+    },
+
+    async characters() {
+      const response = await fetch(`${API_BASE_URL}/demo/characters`, {
+        headers: createHeaders(),
+      })
+      return handleResponse<DemoCharacterSummary[]>(response)
+    },
+
+    async characterById(id: number) {
+      const response = await fetch(`${API_BASE_URL}/demo/characters/${id}`, {
+        headers: createHeaders(),
+      })
+      return handleResponse<DemoCharacterDetail>(response)
     },
   },
 
