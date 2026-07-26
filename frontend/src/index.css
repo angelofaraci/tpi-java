@@ -13,6 +13,135 @@
   border-color: var(--color-border);
 }
 
+/* ── Home ("Dense Ledger") namespaced tokens ──────────────────────────────
+ * Scoped under --color-home-* / --font-home-* / --radius-home-* so Tailwind 4
+ * generates utilities (bg-home-surface, text-home-blue-400, etc.) without
+ * touching the existing @theme block above or the global border reset.
+ * See openspec/changes/home-dense-ledger/design.md ADR-03.
+ */
+@theme {
+  /* surfaces */
+  --color-home-ink-900: #0a0b0d;
+  --color-home-ink-850: #0b0d11;
+  --color-home-ink-800: #0c0e12;
+  --color-home-surface: #0e1116;
+  --color-home-surface-in: #0d1116;
+  --color-home-well: #0a0d12;
+
+  /* borders */
+  --color-home-line: #191d24;
+  --color-home-line-soft: #171c24;
+  --color-home-border: #1c2028;
+  --color-home-border-mid: #22272f;
+  --color-home-border-hi: #2a3546;
+  --color-home-border-acc: #24374f;
+  --color-home-border-dash: #26303f;
+
+  /* text */
+  --color-home-text: #e8ecf2;
+  --color-home-text-strong: #ffffff;
+  --color-home-text-soft: #cdd6e3;
+  --color-home-muted: #8b94a3;
+  --color-home-muted-2: #7f8899;
+  --color-home-dim: #6b7480;
+  --color-home-dim-2: #606a7a;
+  --color-home-dim-3: #5c6573;
+  --color-home-placeholder: #4b5563;
+
+  /* accents */
+  --color-home-blue-600: #2563eb;
+  --color-home-blue-500: #3b82f6;
+  --color-home-blue-400: #60a5fa;
+  --color-home-blue-300: #7cb0f7;
+  --color-home-blue-200: #a8c8f8;
+  --color-home-blue-ink: #1b2942;
+  --color-home-chip: #1a2130;
+  --color-home-gold: #f0b429;
+  --color-home-warn: #f59e0b;
+  --color-home-warn-deep: #b45309;
+  --color-home-danger: #f87171;
+
+  /* type */
+  --font-home-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-home-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* radii */
+  --radius-home-sm: 5px;
+  --radius-home-md: 6px;
+  --radius-home-lg: 7px;
+  --radius-home-xl: 9px;
+  --radius-home-2xl: 10px;
+  --radius-home-3xl: 11px;
+}
+
+/* ── Self-hosted fonts for the Home "Dense Ledger" design ─────────────────
+ * Space Grotesk 400/500/600/700 + JetBrains Mono 400/500/600/700.
+ * Latin subset, woff2, font-display: swap. Assets in public/fonts/.
+ */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-700.woff2') format('woff2');
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
