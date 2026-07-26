@@ -1,4 +1,64 @@
 import '../styles/scoreBox.css'
+import type { AbilityScoreName, AbilityScores } from '../interfaces/character'
+
+const ABILITY_ORDER: AbilityScoreName[] = [
+  'Strength',
+  'Dexterity',
+  'Constitution',
+  'Intelligence',
+  'Wisdom',
+  'Charisma',
+]
+
+const ABILITY_LABELS: Record<AbilityScoreName, string> = {
+  Strength: 'STR',
+  Dexterity: 'DEX',
+  Constitution: 'CON',
+  Intelligence: 'INT',
+  Wisdom: 'WIS',
+  Charisma: 'CHA',
+}
+
+export interface AbilityScoreStripProps {
+  abilityScores: AbilityScores
+}
+
+// Compact, read-only STR-CHA strip for CharacterCard (design.md Component Interfaces).
+// A cell is highlighted when its score >= 16 — client-derived, no new data.
+export function AbilityScoreStrip({ abilityScores }: AbilityScoreStripProps) {
+  return (
+    <div
+      role="group"
+      aria-label="Ability scores"
+      className="grid grid-cols-6 gap-px overflow-hidden rounded-home-lg bg-home-line"
+    >
+      {ABILITY_ORDER.map((name) => {
+        const score = abilityScores[name]
+        const highlighted = score >= 16
+
+        return (
+          <div key={name} className="bg-home-surface-in py-[7px] text-center">
+            <div className="font-home-mono text-[8.5px] tracking-[.1em] text-home-dim-2">
+              {ABILITY_LABELS[name]}
+            </div>
+            <div
+              data-highlighted={highlighted}
+              className={
+                highlighted
+                  ? 'mt-[3px] font-home-mono text-[13px] text-home-blue-300'
+                  : 'mt-[3px] font-home-mono text-[13px] text-home-text-soft'
+              }
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {score}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export interface ScoreBoxProps {
     score: number;
     label: string;
