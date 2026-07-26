@@ -37,6 +37,8 @@ export interface OwnedCampaignSummary {
   description: string
   privacy: boolean
   creationDate?: string
+  playerCount?: number
+  characterCount?: number
 }
 
 export interface PublicCampaignSummary {
@@ -64,4 +66,6 @@ export interface PlayerCampaignSummary {
   creationDate?: string
   characterId: number
   characterName: string
+  playerCount?: number
+  characterCount?: number
 }

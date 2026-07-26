@@ -116,6 +116,108 @@ class CampaignServiceTest {
         assertThat(result).isFalse();
     }
 
+    @Test
+    void countUniquePlayers_countsDmOwnedCharacterWithoutJoinTableRow() {
+        // GIVEN campaign 9: 2 explicit campaign_players rows, plus a DM who owns
+        // a character but has no row in campaign_players (Spec: "DM-owned character
+        // without a join-table row still counts")
+        UserEntity explicitPlayerOne = UserEntity.builder()
+                .username("explicit-player-one")
+                .email("explicit-one@example.com")
+                .password("secret")
+                .build();
+        setId(explicitPlayerOne, 1L);
+
+        UserEntity explicitPlayerTwo = UserEntity.builder()
+                .username("explicit-player-two")
+                .email("explicit-two@example.com")
+                .password("secret")
+                .build();
+        setId(explicitPlayerTwo, 2L);
+
+        UserEntity dmWithNoPlayerRow = UserEntity.builder()
+                .username("dm-with-character")
+                .email("dm-with-character@example.com")
+                .password("secret")
+                .build();
+        setId(dmWithNoPlayerRow, 3L);
+
+        CharacterEntity dmOwnedCharacter = CharacterEntity.builder()
+                .name("DM's Hero")
+                .user(dmWithNoPlayerRow)
+                .build();
+
+        CampaignEntity campaign = CampaignEntity.builder()
+                .name("The Ninth Table")
+                .dm(dmWithNoPlayerRow)
+                .players(List.of(explicitPlayerOne, explicitPlayerTwo))
+                .characters(List.of(dmOwnedCharacter))
+                .build();
+
+        // WHEN
+        List<UserEntity> uniquePlayers = campaignService.resolveUniquePlayers(campaign);
+        int count = campaignService.countUniquePlayers(campaign);
+
+        // THEN
+        assertThat(uniquePlayers).hasSize(3);
+        assertThat(count).isEqualTo(3);
+    }
+
+    @Test
+    void countUniquePlayers_dedupesUserPresentAsBothExplicitPlayerAndCharacterOwner() {
+        // GIVEN a player who is both an explicit campaign_players row AND the owner
+        // of a character in the same campaign — must not be counted twice
+        UserEntity playerAndCharacterOwner = UserEntity.builder()
+                .username("dual-role-player")
+                .email("dual-role@example.com")
+                .password("secret")
+                .build();
+        setId(playerAndCharacterOwner, 5L);
+
+        CharacterEntity ownedCharacter = CharacterEntity.builder()
+                .name("Dual Role Hero")
+                .user(playerAndCharacterOwner)
+                .build();
+
+        CampaignEntity campaign = CampaignEntity.builder()
+                .name("Overlap Table")
+                .players(List.of(playerAndCharacterOwner))
+                .characters(List.of(ownedCharacter))
+                .build();
+
+        // WHEN
+        int count = campaignService.countUniquePlayers(campaign);
+
+        // THEN
+        assertThat(count).isEqualTo(1);
+    }
+
+    @Test
+    void countCharacters_returnsSizeOfCampaignCharacters() {
+        // GIVEN a campaign with 2 characters
+        CharacterEntity characterOne = CharacterEntity.builder().name("Hero One").build();
+        CharacterEntity characterTwo = CharacterEntity.builder().name("Hero Two").build();
+
+        CampaignEntity campaign = CampaignEntity.builder()
+                .name("Character Count Table")
+                .characters(List.of(characterOne, characterTwo))
+                .build();
+
+        // WHEN / THEN
+        assertThat(campaignService.countCharacters(campaign)).isEqualTo(2);
+    }
+
+    @Test
+    void countCharacters_returnsZero_whenCharactersIsNull() {
+        // GIVEN a campaign with no characters collection set
+        CampaignEntity campaign = CampaignEntity.builder()
+                .name("No Characters Table")
+                .build();
+
+        // WHEN / THEN
+        assertThat(campaignService.countCharacters(campaign)).isEqualTo(0);
+    }
+
     // Helper to set the ID field via reflection (entities use @GeneratedValue)
     private static void setId(UserEntity entity, Long id) {
         try {
