@@ -10,6 +10,8 @@ public class PlayerCampaignSummaryDto {
     private Date creationDate;
     private Long characterId;
     private String characterName;
+    private Integer playerCount;
+    private Integer characterCount;
 
     public Long getCampaignId() {
         return campaignId;
@@ -65,5 +67,21 @@ public class PlayerCampaignSummaryDto {
 
     public void setCharacterName(String characterName) {
         this.characterName = characterName;
+    }
+
+    public Integer getPlayerCount() {
+        return playerCount;
+    }
+
+    public void setPlayerCount(Integer playerCount) {
+        this.playerCount = playerCount;
+    }
+
+    public Integer getCharacterCount() {
+        return characterCount;
+    }
+
+    public void setCharacterCount(Integer characterCount) {
+        this.characterCount = characterCount;
     }
 }

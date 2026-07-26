@@ -3,6 +3,8 @@ package com.utn.javaproject.dndsheets.services;
 import com.utn.javaproject.dndsheets.domain.dto.CampaignSummaryDto;
 import com.utn.javaproject.dndsheets.domain.dto.PlayerCampaignSummaryDto;
 import com.utn.javaproject.dndsheets.domain.entities.CampaignEntity;
+import com.utn.javaproject.dndsheets.domain.entities.CharacterEntity;
+import com.utn.javaproject.dndsheets.domain.entities.UserEntity;
 import com.utn.javaproject.dndsheets.repositories.CampaignRepository;
 import com.utn.javaproject.dndsheets.repositories.CharacterRepository;
 import com.utn.javaproject.dndsheets.repositories.UserRepository;
@@ -10,8 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -140,14 +145,17 @@ public class CampaignService {
                         .stream()
                         .filter(character -> character.getCampaign() != null)
                         .map(character -> {
+                            CampaignEntity campaign = character.getCampaign();
                             PlayerCampaignSummaryDto dto = new PlayerCampaignSummaryDto();
-                            dto.setCampaignId(character.getCampaign().getId());
-                            dto.setCampaignName(character.getCampaign().getName());
-                            dto.setCampaignDescription(character.getCampaign().getDescription());
-                            dto.setPrivacy(character.getCampaign().getPrivacy());
-                            dto.setCreationDate(character.getCampaign().getCreationDate());
+                            dto.setCampaignId(campaign.getId());
+                            dto.setCampaignName(campaign.getName());
+                            dto.setCampaignDescription(campaign.getDescription());
+                            dto.setPrivacy(campaign.getPrivacy());
+                            dto.setCreationDate(campaign.getCreationDate());
                             dto.setCharacterId(character.getId());
                             dto.setCharacterName(character.getName());
+                            dto.setPlayerCount(countUniquePlayers(campaign));
+                            dto.setCharacterCount(countCharacters(campaign));
                             return dto;
                         })
                         .toList())
@@ -158,6 +166,47 @@ public class CampaignService {
         return campaignRepository.findByJoinCode(code.trim().toUpperCase());
     }
 
+    /**
+     * Resolves the deduped union of a campaign's players: explicit {@code campaign_players}
+     * join-table rows, plus users derived from {@code characters[].user} (covers a DM — or any
+     * user — who owns a character in the campaign but has no explicit join-table row), deduped
+     * by user id. Explicit players are listed first, in their original order.
+     *
+     * This is the single source of truth for "who plays in this campaign" — both the campaign
+     * detail view ({@code GET /campaign/{id}}) and the list endpoints ({@code GET /campaigns/mine},
+     * {@code GET /campaigns/as-player}) MUST derive their player counts from this method so the
+     * numbers always agree (spec: "Backend Count Contract").
+     */
+    @Transactional(readOnly = true)
+    public List<UserEntity> resolveUniquePlayers(CampaignEntity campaign) {
+        List<UserEntity> explicitPlayers = campaign.getPlayers() == null ? List.of() : campaign.getPlayers();
+
+        List<UserEntity> characterOwners = campaign.getCharacters() == null
+                ? List.of()
+                : campaign.getCharacters().stream()
+                        .map(CharacterEntity::getUser)
+                        .filter(Objects::nonNull)
+                        .toList();
+
+        Set<Long> seenIds = new LinkedHashSet<>();
+        List<UserEntity> uniquePlayers = new ArrayList<>();
+        for (UserEntity user : explicitPlayers) {
+            if (seenIds.add(user.getId())) uniquePlayers.add(user);
+        }
+        for (UserEntity user : characterOwners) {
+            if (seenIds.add(user.getId())) uniquePlayers.add(user);
+        }
+        return uniquePlayers;
+    }
+
+    public int countUniquePlayers(CampaignEntity campaign) {
+        return resolveUniquePlayers(campaign).size();
+    }
+
+    public int countCharacters(CampaignEntity campaign) {
+        return campaign.getCharacters() == null ? 0 : campaign.getCharacters().size();
+    }
+
     private CampaignSummaryDto mapToSummary(CampaignEntity campaignEntity) {
         CampaignSummaryDto summaryDto = new CampaignSummaryDto();
         summaryDto.setId(campaignEntity.getId());
@@ -166,6 +215,8 @@ public class CampaignService {
         summaryDto.setDescription(campaignEntity.getDescription());
         summaryDto.setPrivacy(campaignEntity.getPrivacy());
         summaryDto.setCreationDate(campaignEntity.getCreationDate());
+        summaryDto.setPlayerCount(countUniquePlayers(campaignEntity));
+        summaryDto.setCharacterCount(countCharacters(campaignEntity));
         return summaryDto;
     }
 
