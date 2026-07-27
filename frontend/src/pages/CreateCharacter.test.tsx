@@ -67,7 +67,7 @@ async function fillRequiredCreateFields() {
   fireEvent.change(screen.getByLabelText('Character Name'), { target: { value: 'Iria' } })
   fireEvent.change(screen.getByLabelText('Alignment'), { target: { value: 'Neutral Good' } })
   fireEvent.change(screen.getByLabelText('Background'), { target: { value: 'Sage' } })
-  fireEvent.change(screen.getByLabelText('Race'), { target: { value: '7' } })
+  fireEvent.change(await screen.findByLabelText('Race'), { target: { value: '7' } })
   fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
   fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '3' } })
 }
@@ -183,7 +183,7 @@ describe('CreateCharacter', () => {
     fireEvent.change(screen.getByLabelText('Character Name'), { target: { value: ' Iria ' } })
     fireEvent.change(screen.getByLabelText('Alignment'), { target: { value: 'Neutral Good' } })
     fireEvent.change(screen.getByLabelText('Background'), { target: { value: ' Sage ' } })
-    fireEvent.change(screen.getByLabelText('Race'), { target: { value: '7' } })
+    fireEvent.change(await screen.findByLabelText('Race'), { target: { value: '7' } })
     fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '3' } })
     fireEvent.change(screen.getByLabelText('Hit Points'), { target: { value: '8' } })
@@ -262,7 +262,7 @@ describe('CreateCharacter', () => {
     const primaryLevelInput = screen.getByLabelText('Primary Level')
     const secondaryLevelInputName = 'Secondary Level'
 
-    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(await screen.findByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(primaryLevelInput, { target: { value: '0' } })
     expect(primaryLevelInput).toHaveValue(1)
 
@@ -290,7 +290,7 @@ describe('CreateCharacter', () => {
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(await screen.findByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '2' } })
     fireEvent.click(screen.getByLabelText('Arcana'))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Intelligence saving throw' }))
@@ -316,7 +316,7 @@ describe('CreateCharacter', () => {
     fireEvent.change(screen.getByLabelText('Character Name'), { target: { value: 'Mira' } })
     fireEvent.change(screen.getByLabelText('Alignment'), { target: { value: 'Chaotic Good' } })
     fireEvent.change(screen.getByLabelText('Background'), { target: { value: 'Urchin' } })
-    fireEvent.change(screen.getByLabelText('Race'), { target: { value: '7' } })
+    fireEvent.change(await screen.findByLabelText('Race'), { target: { value: '7' } })
     fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create Character' }))
 
@@ -461,7 +461,7 @@ describe('CreateCharacter', () => {
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(await screen.findByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '3' } })
     await user.click(screen.getByRole('button', { name: 'Add Secondary Class' }))
     fireEvent.change(screen.getByLabelText('Secondary Class'), { target: { value: '5' } })
@@ -521,7 +521,7 @@ describe('CreateCharacter', () => {
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Edit Character' })).toBeInTheDocument()
     expect(screen.getByLabelText('Character Name')).toHaveValue('Iria')
-    expect(screen.getByLabelText('Race')).toHaveValue('7')
+    expect(await screen.findByLabelText('Race')).toHaveValue('7')
     expect(screen.getByLabelText('Class')).toHaveValue('8')
     expect(screen.getByLabelText('Level')).toHaveValue(3)
     expect(screen.getByLabelText('Hit Points')).toHaveValue(18)
@@ -658,7 +658,7 @@ describe('CreateCharacter', () => {
     const proficiencyInput = screen.getByLabelText('Proficiency Bonus')
     expect(proficiencyInput).toBeDisabled()
 
-    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(await screen.findByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '6' } })
     expect(proficiencyInput).toHaveValue(3)
   })
@@ -668,7 +668,7 @@ describe('CreateCharacter', () => {
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(await screen.findByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '4' } })
     await user.click(screen.getByRole('button', { name: 'Add Secondary Class' }))
     fireEvent.change(screen.getByLabelText('Secondary Class'), { target: { value: '5' } })
@@ -683,7 +683,7 @@ describe('CreateCharacter', () => {
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(await screen.findByLabelText('Primary Class'), { target: { value: '8' } })
 
     const intelligenceSavingThrow = screen.getByRole('checkbox', { name: 'Intelligence saving throw' })
     expect(intelligenceSavingThrow).toBeChecked()
@@ -696,7 +696,7 @@ describe('CreateCharacter', () => {
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(await screen.findByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '3' } })
 
     const xpInput = await screen.findByLabelText('XP')
@@ -716,7 +716,7 @@ describe('CreateCharacter', () => {
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    fireEvent.change(screen.getByLabelText('Primary Class'), { target: { value: '8' } })
+    fireEvent.change(await screen.findByLabelText('Primary Class'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Primary Level'), { target: { value: '3' } })
 
     const xpInput = await screen.findByLabelText('XP')
@@ -752,7 +752,7 @@ describe('CreateCharacter', () => {
     render(<CreateCharacter currentUserId={4} onCancel={onCancel} onLogout={onLogout} onSuccess={onSuccess} />)
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
-    expect(screen.getByText('Drag & drop or click to select')).toBeInTheDocument()
+    expect(await screen.findByText('Drag & drop or click to select')).toBeInTheDocument()
   })
 
   it('does NOT render the portrait drag-and-drop zone in edit mode', async () => {
@@ -776,7 +776,7 @@ describe('CreateCharacter', () => {
 
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
 
-    const dropZoneText = screen.getByText('Drag & drop or click to select')
+    const dropZoneText = await screen.findByText('Drag & drop or click to select')
     const dropZone = dropZoneText.closest('div[style]') as HTMLElement
 
     const file = new File(['some content'], 'document.txt', { type: 'text/plain' })
