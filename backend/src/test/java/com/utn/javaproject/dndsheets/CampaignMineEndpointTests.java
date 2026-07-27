@@ -151,7 +151,7 @@ class CampaignMineEndpointTests {
                         .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0]", aMapWithSize(6)))
+                .andExpect(jsonPath("$[0]", aMapWithSize(8)))
                 .andExpect(jsonPath("$[0].id").value(createdCampaign.getId()))
                 .andExpect(jsonPath("$[0].name").value(campaignName))
                 .andExpect(jsonPath("$[0].description").value("Created campaign should show on home"))
@@ -160,7 +160,8 @@ class CampaignMineEndpointTests {
                 .andExpect(jsonPath("$[0].dm").doesNotExist())
                 .andExpect(jsonPath("$[0].players").doesNotExist())
                 .andExpect(jsonPath("$[0].characters").doesNotExist())
-                .andExpect(jsonPath("$[0].playerCount").doesNotExist());
+                .andExpect(jsonPath("$[0].playerCount").value(0))
+                .andExpect(jsonPath("$[0].characterCount").value(0));
     }
 
     @Test

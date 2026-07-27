@@ -9,6 +9,8 @@ public class CampaignSummaryDto {
     private String description;
     private Boolean privacy;
     private Date creationDate;
+    private Integer playerCount;
+    private Integer characterCount;
 
     public Long getId() {
         return id;
@@ -56,6 +58,22 @@ public class CampaignSummaryDto {
 
     public void setCreationDate(Date creationDate) {
         this.creationDate = creationDate;
+    }
+
+    public Integer getPlayerCount() {
+        return playerCount;
+    }
+
+    public void setPlayerCount(Integer playerCount) {
+        this.playerCount = playerCount;
+    }
+
+    public Integer getCharacterCount() {
+        return characterCount;
+    }
+
+    public void setCharacterCount(Integer characterCount) {
+        this.characterCount = characterCount;
     }
 }
 

@@ -135,28 +135,11 @@ public class CampaignController {
     // ---- private helpers ----
 
     private CampaignDetailDto mapToDetail(CampaignEntity entity, boolean includejoinCode) {
-        // Start with explicit campaign_players entries
-        List<UserEntity> explicitPlayers = entity.getPlayers() == null ? List.of() : entity.getPlayers();
-
-        // Add users derived from characters (includes the DM if they have a character)
-        List<UserEntity> characterOwners = entity.getCharacters() == null
-                ? List.of()
-                : entity.getCharacters().stream()
-                        .map(CharacterEntity::getUser)
-                        .filter(java.util.Objects::nonNull)
-                        .toList();
-
-        // Union by user id — explicit players first, then character owners not already present
-        java.util.Set<Long> seenIds = new java.util.LinkedHashSet<>();
-        java.util.List<UserEntity> allPlayers = new java.util.ArrayList<>();
-        for (UserEntity u : explicitPlayers) {
-            if (seenIds.add(u.getId())) allPlayers.add(u);
-        }
-        for (UserEntity u : characterOwners) {
-            if (seenIds.add(u.getId())) allPlayers.add(u);
-        }
-
-        List<CampaignDetailDto.CampaignPlayerDto> playerDtos = allPlayers.stream()
+        // Reuse the same union logic the list endpoints use (CampaignService.resolveUniquePlayers)
+        // so detail players.size() and list playerCount are guaranteed to agree (spec: "Backend
+        // Count Contract" — parity with campaign detail view).
+        List<CampaignDetailDto.CampaignPlayerDto> playerDtos = campaignService.resolveUniquePlayers(entity)
+                .stream()
                 .map(this::mapPlayer)
                 .toList();
 
