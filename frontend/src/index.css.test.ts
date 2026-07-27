@@ -1,7 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import css from './index.css?raw'
 
 // Spec: "Other screens unaffected by new tokens" — the home-scoped `--color-home-*`,
 // `--font-home-*`, and `--radius-home-*` tokens (design.md ADR-03) must be additive
@@ -12,9 +10,12 @@ import { describe, expect, it } from 'vitest'
 // border reset are byte-for-byte unchanged, and that no new `--color-home-*`
 // variable collides with an existing `--color-*` name — the two ways this change
 // could otherwise repaint every other screen.
+//
+// Read via Vite's `?raw` import (not node:fs) so this file type-checks under
+// tsconfig.app.json, which has no Node types — `tsc -b` (the production build)
+// enforces this even though a bare `tsc --noEmit` run against the root config
+// does not, since the root tsconfig only lists project references.
 describe('index.css — home tokens do not alter existing global theme', () => {
-  const cssPath = join(dirname(fileURLToPath(import.meta.url)), 'index.css')
-  const css = readFileSync(cssPath, 'utf-8')
 
   it('keeps the original global @theme block values unchanged', () => {
     expect(css).toContain('--color-background: #09090b;')
