@@ -49,10 +49,10 @@ this one.
 
 ## Phase 3: `DemoLanding` rewrite (TDD) — depends on Phase 1+2
 
-- [ ] 3.1 RED: rewrite `DemoLanding.test.tsx` fully per design §6.1 (12 assertions: sync render, 3 names, campaign name+join code, `LV 3/2` badge, highlighted ability cell, metric tiles vs `DEMO_CHARACTERS.length`, no loading/error UI, exactly one button (CTA), no ancestor `role="button"`/no `tabindex`, `onLoginRequest` fires, no nav/search/avatar/logout/JOIN-A-TABLE/create-CTAs); delete old `vi.mock('../services/api', …)` block and old nav-callback tests
-- [ ] 3.2 GREEN: define `DEMO_CAMPAIGN: RailCampaign`, `DEMO_CHARACTERS: Character[]` (3 entries), `DEMO_LEVELS: Map<number, LevelRecord[]>` module constants per design §3.1
-- [ ] 3.3 GREEN: rewrite `DemoLanding.tsx` component per design §5 tree — drop `useState`/`useEffect`/`api` import/`../App.css` import, new `DemoLandingProps { onLoginRequest }` only, Dense Ledger shell (header, hero, 4 `MetricTile`s, two-column body with `CharacterCard`/`CampaignRailCard`, both `interactive={false}`, no `onOpenSheet`/`onOpen`/`onManage` passed)
-- [ ] 3.4 Run `cd frontend && npx vitest run` for `DemoLanding.test.tsx` — confirm green
+- [x] 3.1 RED: rewrite `DemoLanding.test.tsx` fully per design §6.1 (12 assertions: sync render, 3 names, campaign name+join code, `LV 3/2` badge, highlighted ability cell, metric tiles vs `DEMO_CHARACTERS.length`, no loading/error UI, exactly one button (CTA), no ancestor `role="button"`/no `tabindex`, `onLoginRequest` fires, no nav/search/avatar/logout/JOIN-A-TABLE/create-CTAs); delete old `vi.mock('../services/api', …)` block and old nav-callback tests
+- [x] 3.2 GREEN: define `DEMO_CAMPAIGN: RailCampaign`, `DEMO_CHARACTERS: Character[]` (3 entries), `DEMO_LEVELS: Map<number, LevelRecord[]>` module constants per design §3.1
+- [x] 3.3 GREEN: rewrite `DemoLanding.tsx` component per design §5 tree — drop `useState`/`useEffect`/`api` import/`../App.css` import, new `DemoLandingProps { onLoginRequest }` only, Dense Ledger shell (header, hero, 4 `MetricTile`s, two-column body with `CharacterCard`/`CampaignRailCard`, both `interactive={false}`, no `onOpenSheet`/`onOpen`/`onManage` passed)
+- [x] 3.4 Run `cd frontend && npx vitest run` for `DemoLanding.test.tsx` — confirm green
 
 ## Phase 4: `App.tsx` dead-code removal — depends on Phase 3
 

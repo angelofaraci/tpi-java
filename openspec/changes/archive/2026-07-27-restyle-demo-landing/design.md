@@ -170,9 +170,15 @@ production regression traded for a cosmetic gain on one page.
 
 ## 3. ADR-02 — Hardcoded showcase data
 
-**Decision**: three module-level `const` declarations at the top of `DemoLanding.tsx`,
-explicitly typed against the real domain interfaces. Rejected: a separate
-`fixtures/demoLanding.ts` module (indirection with a single consumer) and reusing
+**Decision**: three module-level `const` declarations in a dedicated data module
+(`demoLandingData.ts`), explicitly typed against the real domain interfaces. This module is
+imported by both `DemoLanding.tsx` (component) and `DemoLanding.test.tsx` (to assert the
+CHARACTERS metric tile against `DEMO_CHARACTERS.length`), satisfying both the need for
+type-safe constants and the design principle that non-component values should not be exported
+from component files. Rejected: inline `export const` in `DemoLanding.tsx` (violates
+`react-refresh/only-export-components` lint rule) and a separate `fixtures/demoLanding.ts`
+module used by the test alone (indirection with a single consumer would have been the concern,
+but with two consumers — component + test — the module earns its place). Rejected also: reusing
 `interfaces/demo.ts` DTOs (`DemoCharacterSummary` is a flat summary — it cannot feed
 `CharacterCard`, which needs `characterStats.abilityScores`, `race`, `characterClasses`).
 
