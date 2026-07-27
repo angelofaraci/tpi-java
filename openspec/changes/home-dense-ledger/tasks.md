@@ -41,14 +41,14 @@ Chain strategy: pending
 
 ## Phase 2: Design Tokens, Fonts, Top Bar (component)
 
-- [ ] 2.1 Add self-hosted font assets to `frontend/public/fonts/`: `space-grotesk-{400,500,600,700}.woff2`, `jetbrains-mono-{400,500,600,700}.woff2`
-- [ ] 2.2 Append second `@theme` block to `frontend/src/index.css` with all `--color-home-*`/`--font-home-*`/`--radius-home-*` tokens per design.md (do not touch existing `@theme` block or global border reset)
-- [ ] 2.3 Append 8 `@font-face` rules to `frontend/src/index.css` for Space Grotesk (400/500/600/700) and JetBrains Mono (400/500/600/700), `font-display: swap`
-- [ ] 2.4 RED: Write a test asserting a non-home screen (e.g. `ViewCampaign`) computed styles are unchanged after the token/font additions (Spec: Other screens unaffected by new tokens)
-- [ ] 2.5 GREEN: Confirm test passes (should pass by construction since tokens are additive/namespaced); fix if any leak into global selectors
-- [ ] 2.6 RED: Write `Home.test.tsx` top-bar scenarios: renders only on home view, `Admin` nav hidden for `ROLE_USER`, search field is inert, avatar shows uppercase first-two of `user.username`
-- [ ] 2.7 GREEN: Create `frontend/src/pages/Home.tsx` with the top-bar markup only (brand, nav items, search field, avatar, logout wired to `utils/auth.ts` handler) to pass 2.6
-- [ ] 2.8 Verify: `cd frontend && npx vitest run` — new top-bar/token tests pass, no new failures
+- [x] 2.1 Add self-hosted font assets to `frontend/public/fonts/`: `space-grotesk-{400,500,600,700}.woff2`, `jetbrains-mono-{400,500,600,700}.woff2`
+- [x] 2.2 Append second `@theme` block to `frontend/src/index.css` with all `--color-home-*`/`--font-home-*`/`--radius-home-*` tokens per design.md (do not touch existing `@theme` block or global border reset)
+- [x] 2.3 Append 8 `@font-face` rules to `frontend/src/index.css` for Space Grotesk (400/500/600/700) and JetBrains Mono (400/500/600/700), `font-display: swap`
+- [x] 2.4 RED: Write a test asserting a non-home screen (e.g. `ViewCampaign`) computed styles are unchanged after the token/font additions (Spec: Other screens unaffected by new tokens) — implemented as `frontend/src/index.css.test.ts`, a source-level assertion instead of a rendered `getComputedStyle` check (see 2.5 note)
+- [x] 2.5 GREEN: Confirm test passes (should pass by construction since tokens are additive/namespaced); fix if any leak into global selectors — NOTE: this project's vitest config has no `css: true`/browser mode, so jsdom never actually applies `index.css`; a `getComputedStyle` assertion on a rendered `ViewCampaign` would not exercise the stylesheet at all. Substituted a source-level test (`index.css.test.ts`) that asserts the original `@theme` block/border reset are byte-identical and every new token is namespaced under `--color-home-*`/`--font-home-*`/`--radius-home-*`. Flagged as a deviation for `sdd-verify`.
+- [x] 2.6 RED: Write `Home.test.tsx` top-bar scenarios: renders only on home view, `Admin` nav hidden for `ROLE_USER`, search field is inert, avatar shows uppercase first-two of `user.username`
+- [x] 2.7 GREEN: Create `frontend/src/pages/Home.tsx` with the top-bar markup only (brand, nav items, search field, avatar, logout wired to `utils/auth.ts` handler) to pass 2.6 — logout is exposed as an `onLogout` callback prop (presentational component per ADR-01), not a direct `utils/auth.ts` import; wiring the real handler happens in Phase 6 (`App.tsx`)
+- [x] 2.8 Verify: `cd frontend && npx vitest run` — new top-bar/token tests pass, no new failures
 
 ## Phase 3: Character Card Component (component)
 
