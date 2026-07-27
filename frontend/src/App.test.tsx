@@ -125,8 +125,8 @@ describe('App create campaign flow', () => {
 
     render(<App />)
 
-    await screen.findByRole('button', { name: '+ Create Character' })
-    await user.click(screen.getByRole('button', { name: '+ Create Character' }))
+    await screen.findByRole('button', { name: '+ New character' })
+    await user.click(screen.getByRole('button', { name: '+ New character' }))
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Create Character' })).toBeInTheDocument()
     expect(screen.getByLabelText('Campaign Code')).toBeInTheDocument()
@@ -156,8 +156,8 @@ describe('App create campaign flow', () => {
 
     render(<App />)
 
-    await screen.findByRole('button', { name: '+ Create Character' })
-    fireEvent.click(screen.getByRole('button', { name: '+ Create Character' }))
+    await screen.findByRole('button', { name: '+ New character' })
+    fireEvent.click(screen.getByRole('button', { name: '+ New character' }))
     await screen.findByRole('heading', { level: 2, name: 'Create Character' })
     fireEvent.change(screen.getByLabelText('Campaign Code'), { target: { value: 'OPEN-TABL' } })
     await vi.runAllTimersAsync()
@@ -175,7 +175,7 @@ describe('App create campaign flow', () => {
     vi.useRealTimers()
 
     expect(await screen.findByText('Character "Iria" created successfully.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '+ Create Character' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '+ New character' })).toBeInTheDocument()
     await waitFor(() => expect(api.characters.findByUserId).toHaveBeenCalledTimes(2))
     expect(api.auth.me).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('Forge your first adventurer')).not.toBeInTheDocument()
@@ -196,7 +196,7 @@ describe('App create campaign flow', () => {
 
     expect(await screen.findByText('Iria')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'VIEW' }))
+    fireEvent.click(screen.getByText('Iria'))
     expect(await screen.findByRole('button', { name: 'Edit Character' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit Character' }))
@@ -315,6 +315,10 @@ describe('App create campaign flow', () => {
       } as never)
 
     vi.mocked(api.levels.findAll)
+      // The home's own mount-time fetch (App.tsx's `loadLevels`, feeding the
+      // CharacterCard level badge) consumes the first queued value; the next
+      // two are Characters.tsx's own pre-edit and post-edit fetches.
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         {
           id: { characterId: 31, classId: 8 },
@@ -346,7 +350,7 @@ describe('App create campaign flow', () => {
 
     expect(await screen.findByText('Iria')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'VIEW' }))
+    fireEvent.click(screen.getByText('Iria'))
     expect(await screen.findByRole('button', { name: 'Edit Character' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit Character' }))
@@ -375,17 +379,17 @@ describe('App create campaign flow', () => {
 
     render(<App />)
 
-    await screen.findByRole('button', { name: '+ Create Campaign' })
+    await screen.findByRole('button', { name: '+ New campaign' })
     await waitFor(() => expect(api.characters.findByUserId).toHaveBeenCalledWith(7))
 
-    await user.click(screen.getByRole('button', { name: '+ Create Campaign' }))
+    await user.click(screen.getByRole('button', { name: '+ New campaign' }))
     await user.type(screen.getByLabelText('Campaign Name'), 'Stormwreck')
     await user.type(screen.getByLabelText('Description'), 'Island quest')
     await user.click(screen.getByRole('button', { name: 'Create Campaign' }))
 
     expect(await screen.findByText('Campaign "Stormwreck" created successfully. You are now the DM.')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 2, name: 'Create Campaign' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '+ Create Campaign' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '+ New campaign' })).toBeInTheDocument()
   })
 
   it('refreshes owned campaigns after creation and ignores stale earlier responses', async () => {
@@ -410,8 +414,8 @@ describe('App create campaign flow', () => {
 
     render(<App />)
 
-    await screen.findByRole('button', { name: '+ Create Campaign' })
-    await user.click(screen.getByRole('button', { name: '+ Create Campaign' }))
+    await screen.findByRole('button', { name: '+ New campaign' })
+    await user.click(screen.getByRole('button', { name: '+ New campaign' }))
     await user.type(screen.getByLabelText('Campaign Name'), 'Stormwreck')
     await user.type(screen.getByLabelText('Description'), 'Island quest')
     await user.click(screen.getByRole('button', { name: 'Create Campaign' }))
@@ -422,7 +426,7 @@ describe('App create campaign flow', () => {
     resolveInitialCampaigns?.([])
 
     await waitFor(() => expect(screen.getByText('Stormwreck')).toBeInTheDocument())
-    expect(screen.queryByText('You are not DM of any campaigns yet.')).not.toBeInTheDocument()
+    expect(screen.queryByText('No tables yet')).not.toBeInTheDocument()
   })
 
   it('loads and renders owned campaigns on the home screen', async () => {
@@ -439,8 +443,7 @@ describe('App create campaign flow', () => {
     render(<App />)
 
     expect(await screen.findByText('Intro to Stormwreck Isle')).toBeInTheDocument()
-    expect(screen.getByText('Campaign Started 11/29/2025')).toBeInTheDocument()
-    expect(screen.getByText('VIEW CAMPAIGN')).toBeInTheDocument()
+    expect(screen.getByText('DM')).toBeInTheDocument()
     await waitFor(() => expect(api.campaigns.findMine).toHaveBeenCalledTimes(1))
   })
 
@@ -454,9 +457,9 @@ describe('App create campaign flow', () => {
 
     render(<App />)
 
-    expect(await screen.findByText('Loading campaigns...')).toBeInTheDocument()
+    expect(await screen.findAllByTestId('rail-card-skeleton')).toHaveLength(3)
     resolveCampaigns?.([])
-    await waitFor(() => expect(screen.getByText('You are not DM of any campaigns yet.')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('No tables yet')).toBeInTheDocument())
   })
 
   it('shows the join code and copy button on the owned campaign card', async () => {
@@ -493,8 +496,8 @@ describe('App create campaign flow', () => {
 
     render(<App />)
 
-    await screen.findByRole('button', { name: '+ Create Campaign' })
-    await user.click(screen.getByRole('button', { name: '+ Create Campaign' }))
+    await screen.findByRole('button', { name: '+ New campaign' })
+    await user.click(screen.getByRole('button', { name: '+ New campaign' }))
     await user.type(screen.getByLabelText('Campaign Name'), 'Stormwreck')
     await user.type(screen.getByLabelText('Description'), 'Island quest')
     await user.click(screen.getByRole('button', { name: 'Create Campaign' }))
@@ -530,11 +533,11 @@ describe('App create campaign flow', () => {
 
     render(<App />)
 
-    // One campaign name, not two
+    // One campaign name, not two — the dense rail card shows a single hero slot
+    // per campaign (the first character), not every teammate (design.md
+    // CampaignRailCardProps.RailCampaign.heroName is a single field, not a list).
     expect(await screen.findAllByText('Lost Mines')).toHaveLength(1)
-    // Both character names visible inside the single card
-    expect(screen.getByText('Iria')).toBeInTheDocument()
-    expect(screen.getByText('Borin')).toBeInTheDocument()
+    expect(screen.getByText('Your hero: Iria')).toBeInTheDocument()
   })
 
   it('shows each campaign once even when the player has multiple characters in different campaigns', async () => {
@@ -563,8 +566,8 @@ describe('App create campaign flow', () => {
 
     expect(await screen.findByText('Lost Mines')).toBeInTheDocument()
     expect(screen.getByText('Stormwreck Isle')).toBeInTheDocument()
-    expect(screen.getByText('Iria')).toBeInTheDocument()
-    expect(screen.getByText('Zara')).toBeInTheDocument()
+    expect(screen.getByText('Your hero: Iria')).toBeInTheDocument()
+    expect(screen.getByText('Your hero: Zara')).toBeInTheDocument()
   })
 
   it('shows a campaign error without affecting the characters section', async () => {
@@ -574,35 +577,6 @@ describe('App create campaign flow', () => {
 
     await waitFor(() => expect(screen.getByText('Error 500: Backend failed')).toBeInTheDocument())
     expect(screen.getByText('Forge your first adventurer')).toBeInTheDocument()
-  })
-
-  it('renders Public Campaigns section with cards from api.campaigns.findAllPublic()', async () => {
-    vi.mocked(api.campaigns.findAllPublic).mockResolvedValueOnce([
-      {
-        id: 20,
-        name: 'The Lost Dungeon',
-        description: 'An epic public adventure',
-        privacy: false,
-        creationDate: '2025-06-15T00:00:00.000+00:00',
-      },
-      {
-        id: 21,
-        name: 'Curse of Strahd',
-        description: 'Gothic horror campaign',
-        privacy: false,
-        creationDate: '2025-08-01T00:00:00.000+00:00',
-      },
-    ])
-
-    render(<App />)
-
-    expect(await screen.findByRole('heading', { level: 2, name: 'Public Campaigns' })).toBeInTheDocument()
-    expect(await screen.findByText('The Lost Dungeon')).toBeInTheDocument()
-    expect(screen.getByText('An epic public adventure')).toBeInTheDocument()
-    expect(screen.getByText('Curse of Strahd')).toBeInTheDocument()
-    expect(screen.getByText('Gothic horror campaign')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'VIEW CAMPAIGN' }).length).toBeGreaterThanOrEqual(2)
-    await waitFor(() => expect(api.campaigns.findAllPublic).toHaveBeenCalledTimes(1))
   })
 
   it('deletes the selected character dynamically from its card action', async () => {
@@ -628,7 +602,7 @@ describe('App create campaign flow', () => {
     expect(await screen.findByText('Iria')).toBeInTheDocument()
     expect(screen.getByText('Borin')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Iria' }))
+    fireEvent.click(screen.getByTitle('More actions for Iria'))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Delete Iria?' })).toBeInTheDocument()
 
@@ -655,7 +629,7 @@ describe('App create campaign flow', () => {
 
     expect(await screen.findByText('Iria')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'VIEW' }))
+    fireEvent.click(screen.getByText('Iria'))
 
     expect(await screen.findByRole('button', { name: 'Delete Character' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Delete Character' }))
@@ -665,7 +639,113 @@ describe('App create campaign flow', () => {
 
     await waitFor(() => expect(api.characters.remove).toHaveBeenCalledWith(31))
     expect(await screen.findByText('Character "Iria" deleted successfully.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '+ Create Character' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '+ New character' })).toBeInTheDocument()
+  })
+})
+
+describe('App home navigation and persistence', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    localStorage.setItem('token', 'test-token')
+    localStorage.removeItem('home.filter')
+    localStorage.removeItem('home.sort')
+
+    vi.mocked(api.auth.me).mockResolvedValue({ id: 7, username: 'pancho' } as User)
+    vi.mocked(api.characters.findByUserId).mockResolvedValue([
+      {
+        id: 31,
+        user: { id: 7 },
+        campaign: { id: 3 },
+        name: 'Iria',
+        characterClasses: [],
+        characteristics: [],
+        alignment: 'Neutral Good',
+        background: 'Sage',
+        characterStats: {
+          proficiency: 2,
+          abilityScores: { Strength: 10, Dexterity: 14, Constitution: 12, Intelligence: 16, Wisdom: 13, Charisma: 8 },
+          proficiencies: {},
+          velocities: [30],
+          hp: 8,
+        },
+        race: { id: 7, name: 'Elf', description: 'Fey ancestry' },
+      } as never,
+    ])
+    vi.mocked(api.characters.findAll).mockResolvedValue([])
+    vi.mocked(api.characters.findById).mockResolvedValue({
+      id: 31,
+      user: { id: 7 },
+      campaign: { id: 3 },
+      name: 'Iria',
+      characterClasses: [],
+      characteristics: [],
+      alignment: 'Neutral Good',
+      background: 'Sage',
+      characterStats: {
+        proficiency: 2,
+        abilityScores: { Strength: 10, Dexterity: 14, Constitution: 12, Intelligence: 16, Wisdom: 13, Charisma: 8 },
+        proficiencies: {},
+        velocities: [30],
+        hp: 8,
+      },
+      race: { id: 7, name: 'Elf', description: 'Fey ancestry' },
+    } as never)
+    vi.mocked(api.characters.remove).mockResolvedValue(null as never)
+    vi.mocked(api.levels.findAll).mockResolvedValue([])
+    vi.mocked(api.classes.findAll).mockResolvedValue([])
+    vi.mocked(api.races.findAll).mockResolvedValue([])
+    vi.mocked(api.campaigns.findMine).mockResolvedValue([
+      { id: 11, name: 'Intro to Stormwreck Isle', description: 'Starter set adventure', privacy: false },
+    ])
+    vi.mocked(api.campaigns.findAsPlayer).mockResolvedValue([])
+    vi.mocked(api.campaigns.findAllPublic).mockResolvedValue([])
+    vi.mocked(api.campaigns.findById).mockResolvedValue({
+      id: 11,
+      name: 'Intro to Stormwreck Isle',
+      description: 'Starter set adventure',
+      privacy: false,
+      players: [],
+      characters: [],
+    } as never)
+  })
+
+  it('persists filter and sort to localStorage and restores them after a character-sheet round trip', async () => {
+    render(<App />)
+
+    expect(await screen.findByText('Iria')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retired' }))
+    fireEvent.change(screen.getByLabelText('Sort characters'), { target: { value: 'level' } })
+
+    expect(localStorage.getItem('home.filter')).toBe('retired')
+    expect(localStorage.getItem('home.sort')).toBe('level')
+
+    // Navigate away (retired filter empties the grid, so open the sheet via the rail instead)
+    fireEvent.click(screen.getByRole('button', { name: 'Intro to Stormwreck Isle' }))
+    expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '← Back to Home' }))
+
+    await screen.findByText('Forge another adventurer')
+    expect(screen.getByRole('button', { name: 'Retired' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('Sort characters')).toHaveValue('level')
+  })
+
+  it('navigates to the character sheet with the selected id when a CharacterCard is clicked', async () => {
+    render(<App />)
+
+    fireEvent.click(await screen.findByText('Iria'))
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Iria' })).toBeInTheDocument()
+  })
+
+  it('navigates to view-campaign with the selected id when the rail campaign name is clicked', async () => {
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
+    await waitFor(() => expect(api.campaigns.findById).toHaveBeenCalledWith(11))
   })
 })
 
@@ -723,8 +803,8 @@ describe('App view campaign flow', () => {
   it('navigates to the campaign detail view when VIEW CAMPAIGN is clicked', async () => {
     render(<App />)
 
-    expect(await screen.findByText('VIEW CAMPAIGN')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'VIEW CAMPAIGN' }))
+    expect(await screen.findByText('Intro to Stormwreck Isle')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Intro to Stormwreck Isle' }))
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
     await waitFor(() => expect(api.campaigns.findById).toHaveBeenCalledWith(11))
@@ -733,7 +813,7 @@ describe('App view campaign flow', () => {
   it('renders campaign name, privacy badge, date, description, and stats in the detail view', async () => {
     render(<App />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
     expect(screen.getByText('Public')).toBeInTheDocument()
@@ -746,7 +826,7 @@ describe('App view campaign flow', () => {
   it('renders the players list in the campaign detail view', async () => {
     render(<App />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
 
     expect(await screen.findByText('alice')).toBeInTheDocument()
     expect(screen.getByText('alice@example.com')).toBeInTheDocument()
@@ -757,7 +837,7 @@ describe('App view campaign flow', () => {
   it('renders the characters list in the campaign detail view', async () => {
     render(<App />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
 
     expect(await screen.findByText('Character #31')).toBeInTheDocument()
     expect(screen.getByText('Character #44')).toBeInTheDocument()
@@ -772,7 +852,7 @@ describe('App view campaign flow', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
 
     expect(await screen.findByText('No players have joined this campaign yet.')).toBeInTheDocument()
     expect(screen.getByText('No characters assigned to this campaign yet.')).toBeInTheDocument()
@@ -786,7 +866,7 @@ describe('App view campaign flow', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
 
     expect(await screen.findByText('Loading campaign...')).toBeInTheDocument()
 
@@ -799,7 +879,7 @@ describe('App view campaign flow', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
 
     expect(await screen.findByText('Error: Error 503: Service unavailable')).toBeInTheDocument()
   })
@@ -807,19 +887,19 @@ describe('App view campaign flow', () => {
   it('returns to home when Back to Home is clicked from campaign detail', async () => {
     render(<App />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
     expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '← Back to Home' }))
 
-    expect(await screen.findByRole('button', { name: '+ Create Campaign' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '+ New campaign' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).not.toBeInTheDocument()
   })
 
   it('opens the delete campaign confirmation dialog from the campaign detail view', async () => {
     render(<App />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
     expect(await screen.findByRole('button', { name: 'Delete Campaign' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Campaign' }))
@@ -831,7 +911,7 @@ describe('App view campaign flow', () => {
   it('closes the delete campaign dialog when Cancel is clicked', async () => {
     render(<App />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
     expect(await screen.findByRole('button', { name: 'Delete Campaign' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Campaign' }))
@@ -845,7 +925,7 @@ describe('App view campaign flow', () => {
   it('confirms delete campaign, returns to home, and shows success feedback', async () => {
     render(<App />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Intro to Stormwreck Isle' }))
     expect(await screen.findByRole('button', { name: 'Delete Campaign' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Campaign' }))
@@ -854,7 +934,7 @@ describe('App view campaign flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete campaign' }))
 
     await waitFor(() => expect(api.campaigns.remove).toHaveBeenCalledWith(11))
-    expect(await screen.findByRole('button', { name: '+ Create Campaign' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '+ New campaign' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).not.toBeInTheDocument()
     expect(screen.getByText('Campaign "Intro to Stormwreck Isle" deleted successfully.')).toBeInTheDocument()
   })
@@ -864,14 +944,14 @@ describe('App view campaign flow', () => {
 
     expect(await screen.findByText('Intro to Stormwreck Isle')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'VIEW CAMPAIGN' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Intro to Stormwreck Isle' }))
     expect(await screen.findByRole('button', { name: 'Delete Campaign' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Campaign' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete campaign' }))
 
     await waitFor(() => expect(api.campaigns.remove).toHaveBeenCalledWith(11))
-    await screen.findByRole('button', { name: '+ Create Campaign' })
+    await screen.findByRole('button', { name: '+ New campaign' })
     expect(screen.queryByText('Intro to Stormwreck Isle')).not.toBeInTheDocument()
   })
 })
@@ -1040,7 +1120,7 @@ describe('App logout returns to demo landing', () => {
   it('shows the demo landing (not the login form) after logging out', async () => {
     render(<App />)
 
-    await screen.findByRole('button', { name: '+ Create Character' })
+    await screen.findByRole('button', { name: '+ New character' })
     fireEvent.click(screen.getByRole('button', { name: 'Logout' }))
 
     expect(await screen.findByRole('button', { name: /log in.*sign up/i })).toBeInTheDocument()

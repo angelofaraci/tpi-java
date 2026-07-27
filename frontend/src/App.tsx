@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { Login } from './pages/Login'
 import { DemoLanding } from './pages/DemoLanding'
@@ -8,9 +8,11 @@ import { CreateCampaign } from './pages/CreateCampaign'
 import { CreateCharacter } from './pages/CreateCharacter'
 import { ViewCampaign } from './pages/ViewCampaign'
 import { AdminPanel } from './pages/AdminPanel'
+import { Home, type HomeFilter, type HomeSort, type HomeStatus } from './pages/Home'
 import { CopyCodeButton } from './components/CopyCodeButton'
+import type { RailCampaign } from './components/CampaignRailCard'
 import { api } from './services/api'
-import type { OwnedCampaignSummary, PlayerCampaignSummary, PublicCampaignSummary } from './interfaces/campaign'
+import type { OwnedCampaignSummary, PlayerCampaignSummary } from './interfaces/campaign'
 import type { Character, HydratedCharacterEditData, LevelRecord } from './interfaces/character'
 import type { User } from './interfaces/user'
 import { hydrateCharacterEditData } from './utils/characterDraft'
@@ -21,14 +23,17 @@ type CharacterFormMode = 'create' | 'edit'
 type CharacterReturnView = 'home' | 'character-sheet'
 type AuthView = 'demo' | 'login'
 
-interface CharacterCard {
-  id: number
-  name?: string
-  level?: number
-  alignment?: string
-  race?: {
-    name?: string
-  }
+const HOME_FILTER_VALUES: HomeFilter[] = ['all', 'active', 'retired']
+const HOME_SORT_VALUES: HomeSort[] = ['recent', 'level', 'name']
+
+function readStoredHomeFilter(): HomeFilter {
+  const stored = localStorage.getItem('home.filter')
+  return (HOME_FILTER_VALUES as string[]).includes(stored ?? '') ? (stored as HomeFilter) : 'all'
+}
+
+function readStoredHomeSort(): HomeSort {
+  const stored = localStorage.getItem('home.sort')
+  return (HOME_SORT_VALUES as string[]).includes(stored ?? '') ? (stored as HomeSort) : 'recent'
 }
 
 interface DeleteDialogState {
@@ -46,34 +51,19 @@ interface JoinCodeDialogState {
   joinCode: string
 }
 
-function formatCampaignStartDate(creationDate?: string) {
-  if (!creationDate) {
-    return 'Campaign start date unavailable'
-  }
-
-  const parsedDate = new Date(creationDate)
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return 'Campaign start date unavailable'
-  }
-
-  return `Campaign Started ${parsedDate.toLocaleDateString('en-US', { timeZone: 'UTC' })}`
-}
-
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [username, setUsername] = useState('')
   const [userRole, setUserRole] = useState<'ROLE_USER' | 'ROLE_ADMIN' | null>(null)
   const [view, setView] = useState<View>('home')
-  const [characters, setCharacters] = useState<CharacterCard[]>([])
+  const [characters, setCharacters] = useState<Character[]>([])
   const [campaigns, setCampaigns] = useState<OwnedCampaignSummary[]>([])
   const [playerCampaigns, setPlayerCampaigns] = useState<PlayerCampaignSummary[]>([])
-  const [publicCampaigns, setPublicCampaigns] = useState<PublicCampaignSummary[]>([])
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null)
   const [loadingCharacters, setLoadingCharacters] = useState(false)
   const [loadingCampaigns, setLoadingCampaigns] = useState(false)
   const [loadingPlayerCampaigns, setLoadingPlayerCampaigns] = useState(false)
-  const [loadingPublicCampaigns, setLoadingPublicCampaigns] = useState(false)
   const [deletingCharacterId, setDeletingCharacterId] = useState<number | null>(null)
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null)
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null)
@@ -86,7 +76,6 @@ function App() {
   const [charactersError, setCharactersError] = useState<string | null>(null)
   const [campaignsError, setCampaignsError] = useState<string | null>(null)
   const [playerCampaignsError, setPlayerCampaignsError] = useState<string | null>(null)
-  const [publicCampaignsError, setPublicCampaignsError] = useState<string | null>(null)
   const [campaignFeedback, setCampaignFeedback] = useState<string | null>(null)
   const [characterSheetFeedback, setCharacterSheetFeedback] = useState<string | null>(null)
   const [characterFormMode, setCharacterFormMode] = useState<CharacterFormMode>('create')
@@ -96,11 +85,17 @@ function App() {
   const [authView, setAuthView] = useState<AuthView>('demo')
   const [demoCharacterId, setDemoCharacterId] = useState<number | null>(null)
   const [demoCampaignId, setDemoCampaignId] = useState<number | null>(null)
+  const [levels, setLevels] = useState<LevelRecord[]>([])
+  const [loadingLevels, setLoadingLevels] = useState(false)
+  const [levelsError, setLevelsError] = useState<string | null>(null)
+  const [homeFilter, setHomeFilter] = useState<HomeFilter>(readStoredHomeFilter)
+  const [homeSort, setHomeSort] = useState<HomeSort>(readStoredHomeSort)
+  const [joinCode, setJoinCode] = useState('')
   const currentUserIdRef = useRef<number | null>(null)
   const latestCharacterRequestId = useRef(0)
   const latestCampaignRequestId = useRef(0)
   const latestPlayerCampaignRequestId = useRef(0)
-  const latestPublicCampaignRequestId = useRef(0)
+  const latestLevelsRequestId = useRef(0)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -130,6 +125,7 @@ function App() {
             resolvedUserId = userIdNum
             setCurrentUserId(userIdNum)
             setUserRole(user.role)
+            setUsername(user.username ?? '')
           }
         } catch (meErr) {
           console.warn('Failed to resolve authenticated user, falling back to all characters', meErr)
@@ -146,7 +142,7 @@ function App() {
         return
       }
 
-      setCharacters(Array.isArray(data) ? (data as CharacterCard[]) : [])
+      setCharacters(Array.isArray(data) ? (data as Character[]) : [])
     } catch (err: unknown) {
       if (requestId !== latestCharacterRequestId.current) {
         return
@@ -232,29 +228,33 @@ function App() {
     void loadPlayerCampaigns()
   }, [isAuthenticated, loadPlayerCampaigns])
 
-  const loadPublicCampaigns = useCallback(async () => {
-    const requestId = latestPublicCampaignRequestId.current + 1
-    latestPublicCampaignRequestId.current = requestId
-    setLoadingPublicCampaigns(true)
-    setPublicCampaignsError(null)
+  // Third parallel fetch alongside characters/campaigns (design.md "Revised: parallel
+  // fetch includes levels") — feeds CharacterCard's level-badge derivation via GET /levels,
+  // the same endpoint Characters.tsx already consumes. Non-critical: a failure here only
+  // omits level badges, it does not block the rest of the home from loading.
+  const loadLevels = useCallback(async () => {
+    const requestId = latestLevelsRequestId.current + 1
+    latestLevelsRequestId.current = requestId
+    setLoadingLevels(true)
+    setLevelsError(null)
 
     try {
-      const data = await api.campaigns.findAllPublic()
+      const data = await api.levels.findAll()
 
-      if (requestId !== latestPublicCampaignRequestId.current) {
+      if (requestId !== latestLevelsRequestId.current) {
         return
       }
 
-      setPublicCampaigns(Array.isArray(data) ? data : [])
+      setLevels(Array.isArray(data) ? data : [])
     } catch (err: unknown) {
-      if (requestId !== latestPublicCampaignRequestId.current) {
+      if (requestId !== latestLevelsRequestId.current) {
         return
       }
 
-      setPublicCampaignsError(err instanceof Error ? err.message : 'Failed to load public campaigns')
+      setLevelsError(err instanceof Error ? err.message : 'Failed to load levels')
     } finally {
-      if (requestId === latestPublicCampaignRequestId.current) {
-        setLoadingPublicCampaigns(false)
+      if (requestId === latestLevelsRequestId.current) {
+        setLoadingLevels(false)
       }
     }
   }, [])
@@ -262,17 +262,144 @@ function App() {
   useEffect(() => {
     if (!isAuthenticated) return
 
-    void loadPublicCampaigns()
-  }, [isAuthenticated, loadPublicCampaigns])
+    void loadLevels()
+  }, [isAuthenticated, loadLevels])
+
+  useEffect(() => {
+    localStorage.setItem('home.filter', homeFilter)
+  }, [homeFilter])
+
+  useEffect(() => {
+    localStorage.setItem('home.sort', homeSort)
+  }, [homeSort])
+
+  // Campaign name resolution Map (design.md "App.tsx State Management") — a Character
+  // only carries campaign.id, so the display name is resolved against the fetched lists.
+  const campaignNameById = useMemo(() => {
+    const map = new Map<number, string>()
+    campaigns.forEach((c) => map.set(c.id, c.name))
+    playerCampaigns.forEach((pc) => map.set(pc.campaignId, pc.campaignName))
+    return map
+  }, [campaigns, playerCampaigns])
+
+  // Groups GET /levels by characterId for CharacterCard's level-badge derivation.
+  const levelsByCharacterId = useMemo(() => {
+    const map = new Map<number, LevelRecord[]>()
+    levels.forEach((record) => {
+      const characterId = Number(record.character?.id ?? record.id?.characterId)
+      if (!characterId || Number.isNaN(characterId)) return
+      const existing = map.get(characterId) ?? []
+      existing.push(record)
+      map.set(characterId, existing)
+    })
+    return map
+  }, [levels])
+
+  // Unified rail view model: DM campaigns take variant priority (spec.md "Campaign
+  // Rail — Card Variants and Role Logic"); player rows are deduped by campaignId.
+  const railCampaigns = useMemo<RailCampaign[]>(() => {
+    const dmEntries: RailCampaign[] = campaigns.map((c) => ({
+      id: c.id,
+      name: c.name,
+      role: 'DM',
+      joinCode: c.joinCode,
+      playerCount: c.playerCount,
+      characterCount: c.characterCount,
+    }))
+
+    const seenPlayerCampaignIds = new Set<number>()
+    const playerEntries: RailCampaign[] = []
+    playerCampaigns.forEach((pc) => {
+      if (seenPlayerCampaignIds.has(pc.campaignId)) return
+      seenPlayerCampaignIds.add(pc.campaignId)
+      playerEntries.push({
+        id: pc.campaignId,
+        name: pc.campaignName,
+        role: 'PLAYER',
+        playerCount: pc.playerCount,
+        characterCount: pc.characterCount,
+        heroName: pc.characterName,
+      })
+    })
+
+    return [...dmEntries, ...playerEntries]
+  }, [campaigns, playerCampaigns])
+
+  // 4 metric tiles (tile 5, next-session, dropped per Plan B — repeat(4,1fr)).
+  const metrics = useMemo(() => {
+    const dmIds = new Set(campaigns.map((c) => c.id))
+    const playerIds = new Set(playerCampaigns.map((pc) => pc.campaignId))
+    return {
+      campaignsCount: new Set([...dmIds, ...playerIds]).size,
+      charactersCount: characters.length,
+      asDmCount: campaigns.length,
+      playersAtTables: campaigns.reduce((sum, c) => sum + (c.playerCount ?? 0), 0),
+    }
+  }, [characters, campaigns, playerCampaigns])
+
+  // ADR-04: keep the existing per-list loading/error flags and their race guards;
+  // only derive the aggregate status the home skeleton/error band needs.
+  const homeStatus = useMemo<HomeStatus>(() => {
+    if (loadingCharacters || loadingCampaigns || loadingPlayerCampaigns || loadingLevels) {
+      return 'loading'
+    }
+    if (charactersError || campaignsError || playerCampaignsError) {
+      return 'error'
+    }
+    return 'ready'
+  }, [
+    loadingCharacters,
+    loadingCampaigns,
+    loadingPlayerCampaigns,
+    loadingLevels,
+    charactersError,
+    campaignsError,
+    playerCampaignsError,
+  ])
+
+  const homeErrorMessage = charactersError || campaignsError || playerCampaignsError || levelsError || null
+
+  const handleRetryHome = () => {
+    void loadCharacters()
+    void loadCampaigns()
+    void loadPlayerCampaigns()
+    void loadLevels()
+  }
+
+  // Visual-only per spec (no new backend endpoint introduced): validates the code
+  // against the existing GET /campaigns/by-code/{code} lookup and opens the guided
+  // character creator, which is how this app's existing flow joins a player to a
+  // campaign (CreateCharacter.tsx's own "Campaign Code" field).
+  const handleJoinByCode = async () => {
+    const trimmed = joinCode.trim()
+    if (!trimmed) {
+      return
+    }
+
+    try {
+      const campaign = await api.campaigns.findByCode(trimmed)
+
+      if (!campaign) {
+        setCampaignsError(`No campaign found for code "${trimmed}".`)
+        return
+      }
+
+      setJoinCode('')
+      handleOpenCreateCharacter()
+    } catch (err: unknown) {
+      setCampaignsError(err instanceof Error ? err.message : 'Failed to look up join code')
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('token')
     latestCharacterRequestId.current += 1
     latestCampaignRequestId.current += 1
     latestPlayerCampaignRequestId.current += 1
-    latestPublicCampaignRequestId.current += 1
+    latestLevelsRequestId.current += 1
     setIsAuthenticated(false)
     setCurrentUserId(null)
+    setUsername('')
     setUserRole(null)
     setView('home')
     setSelectedCharacterId(null)
@@ -280,13 +407,15 @@ function App() {
     setCharacters([])
     setCampaigns([])
     setPlayerCampaigns([])
-    setPublicCampaigns([])
+    setLevels([])
+    setLoadingLevels(false)
+    setLevelsError(null)
+    setJoinCode('')
     setCampaignFeedback(null)
     setCharacterSheetFeedback(null)
     setCampaignViewFeedback(null)
     setCharactersError(null)
     setCampaignsError(null)
-    setPublicCampaignsError(null)
     setCampaignViewError(null)
     setDeleteDialog(null)
     setDeleteCampaignDialog(null)
@@ -410,9 +539,10 @@ function App() {
     // Intentamos obtener el joinCode desde la respuesta del POST primero.
     // Si no vino (backend issue), recargamos la lista via loadCampaigns (que anula peticiones anteriores)
     // y buscamos el joinCode por nombre en la lista fresca.
-    let joinCode = result.joinCode
+    // Named `resolvedJoinCode` (not `joinCode`) to avoid shadowing the "Join a table" `joinCode` state.
+    let resolvedJoinCode = result.joinCode
 
-    if (!joinCode) {
+    if (!resolvedJoinCode) {
       try {
         const requestId = latestCampaignRequestId.current + 1
         latestCampaignRequestId.current = requestId
@@ -425,7 +555,7 @@ function App() {
           const match = Array.isArray(freshList)
             ? freshList.find((c) => c.name === result.campaignName)
             : undefined
-          joinCode = match?.joinCode
+          resolvedJoinCode = match?.joinCode
           if (Array.isArray(freshList)) {
             setCampaigns(freshList)
           }
@@ -438,10 +568,8 @@ function App() {
       void loadCampaigns()
     }
 
-    void loadPublicCampaigns()
-
-    if (joinCode) {
-      setJoinCodeDialog({ campaignName: result.campaignName, joinCode })
+    if (resolvedJoinCode) {
+      setJoinCodeDialog({ campaignName: result.campaignName, joinCode: resolvedJoinCode })
     } else {
       setCampaignFeedback(`Campaign "${result.campaignName}" created successfully. You are now the DM.`)
     }
@@ -683,20 +811,7 @@ function App() {
     )
   } else {
     content = (
-      <div>
-      <header className="app-header">
-        <h1>D&D Manager</h1>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          {userRole === 'ROLE_ADMIN' && (
-            <button onClick={handleOpenAdminPanel} className="section-action-button">
-              Admin Panel
-            </button>
-          )}
-          <button onClick={handleLogout} className="logout-button">Logout</button>
-        </div>
-      </header>
-
-      <div className="app-shell">
+      <>
         {campaignFeedback && (
           <div className="status-banner success-banner" role="status">
             <span>{campaignFeedback}</span>
@@ -710,527 +825,35 @@ function App() {
             </button>
           </div>
         )}
-
-        {/* Characters Section */}
-        <section className="content-section">
-          <div className="section-header">
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Characters</h2>
-              <p className="section-subtitle">Create a hero from the guided sheet-inspired flow or open an existing record.</p>
-            </div>
-            <button type="button" className="section-action-button" onClick={handleOpenCreateCharacter}>
-              + Create Character
-            </button>
-          </div>
-          {loadingCharacters && <div className="loading-container">Loading characters...</div>}
-          {charactersError && <div className="error-message">{charactersError}</div>}
-          {!loadingCharacters && !charactersError && (
-            <div className="entity-grid">
-              {characters.length === 0 ? (
-                <button type="button" className="campaign-create-card character-create-card" onClick={handleOpenCreateCharacter}>
-                  <span className="campaign-create-badge">Hero</span>
-                  <h3>Forge your first adventurer</h3>
-                  <p>Pick a campaign, race, class, and starting sheet values without leaving the home view flow.</p>
-                  <span className="campaign-create-link">Open creator</span>
-                </button>
-              ) : (
-                characters.map((character) => (
-                  <div
-                    key={character.id}
-                    style={{
-                      backgroundColor: 'var(--color-surface)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '0.5rem',
-                      overflow: 'hidden',
-                      transition: 'all 0.2s',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => handleViewCharacter(character.id)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-foreground-muted)'
-                      e.currentTarget.style.transform = 'translateY(-4px)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-border)'
-                      e.currentTarget.style.transform = 'translateY(0)'
-                    }}
-                  >
-                    {/* Character Image/Header */}
-                    <div style={{
-                      background: 'linear-gradient(135deg, #1a4d2e 0%, #0f3a1f 100%)',
-                      padding: '1.5rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem'
-                    }}>
-                      <div style={{
-                        width: '60px',
-                        height: '60px',
-                        borderRadius: '0.375rem',
-                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '2rem'
-                      }}>
-                        🧙
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'white' }}>
-                          {character.name || 'Unnamed Character'}
-                        </h3>
-                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.8)' }}>
-                          {character.level ? `Level ${character.level} | ` : ''}
-                          {character.race?.name || 'No Species Selected'} | 
-                          {character.alignment || 'No Classes Selected'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div style={{
-                      padding: '1rem 1.5rem',
-                      display: 'flex',
-                      gap: '1rem',
-                      borderTop: '1px solid var(--color-border)'
-                    }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleViewCharacter(character.id)
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '0.5rem',
-                          backgroundColor: 'transparent',
-                          color: 'var(--color-foreground)',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          transition: 'color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-foreground-muted)'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-foreground)'}
-                      >
-                        VIEW
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleViewCharacter(character.id)
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '0.5rem',
-                          backgroundColor: 'transparent',
-                          color: 'var(--color-foreground)',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          transition: 'color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-foreground-muted)'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-foreground)'}
-                      >
-                        EDIT
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleRequestDeleteCharacter(character.id, character.name)
-                        }}
-                        disabled={deletingCharacterId === character.id}
-                        aria-label={`Delete ${character.name || 'character'}`}
-                        style={{
-                          flex: 1,
-                          padding: '0.5rem',
-                          backgroundColor: 'transparent',
-                          color: '#ef4444',
-                          border: 'none',
-                          cursor: deletingCharacterId === character.id ? 'wait' : 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          transition: 'color 0.2s',
-                          opacity: deletingCharacterId === character.id ? 0.7 : 1,
-                        }}
-                        onMouseEnter={(e) => {
-                          if (deletingCharacterId !== character.id) {
-                            e.currentTarget.style.color = '#dc2626'
-                          }
-                        }}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#ef4444'}
-                      >
-                        {deletingCharacterId === character.id ? 'DELETING...' : 'DELETE'}
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </section>
-
-        {/* Campaigns Section */}
-        <section className="content-section">
-          <div className="section-header">
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Campaigns</h2>
-              <p className="section-subtitle">Create a new table and manage it as the assigned Dungeon Master.</p>
-            </div>
-            <button type="button" className="section-action-button" onClick={handleOpenCreateCampaign}>
-              + Create Campaign
-            </button>
-          </div>
-
-          <div className="entity-grid">
-            <button type="button" className="campaign-create-card" onClick={handleOpenCreateCampaign}>
-              <span className="campaign-create-badge">New</span>
-              <h3>Start a fresh adventure</h3>
-              <p>Set the campaign name, description, and privacy in one step.</p>
-              <span className="campaign-create-link">Open creator</span>
-            </button>
-
-            {loadingCampaigns && (
-              <div className="campaign-section-message" role="status">
-                Loading campaigns...
-              </div>
-            )}
-
-            {!loadingCampaigns && campaignsError && (
-              <div className="error-message campaign-section-message">{campaignsError}</div>
-            )}
-
-            {!loadingCampaigns && !campaignsError && campaigns.length === 0 && (
-              <div className="campaign-section-message campaign-section-empty">
-                You are not DM of any campaigns yet.
-              </div>
-            )}
-
-            {!loadingCampaigns && !campaignsError && campaigns.map((campaign) => (
-              <div key={campaign.id} className="campaign-placeholder-card">
-                <div style={{
-                  backgroundColor: 'var(--color-background)',
-                  padding: '2rem 1.5rem',
-                  textAlign: 'center'
-                }}>
-                  <h3 style={{
-                    margin: '0 0 0.5rem 0',
-                    fontSize: '1.5rem',
-                    fontWeight: 'normal',
-                    color: 'var(--color-foreground)'
-                  }}>
-                    {campaign.name}
-                  </h3>
-                  <p style={{
-                    margin: '0 0 1.5rem 0',
-                    fontSize: '0.875rem',
-                    color: 'var(--color-foreground-muted)'
-                  }}>
-                    {formatCampaignStartDate(campaign.creationDate)}
-                  </p>
-
-
-                  <div style={{
-                    padding: '0.75rem 0',
-                    borderTop: '1px solid var(--color-border)',
-                    borderBottom: '1px solid var(--color-border)',
-                    marginBottom: '1.5rem'
-                  }}>
-                    <div style={{
-                      fontSize: '0.875rem',
-                      fontWeight: '700',
-                      color: 'var(--color-foreground)',
-                      letterSpacing: '0.05em'
-                    }}>
-                      ROLE: DUNGEON MASTER
-                    </div>
-                    {campaign.joinCode && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        marginTop: '0.5rem',
-                      }}>
-                        <span style={{
-                          fontSize: '0.8rem',
-                          fontFamily: 'monospace',
-                          color: 'var(--color-foreground-muted)',
-                          letterSpacing: '0.1em',
-                        }}>
-                          {campaign.joinCode}
-                        </span>
-                        <CopyCodeButton code={campaign.joinCode} size="sm" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{
-                    display: 'flex',
-                    gap: '1rem'
-                  }}>
-                    <button
-                      type="button"
-                      style={{
-                        flex: 1,
-                        padding: '0.5rem 1rem',
-                        backgroundColor: 'transparent',
-                        color: '#3b82f6',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        fontWeight: '700',
-                        transition: 'color 0.2s',
-                        letterSpacing: '0.05em'
-                      }}
-                      onClick={() => handleViewCampaign(campaign.id)}
-                      onMouseEnter={(e) => e.currentTarget.style.color = '#60a5fa'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = '#3b82f6'}
-                    >
-                      VIEW CAMPAIGN
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRequestDeleteCampaign(campaign.id, campaign.name)}
-                      disabled={deletingCampaignId === campaign.id}
-                      style={{
-                        flex: 1,
-                        padding: '0.5rem 1rem',
-                        backgroundColor: 'transparent',
-                        color: '#ef4444',
-                        border: 'none',
-                        cursor: deletingCampaignId === campaign.id ? 'wait' : 'pointer',
-                        fontSize: '0.875rem',
-                        fontWeight: '700',
-                        transition: 'color 0.2s',
-                        letterSpacing: '0.05em',
-                        opacity: deletingCampaignId === campaign.id ? 0.7 : 1,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (deletingCampaignId !== campaign.id) {
-                          e.currentTarget.style.color = '#dc2626'
-                        }
-                      }}
-                      onMouseLeave={(e) => e.currentTarget.style.color = '#ef4444'}
-                    >
-                      {deletingCampaignId === campaign.id ? 'DELETING...' : 'DELETE'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Player Campaigns Section */}
-        <section className="content-section">
-          <div className="section-header">
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Campaigns as Player</h2>
-              <p className="section-subtitle">Campaigns you have joined with one of your characters.</p>
-            </div>
-          </div>
-
-          <div className="entity-grid">
-            {loadingPlayerCampaigns && (
-              <div className="campaign-section-message" role="status">
-                Loading player campaigns...
-              </div>
-            )}
-
-            {!loadingPlayerCampaigns && playerCampaignsError && (
-              <div className="error-message campaign-section-message">{playerCampaignsError}</div>
-            )}
-
-            {!loadingPlayerCampaigns && !playerCampaignsError && playerCampaigns.length === 0 && (
-              <div className="campaign-section-message campaign-section-empty">
-                You have not joined any campaigns as a player yet.
-              </div>
-            )}
-
-            {!loadingPlayerCampaigns && !playerCampaignsError && (() => {
-              // Group by campaignId — one card per campaign, list all characters inside
-              const grouped = playerCampaigns.reduce<Map<number, { campaignId: number; campaignName: string; creationDate?: string; characters: { id: number; name: string }[] }>>(
-                (acc, pc) => {
-                  if (!acc.has(pc.campaignId)) {
-                    acc.set(pc.campaignId, { campaignId: pc.campaignId, campaignName: pc.campaignName, creationDate: pc.creationDate, characters: [] })
-                  }
-                  acc.get(pc.campaignId)!.characters.push({ id: pc.characterId, name: pc.characterName })
-                  return acc
-                },
-                new Map()
-              )
-
-              return [...grouped.values()].map((group) => (
-                <div key={group.campaignId} className="campaign-placeholder-card">
-                  <div style={{
-                    backgroundColor: 'var(--color-background)',
-                    padding: '2rem 1.5rem',
-                    textAlign: 'center'
-                  }}>
-                    <h3 style={{
-                      margin: '0 0 0.5rem 0',
-                      fontSize: '1.5rem',
-                      fontWeight: 'normal',
-                      color: 'var(--color-foreground)'
-                    }}>
-                      {group.campaignName}
-                    </h3>
-                    <p style={{
-                      margin: '0 0 1.5rem 0',
-                      fontSize: '0.875rem',
-                      color: 'var(--color-foreground-muted)'
-                    }}>
-                      {formatCampaignStartDate(group.creationDate)}
-                    </p>
-
-                    <div style={{
-                      padding: '0.75rem 0',
-                      borderTop: '1px solid var(--color-border)',
-                      borderBottom: '1px solid var(--color-border)',
-                      marginBottom: '1.5rem'
-                    }}>
-                      <div style={{
-                        fontSize: '0.875rem',
-                        fontWeight: '700',
-                        color: 'var(--color-foreground)',
-                        letterSpacing: '0.05em',
-                        marginBottom: group.characters.length > 0 ? '0.5rem' : 0
-                      }}>
-                        ROLE: PLAYER
-                      </div>
-                      {group.characters.map((ch) => (
-                        <div key={ch.id} style={{
-                          fontSize: '0.875rem',
-                          color: 'var(--color-foreground-muted)'
-                        }}>
-                          <strong style={{ color: 'var(--color-foreground)' }}>{ch.name}</strong>
-                        </div>
-                      ))}
-                    </div>
-
-                    <button
-                      type="button"
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem 1rem',
-                        backgroundColor: 'transparent',
-                        color: '#3b82f6',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        fontWeight: '700',
-                        transition: 'color 0.2s',
-                        letterSpacing: '0.05em'
-                      }}
-                      onClick={() => handleViewCampaign(group.campaignId)}
-                      onMouseEnter={(e) => e.currentTarget.style.color = '#60a5fa'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = '#3b82f6'}
-                    >
-                      VIEW CAMPAIGN
-                    </button>
-                  </div>
-                </div>
-              ))
-            })()}
-          </div>
-        </section>
-
-        {/* Public Campaigns Section */}
-        <section className="content-section">
-          <div className="section-header">
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Public Campaigns</h2>
-              <p className="section-subtitle">Open campaigns available for everyone to view.</p>
-            </div>
-          </div>
-
-          <div className="entity-grid">
-            {loadingPublicCampaigns && (
-              <div className="campaign-section-message" role="status">
-                Loading public campaigns...
-              </div>
-            )}
-
-            {!loadingPublicCampaigns && publicCampaignsError && (
-              <div className="error-message campaign-section-message">{publicCampaignsError}</div>
-            )}
-
-            {!loadingPublicCampaigns && !publicCampaignsError && publicCampaigns.length === 0 && (
-              <div className="campaign-section-message campaign-section-empty">
-                No public campaigns available at the moment.
-              </div>
-            )}
-
-            {!loadingPublicCampaigns && !publicCampaignsError && publicCampaigns.map((campaign) => (
-              <div key={campaign.id} className="campaign-placeholder-card">
-                <div style={{
-                  backgroundColor: 'var(--color-background)',
-                  padding: '2rem 1.5rem',
-                  textAlign: 'center'
-                }}>
-                  <h3 style={{
-                    margin: '0 0 0.5rem 0',
-                    fontSize: '1.5rem',
-                    fontWeight: 'normal',
-                    color: 'var(--color-foreground)'
-                  }}>
-                    {campaign.name}
-                  </h3>
-                  <p style={{
-                    margin: '0 0 1.5rem 0',
-                    fontSize: '0.875rem',
-                    color: 'var(--color-foreground-muted)'
-                  }}>
-                    {formatCampaignStartDate(campaign.creationDate)}
-                  </p>
-
-                  <div style={{
-                    padding: '0.75rem 0',
-                    borderTop: '1px solid var(--color-border)',
-                    borderBottom: '1px solid var(--color-border)',
-                    marginBottom: '1.5rem'
-                  }}>
-                    <div style={{
-                      fontSize: '0.875rem',
-                      fontWeight: '700',
-                      color: 'var(--color-foreground)',
-                      letterSpacing: '0.05em'
-                    }}>
-                      {campaign.description}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem 1rem',
-                      backgroundColor: 'transparent',
-                      color: '#3b82f6',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      fontWeight: '700',
-                      transition: 'color 0.2s',
-                      letterSpacing: '0.05em'
-                    }}
-                    onClick={() => handleViewCampaign(campaign.id)}
-                    onMouseEnter={(e) => e.currentTarget.style.color = '#60a5fa'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = '#3b82f6'}
-                  >
-                    VIEW CAMPAIGN
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-    </div>
+        <Home
+        username={username}
+        userRole={userRole}
+        activeNav="home"
+        onOpenAdmin={handleOpenAdminPanel}
+        onLogout={handleLogout}
+        status={homeStatus}
+        characters={characters}
+        campaignNameById={campaignNameById}
+        levelsByCharacterId={levelsByCharacterId}
+        railCampaigns={railCampaigns}
+        metrics={metrics}
+        filter={homeFilter}
+        sort={homeSort}
+        joinCode={joinCode}
+        errorMessage={homeErrorMessage}
+        onOpenCreateCharacter={handleOpenCreateCharacter}
+        onOpenCreateCampaign={handleOpenCreateCampaign}
+        onOpenSheet={handleViewCharacter}
+        onOpenCampaign={handleViewCampaign}
+        onManageCampaign={handleViewCampaign}
+        onRequestDeleteCharacter={handleRequestDeleteCharacter}
+        onFilterChange={setHomeFilter}
+        onSortChange={setHomeSort}
+        onJoinCodeChange={setJoinCode}
+        onJoinSubmit={() => void handleJoinByCode()}
+        onRetry={handleRetryHome}
+        />
+      </>
     )
   }
 

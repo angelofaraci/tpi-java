@@ -53,4 +53,29 @@ describe('CopyCodeButton', () => {
     render(<CopyCodeButton code="XY99-ZZ00" variant="dark" />)
     expect(screen.getByRole('button', { name: 'Copy code' })).toBeInTheDocument()
   })
+
+  it('renders the xs size at 0.75rem (12px) with a 10px icon', () => {
+    render(<CopyCodeButton code="XY99-ZZ00" size="xs" />)
+    const button = screen.getByRole('button', { name: 'Copy code' })
+    expect(button).toHaveStyle({ width: '0.75rem', height: '0.75rem' })
+    const svg = button.querySelector('svg')
+    expect(svg).toHaveAttribute('width', '10')
+    expect(svg).toHaveAttribute('height', '10')
+  })
+
+  it('keeps the existing sm size (1.75rem, 14px icon) unchanged', () => {
+    render(<CopyCodeButton code="XY99-ZZ00" size="sm" />)
+    const button = screen.getByRole('button', { name: 'Copy code' })
+    expect(button).toHaveStyle({ width: '1.75rem', height: '1.75rem' })
+    const svg = button.querySelector('svg')
+    expect(svg).toHaveAttribute('width', '14')
+  })
+
+  it('keeps the existing md size (2.25rem, 18px icon) unchanged', () => {
+    render(<CopyCodeButton code="XY99-ZZ00" size="md" />)
+    const button = screen.getByRole('button', { name: 'Copy code' })
+    expect(button).toHaveStyle({ width: '2.25rem', height: '2.25rem' })
+    const svg = button.querySelector('svg')
+    expect(svg).toHaveAttribute('width', '18')
+  })
 })

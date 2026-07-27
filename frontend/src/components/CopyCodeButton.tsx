@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export function CopyCodeButton({ code, size = 'sm', variant = 'default' }: { code: string; size?: 'sm' | 'md'; variant?: 'default' | 'dark' }) {
+export function CopyCodeButton({ code, size = 'sm', variant = 'default' }: { code: string; size?: 'xs' | 'sm' | 'md'; variant?: 'default' | 'dark' }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
@@ -10,8 +10,8 @@ export function CopyCodeButton({ code, size = 'sm', variant = 'default' }: { cod
     })
   }
 
-  const dimension = size === 'md' ? '2.25rem' : '1.75rem'
-  const iconSize = size === 'md' ? 18 : 14
+  const dimension = size === 'md' ? '2.25rem' : size === 'xs' ? '0.75rem' : '1.75rem'
+  const iconSize = size === 'md' ? 18 : size === 'xs' ? 10 : 14
   const idleColor = variant === 'dark' ? 'rgba(255,255,255,0.5)' : 'var(--color-foreground-muted)'
   const idleBorder = variant === 'dark' ? 'rgba(255,255,255,0.2)' : 'var(--color-border)'
 
