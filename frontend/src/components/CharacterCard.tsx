@@ -130,7 +130,7 @@ export function CharacterCard({
               event.stopPropagation()
               onRequestDelete?.(character.id, character.name)
             }}
-            className="font-home-mono text-[12px] font-semibold text-home-dim-3"
+            className="font-home-mono text-[12px] font-semibold text-home-dim-3 transition-colors duration-150 hover:text-home-dim"
           >
             ···
           </button>

@@ -91,8 +91,8 @@ function CreateCharacterCta({ full, onOpenCreateCharacter }: { full: boolean; on
       onClick={onOpenCreateCharacter}
       className={
         full
-          ? 'col-span-2 flex items-center justify-between rounded-home-3xl border border-dashed border-home-border-dash bg-[rgba(37,99,235,.04)] p-[22px_24px] text-left'
-          : 'col-span-2 flex items-center justify-between rounded-home-3xl border border-dashed border-home-border-dash bg-[rgba(37,99,235,.04)] p-[14px_16px] text-left'
+          ? 'col-span-2 flex items-center justify-between rounded-home-3xl border border-dashed border-home-border-dash bg-[rgba(37,99,235,.04)] p-[22px_24px] text-left transition-colors duration-150 hover:border-home-border-hi hover:bg-[rgba(37,99,235,.08)]'
+          : 'col-span-2 flex items-center justify-between rounded-home-3xl border border-dashed border-home-border-dash bg-[rgba(37,99,235,.04)] p-[14px_16px] text-left transition-colors duration-150 hover:border-home-border-hi hover:bg-[rgba(37,99,235,.08)]'
       }
     >
       <div>
@@ -189,8 +189,8 @@ export function Home({
               aria-current={activeNav === 'home' ? 'page' : undefined}
               className={
                 activeNav === 'home'
-                  ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong'
-                  : 'py-[19px] text-home-dim'
+                  ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong transition-colors duration-150'
+                  : 'py-[19px] text-home-dim transition-colors duration-150 hover:text-home-text-soft'
               }
             >
               Home
@@ -200,8 +200,8 @@ export function Home({
               aria-current={activeNav === 'characters' ? 'page' : undefined}
               className={
                 activeNav === 'characters'
-                  ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong'
-                  : 'py-[19px] text-home-dim'
+                  ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong transition-colors duration-150'
+                  : 'py-[19px] text-home-dim transition-colors duration-150 hover:text-home-text-soft'
               }
             >
               Characters
@@ -211,8 +211,8 @@ export function Home({
               aria-current={activeNav === 'campaigns' ? 'page' : undefined}
               className={
                 activeNav === 'campaigns'
-                  ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong'
-                  : 'py-[19px] text-home-dim'
+                  ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong transition-colors duration-150'
+                  : 'py-[19px] text-home-dim transition-colors duration-150 hover:text-home-text-soft'
               }
             >
               Campaigns
@@ -224,8 +224,8 @@ export function Home({
                 onClick={onOpenAdmin}
                 className={
                   activeNav === 'admin'
-                    ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong'
-                    : 'py-[19px] text-home-dim'
+                    ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong transition-colors duration-150'
+                    : 'py-[19px] text-home-dim transition-colors duration-150 hover:text-home-text-soft'
                 }
               >
                 Admin
@@ -260,7 +260,11 @@ export function Home({
             {initials}
           </div>
 
-          <button type="button" onClick={onLogout} className="text-[12px] text-home-dim">
+          <button
+            type="button"
+            onClick={onLogout}
+            className="text-[12px] text-home-dim transition-colors duration-150 hover:text-home-text-soft"
+          >
             Logout
           </button>
         </div>
@@ -281,14 +285,14 @@ export function Home({
             <button
               type="button"
               onClick={onOpenCreateCharacter}
-              className="h-[36px] rounded-home-md bg-home-blue-600 px-[16px] font-home-display text-[12.5px] font-semibold text-white shadow-[0_6px_18px_-6px_rgba(37,99,235,.8)]"
+              className="h-[36px] rounded-home-md bg-home-blue-600 px-[16px] font-home-display text-[12.5px] font-semibold text-white shadow-[0_6px_18px_-6px_rgba(37,99,235,.8)] transition-colors duration-150 hover:bg-home-blue-500"
             >
               + New character
             </button>
             <button
               type="button"
               onClick={onOpenCreateCampaign}
-              className="h-[36px] rounded-home-md border border-home-border-hi bg-[#111621] px-[16px] font-home-display text-[12.5px] font-semibold text-home-text-soft"
+              className="h-[36px] rounded-home-md border border-home-border-hi bg-[#111621] px-[16px] font-home-display text-[12.5px] font-semibold text-home-text-soft transition-colors duration-150 hover:bg-home-chip"
             >
               + New campaign
             </button>
@@ -306,7 +310,11 @@ export function Home({
       {status === 'error' && (
         <div className="mx-[26px] mt-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
           <span>{errorMessage || 'Something went wrong loading your dashboard.'}</span>{' '}
-          <button type="button" onClick={onRetry} className="font-semibold text-[#f87171]">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="font-semibold text-[#f87171] transition-opacity duration-150 hover:opacity-80"
+          >
             Retry
           </button>
         </div>
@@ -332,8 +340,8 @@ export function Home({
                     aria-pressed={filter === option}
                     className={
                       filter === option
-                        ? 'rounded-home-md bg-home-chip px-[10px] py-[5px] text-home-text-soft'
-                        : 'rounded-home-md px-[10px] py-[5px] text-home-dim'
+                        ? 'rounded-home-md bg-home-chip px-[10px] py-[5px] text-home-text-soft transition-colors duration-150'
+                        : 'rounded-home-md px-[10px] py-[5px] text-home-dim transition-colors duration-150 hover:bg-home-chip hover:text-home-text-soft'
                     }
                   >
                     {option === 'all' ? 'All' : option === 'active' ? 'Active' : 'Retired'}
@@ -396,7 +404,7 @@ export function Home({
                 type="button"
                 onClick={onOpenCreateCampaign}
                 aria-label="New campaign"
-                className="font-home-mono text-[15px] font-semibold text-home-blue-400"
+                className="font-home-mono text-[15px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
               >
                 +
               </button>
@@ -442,7 +450,7 @@ export function Home({
                 <button
                   type="button"
                   onClick={onJoinSubmit}
-                  className="h-[34px] rounded-home-lg bg-home-blue-ink px-[14px] font-home-display text-[11.5px] font-semibold text-home-blue-200"
+                  className="h-[34px] rounded-home-lg bg-home-blue-ink px-[14px] font-home-display text-[11.5px] font-semibold text-home-blue-200 transition-colors duration-150 hover:bg-home-border-acc"
                 >
                   Join
                 </button>

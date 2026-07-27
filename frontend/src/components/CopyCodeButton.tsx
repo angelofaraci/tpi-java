@@ -20,6 +20,7 @@ export function CopyCodeButton({ code, size = 'sm', variant = 'default' }: { cod
       type="button"
       onClick={handleCopy}
       title={copied ? 'Copied!' : 'Copy code'}
+      className="transition-opacity duration-150 hover:opacity-70"
       style={{
         display: 'inline-flex',
         alignItems: 'center',

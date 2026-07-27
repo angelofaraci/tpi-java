@@ -44,7 +44,7 @@ export function CampaignRailCard({
           <button
             type="button"
             onClick={() => onOpen?.(id)}
-            className="font-home-display text-[15px] font-semibold text-home-text-strong"
+            className="font-home-display text-[15px] font-semibold text-home-text-strong transition-colors duration-150 hover:underline underline-offset-2"
           >
             {name}
           </button>
@@ -80,7 +80,7 @@ export function CampaignRailCard({
             <button
               type="button"
               onClick={() => onOpen?.(id)}
-              className="flex-1 rounded-home-lg bg-home-blue-ink py-[7px] text-center font-home-display text-[11.5px] font-semibold text-home-blue-200"
+              className="flex-1 rounded-home-lg bg-home-blue-ink py-[7px] text-center font-home-display text-[11.5px] font-semibold text-home-blue-200 transition-colors duration-150 hover:bg-home-border-acc"
             >
               Open table
             </button>
@@ -88,7 +88,7 @@ export function CampaignRailCard({
               <button
                 type="button"
                 onClick={() => onManage?.(id)}
-                className="rounded-home-lg border border-home-border-mid px-[11px] py-[7px] font-home-display text-[11.5px] font-semibold text-home-muted"
+                className="rounded-home-lg border border-home-border-mid px-[11px] py-[7px] font-home-display text-[11.5px] font-semibold text-home-muted transition-colors duration-150 hover:border-home-border-hi hover:text-home-text-soft"
               >
                 Manage
               </button>
@@ -106,7 +106,7 @@ export function CampaignRailCard({
             <button
               type="button"
               onClick={() => onOpen?.(id)}
-              className="font-home-display text-[11.5px] font-semibold text-home-blue-400"
+              className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
             >
               Open →
             </button>
