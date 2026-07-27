@@ -1,16 +1,16 @@
 # Apply Progress: Restyle Demo Landing — "Dense Ledger"
 
 **Change**: restyle-demo-landing
-**Batch**: PR #1 of 3 (stacked-to-main chain strategy)
-**Scope this batch**: tasks.md Phase 1 + Phase 2 only
+**Batch**: PR #2 of 3 (stacked-to-main chain strategy) — this batch adds to the PR #1 history below
+**Scope this batch**: tasks.md Phase 3 only
 
-## Status: Phase 1 and Phase 2 COMPLETE
+## Status: Phase 1, Phase 2, and Phase 3 COMPLETE
 
 - [x] Phase 1: `CharacterCard` — `interactive` prop (TDD)
 - [x] Phase 2: `CampaignRailCard` — `interactive` prop (TDD)
-- [ ] Phase 3: `DemoLanding` rewrite — NOT STARTED (future PR #2)
+- [x] Phase 3: `DemoLanding` rewrite — DONE (this batch, PR #2)
 - [ ] Phase 4: `App.tsx` dead-code removal — NOT STARTED (future PR #3)
-- [ ] Phase 5: Full regression pass — partially covered below, final pass belongs to PR #3
+- [ ] Phase 5: Full regression pass — final pass belongs to PR #3
 
 ## What was done
 
@@ -83,8 +83,119 @@ One commit for this work unit (Phase 1 + Phase 2 together — they are the same 
 additive `interactive` prop pattern applied to both Dense Ledger card components, per
 `suggested-work-units` Unit 1 in tasks.md's Review Workload Forecast).
 
-## Next batch (PR #2)
+## PR #2 — Phase 3: `DemoLanding.tsx` rewrite (TDD)
 
-Phase 3: `DemoLanding.tsx` rewrite (TDD) — depends on this batch being merged. Follow design.md §5's
-component tree and §6.1's 12 test assertions. Do not start until PR #1 is reviewed/merged per the
-stacked-to-main chain strategy.
+### What was done
+
+- `frontend/src/pages/demoLandingData.ts` (**new file**): module constants `DEMO_CAMPAIGN:
+  RailCampaign`, `DEMO_CHARACTERS: Character[]` (3 entries: Kaelen Vurr / Dragonborn / Paladin,
+  Sylra Moonhollow / Wood Elf / Ranger+Rogue multiclass, Bram Ironkettle / Rock Gnome /
+  Artificer), and `DEMO_LEVELS: Map<number, LevelRecord[]>`, exactly per design.md §3.1's table
+  (same ids, ability scores, classes). Ability scores include STR 17 + CHA 16 (card 1), DEX 18 +
+  WIS 16 (card 2), INT 17 (card 3) so at least one `data-highlighted="true"` ability cell renders
+  per card. `DEMO_LEVELS` keys (9101/9102/9103) and each record's `dndClass.id` line up exactly
+  with the corresponding character's `characterClasses[].id`, per the non-obvious
+  `deriveLevelBadge` contract flagged in design.md §3.1 — verified via the `LV 3/2` test
+  assertion.
+- `frontend/src/pages/DemoLanding.tsx` (**rewritten**): now a pure render function, no
+  `useState`/`useEffect`/`api` import/`../App.css` import. `DemoLandingProps` narrowed to
+  `{ onLoginRequest: () => void }` only — `onSelectCharacter`/`onSelectCampaign` removed from
+  both the type and all internal usage. Renders the Dense Ledger shell: simplified header
+  (rombo + wordmark + single `Log In / Sign Up` button, no nav/search/avatar/logout), hero band
+  with static eyebrow `A LIVE LOOK INSIDE` (not `new Date()`, per design.md ADR-04), logged-out
+  copy, 4 hardcoded `MetricTile`s (`1`/`DEMO_CHARACTERS.length`/`1`/`4`), and the two-column body
+  (`CharacterCard` grid left, `CampaignRailCard` rail right), both consumed with
+  `interactive={false}` and no `onOpenSheet`/`onOpen`/`onManage` passed (both already merged
+  from PR #1 — not re-implemented here).
+- `frontend/src/pages/DemoLanding.test.tsx` (**fully rewritten**): deleted the old
+  `vi.mock('../services/api', …)` block and all `onSelectCharacter`/`onSelectCampaign` tests.
+  11 new tests covering: synchronous render with no loading/error UI, all 3 character names
+  present, campaign name + join code present, `LV 3/2` multiclass badge, at least one
+  `data-highlighted="true"` ability cell, all 4 metric tile labels present with the CHARACTERS
+  tile asserted against `DEMO_CHARACTERS.length` (not the literal `3`) and the CAMPAIGNS tile
+  containing `1`, exactly one button in the whole tree (the CTA), no `role="button"` ancestor
+  for character names and zero `[tabindex]` elements anywhere, `onLoginRequest` fires exactly
+  once on CTA click, no nav/search/avatar/logout/sort/JOIN-A-TABLE/create-CTA copy, and no
+  "Welcome back" text. TDD followed: confirmed RED first (old component still fetched via
+  `api.demo.*` and `DEMO_CAMPAIGN`/`DEMO_CHARACTERS` weren't exported yet → 8/11 failing), then
+  implemented `DemoLanding.tsx` + `demoLandingData.ts` → GREEN (11/11 passing).
+
+### Deviation from design.md ADR-02 (documented, justified)
+
+Design.md's ADR-02 specifies the three module constants live **inline in
+`DemoLanding.tsx`** as `export const`s, explicitly rejecting a separate
+`fixtures/demoLanding.ts` module because it would be "indirection with a single consumer."
+
+That is no longer accurate once the rewritten test file needs the same constants directly (to
+assert the CHARACTERS metric tile against `DEMO_CHARACTERS.length` rather than a hardcoded
+literal, per design.md §6.1 test #6's own stated intent "so the two can never drift"). Exporting
+non-component values (`DEMO_CAMPAIGN`, `DEMO_CHARACTERS`, `DEMO_LEVELS`) directly from
+`DemoLanding.tsx` — a page component file — trips
+`react-refresh/only-export-components` under this repo's `eslint.config.js`
+(`reactRefresh.configs.vite`), which restricts page/component files to exporting components only.
+There is no existing `eslint-disable` precedent anywhere else in `frontend/src`, so silencing the
+rule inline would have introduced a new, unprecedented pattern.
+
+**Resolution**: extracted the three constants into a new sibling module,
+`frontend/src/pages/demoLandingData.ts`, imported by both `DemoLanding.tsx` and
+`DemoLanding.test.tsx`. This satisfies both design.md's underlying intent (typed against real
+domain interfaces, single source of truth, no literal-drift risk) and the lint constraint,
+while keeping the indirection genuinely two-consumer (component + its test) rather than the
+single-consumer case ADR-02 was rejecting. `DemoLanding.tsx` itself now exports only the
+`DemoLanding` component, and `npx eslint .` is clean on both new/changed files as a result.
+
+### Verification results (this batch)
+
+- `cd frontend && npx vitest run src/pages/DemoLanding.test.tsx` → 11/11 passed.
+- `cd frontend && npx vitest run` (full suite) → **265 passed, 7 failed** (272 total, up from
+  267 because `DemoLanding.test.tsx` grew from 6 to 11 tests).
+  - 1 failure is the already-known pre-existing flaky `App.test.tsx > App create campaign flow >
+    returns home and refreshes characters after creating a character` fake-timer test — unrelated,
+    not touched, matches PR #1's documented baseline.
+  - The other 6 failures are all in `describe('App demo landing (unauthenticated)')` in
+    `App.test.tsx` — **expected and in-scope-for-PR-#3**: they assert on the old
+    `DemoLanding` behavior (`api.demo.*` mocks, `Demo Campaign` text, `onSelectCharacter`/
+    `onSelectCampaign` navigation into `Characters`/`DemoCampaignDetail`) which no longer exists
+    now that `DemoLanding` is static and narrower. `App.test.tsx` itself is explicitly out of
+    scope for this batch (Phase 4 / PR #3 per tasks.md); these 6 failures are the "temporary
+    cross-PR inconsistency" the orchestrator's instructions anticipated, not a regression
+    introduced carelessly. **PR #3 must**: delete these 4 dead-navigation tests, swap the 2
+    surviving tests' `Demo Campaign` anchor to `The Sunken Crown`/the CTA button, and delete the
+    `beforeEach` `api.demo.*` mock setup, per design.md §6.5's table.
+- `cd frontend && npx tsc -b --noEmit` → **exactly one expected error location**, at
+  `App.tsx:732-733` (`<DemoLanding onLoginRequest={...} onSelectCharacter={...}
+  onSelectCampaign={...} />` — the old 3-prop call site against the new 1-prop
+  `DemoLandingProps`). This is the explicitly pre-approved, temporary cross-PR mismatch — not
+  fixed here, to be resolved in PR #3 per the orchestrator's scope instructions. No other tsc
+  errors anywhere in the project.
+  - **Environment note for future batches**: plain `npx tsc --noEmit` from `frontend/` silently
+    type-checks nothing meaningful, because the root `tsconfig.json` has `"files": []` with
+    project references and no `-b` (build) flag — running it reported 0 errors even for
+    deliberately-broken sanity-check files. The correct invocation (matching this repo's own
+    `"build": "tsc -b && vite build"` script) is `npx tsc -b --noEmit`. Use `-b` for all future
+    apply/verify batches in this repo, or tsc errors will be silently missed.
+- `cd frontend && npx eslint .` → **1 pre-existing error** (`Characters.tsx:297`,
+  `no-useless-escape`) and **2 pre-existing warnings** (`AdminPanel.tsx`,
+  `react-hooks/exhaustive-deps`) — both files untouched by this batch. Zero errors/warnings in
+  `DemoLanding.tsx`, `DemoLanding.test.tsx`, and the new `demoLandingData.ts`.
+- Confirmed via `git status`/`git diff --stat` that only `DemoLanding.tsx`,
+  `DemoLanding.test.tsx`, and the new `demoLandingData.ts` changed under `frontend/src` — `App.tsx`,
+  `Home.tsx`, `Characters.tsx`, `DemoCampaignDetail.tsx`, `services/api.ts`, `interfaces/demo.ts`
+  are all untouched, as required.
+
+### Committed
+
+One commit for this work unit (Phase 3: the full `DemoLanding` rewrite + its supporting data
+module + rewritten test file — a single deliverable behavior per `work-unit-commits`
+conventions). Committed on `main` (already has PR #1 merged); not pushed, no branch created, no
+PR opened — per instructions, the orchestrator handles branch creation, push, and PR for this
+batch.
+
+## Next batch (PR #3)
+
+Phase 4 + 5: `App.tsx` dead-code removal (design.md §4 / ADR-03's 7 point-edits), the
+`App.test.tsx` updates (design.md §6.5 — swap 2 anchors, delete `beforeEach` `api.demo.*` mocks,
+delete 4 dead-navigation tests), the `Home.test.tsx` guard (design.md §6.4), and the final full
+regression pass (tasks.md Phase 5). This will also resolve the one known `tsc -b` error at
+`App.tsx:732-733` and the 6 known `App.test.tsx` failures documented above. Do not start until
+PR #2 is reviewed/merged per the stacked-to-main chain strategy.
