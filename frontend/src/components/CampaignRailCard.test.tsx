@@ -88,3 +88,56 @@ describe('CampaignRailCard — role logic and variants', () => {
     expect(onManage).toHaveBeenCalledWith(42)
   })
 })
+
+describe('CampaignRailCard — interactive mode', () => {
+  it('interactive={false}, featured DM: hides Open table/Manage/Open → and has no buttons at all', () => {
+    render(<CampaignRailCard campaign={buildCampaign()} featured interactive={false} />)
+
+    expect(screen.queryByRole('button', { name: 'Open table' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Open →' })).not.toBeInTheDocument()
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('interactive={false}: campaign name renders as text, not a button', () => {
+    render(<CampaignRailCard campaign={buildCampaign()} interactive={false} />)
+
+    expect(screen.getByText('Stormwreck Isle')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Stormwreck Isle' })).not.toBeInTheDocument()
+  })
+
+  it('interactive={false}, featured DM: the join code well still renders without the copy button', () => {
+    render(<CampaignRailCard campaign={buildCampaign()} featured interactive={false} />)
+
+    expect(screen.getByText('A3F9-B72C')).toBeInTheDocument()
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('interactive={false}, non-featured PLAYER variant: hero name renders, Open → does not', () => {
+    render(
+      <CampaignRailCard
+        campaign={buildCampaign({ role: 'PLAYER', joinCode: undefined, heroName: 'Iria' })}
+        interactive={false}
+      />,
+    )
+
+    expect(screen.getByText('Your hero: Iria')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Open →' })).not.toBeInTheDocument()
+  })
+
+  it('interactive={false}: role chip and meta line remain unchanged', () => {
+    render(<CampaignRailCard campaign={buildCampaign()} interactive={false} />)
+
+    expect(screen.getByText('DM')).toBeInTheDocument()
+    expect(screen.getByText('5 players · 2 of your heroes')).toBeInTheDocument()
+  })
+
+  it('default (interactive omitted): Open → is present and onOpen fires', () => {
+    const onOpen = vi.fn()
+    render(<CampaignRailCard campaign={buildCampaign()} onOpen={onOpen} />)
+
+    screen.getByRole('button', { name: 'Open →' }).click()
+
+    expect(onOpen).toHaveBeenCalledWith(42)
+  })
+})

@@ -15,11 +15,20 @@ export type RailCampaign = {
 export interface CampaignRailCardProps {
   campaign: RailCampaign
   featured?: boolean
-  onOpen: (campaignId: number) => void
+  /** Required only in interactive mode. */
+  onOpen?: (campaignId: number) => void
   onManage?: (campaignId: number) => void
+  /** Default true. When false: name is a span, no action row, no copy button. */
+  interactive?: boolean
 }
 
-export function CampaignRailCard({ campaign, featured = false, onOpen, onManage }: CampaignRailCardProps) {
+export function CampaignRailCard({
+  campaign,
+  featured = false,
+  onOpen,
+  onManage,
+  interactive = true,
+}: CampaignRailCardProps) {
   const { id, name, role, joinCode, playerCount, characterCount, heroName } = campaign
   const isDungeonMaster = role === 'DM'
   const metaLine = `${playerCount ?? 0} players · ${characterCount ?? 0} of your heroes`
@@ -31,13 +40,17 @@ export function CampaignRailCard({ campaign, featured = false, onOpen, onManage 
   return (
     <div className={containerClassName}>
       <div className="flex items-center justify-between gap-[10px]">
-        <button
-          type="button"
-          onClick={() => onOpen(id)}
-          className="font-home-display text-[15px] font-semibold text-home-text-strong"
-        >
-          {name}
-        </button>
+        {interactive ? (
+          <button
+            type="button"
+            onClick={() => onOpen?.(id)}
+            className="font-home-display text-[15px] font-semibold text-home-text-strong"
+          >
+            {name}
+          </button>
+        ) : (
+          <span className="font-home-display text-[15px] font-semibold text-home-text-strong">{name}</span>
+        )}
         <span
           className={
             isDungeonMaster
@@ -56,30 +69,32 @@ export function CampaignRailCard({ campaign, featured = false, onOpen, onManage 
           <span className="font-home-mono text-[9px] tracking-[.14em] text-home-dim-2">JOIN CODE</span>
           <div className="flex items-center gap-[6px]">
             <span className="font-home-mono text-[12px] tracking-[.06em] text-home-gold">{joinCode}</span>
-            <CopyCodeButton code={joinCode} size="xs" />
+            {interactive && <CopyCodeButton code={joinCode} size="xs" />}
           </div>
         </div>
       )}
 
       {featured ? (
-        <div className="mt-[11px] flex gap-[8px]">
-          <button
-            type="button"
-            onClick={() => onOpen(id)}
-            className="flex-1 rounded-home-lg bg-home-blue-ink py-[7px] text-center font-home-display text-[11.5px] font-semibold text-home-blue-200"
-          >
-            Open table
-          </button>
-          {isDungeonMaster && (
+        interactive && (
+          <div className="mt-[11px] flex gap-[8px]">
             <button
               type="button"
-              onClick={() => onManage?.(id)}
-              className="rounded-home-lg border border-home-border-mid px-[11px] py-[7px] font-home-display text-[11.5px] font-semibold text-home-muted"
+              onClick={() => onOpen?.(id)}
+              className="flex-1 rounded-home-lg bg-home-blue-ink py-[7px] text-center font-home-display text-[11.5px] font-semibold text-home-blue-200"
             >
-              Manage
+              Open table
             </button>
-          )}
-        </div>
+            {isDungeonMaster && (
+              <button
+                type="button"
+                onClick={() => onManage?.(id)}
+                className="rounded-home-lg border border-home-border-mid px-[11px] py-[7px] font-home-display text-[11.5px] font-semibold text-home-muted"
+              >
+                Manage
+              </button>
+            )}
+          </div>
+        )
       ) : (
         <div className="mt-[11px] flex items-center justify-between">
           <span className="text-[11.5px] text-home-dim">
@@ -87,13 +102,15 @@ export function CampaignRailCard({ campaign, featured = false, onOpen, onManage 
               ? joinCode && <span className="font-home-mono text-[12px] tracking-[.06em] text-home-gold">{joinCode}</span>
               : heroName && <span className="text-home-text-soft">Your hero: {heroName}</span>}
           </span>
-          <button
-            type="button"
-            onClick={() => onOpen(id)}
-            className="font-home-display text-[11.5px] font-semibold text-home-blue-400"
-          >
-            Open →
-          </button>
+          {interactive && (
+            <button
+              type="button"
+              onClick={() => onOpen?.(id)}
+              className="font-home-display text-[11.5px] font-semibold text-home-blue-400"
+            >
+              Open →
+            </button>
+          )}
         </div>
       )}
     </div>
