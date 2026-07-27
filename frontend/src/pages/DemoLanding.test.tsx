@@ -1,117 +1,108 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { DemoLanding } from './DemoLanding'
-
-vi.mock('../services/api', () => ({
-  api: {
-    demo: {
-      campaigns: vi.fn(),
-      characters: vi.fn(),
-    },
-  },
-}))
-
-import { api } from '../services/api'
+import { DEMO_CAMPAIGN, DEMO_CHARACTERS } from './demoLandingData'
 
 describe('DemoLanding', () => {
-  const onLoginRequest = vi.fn()
-  const onSelectCharacter = vi.fn()
-  const onSelectCampaign = vi.fn()
+  it('renders synchronously with no loading/error state', () => {
+    render(<DemoLanding onLoginRequest={vi.fn()} />)
 
-  beforeEach(() => {
-    vi.resetAllMocks()
+    expect(screen.getByText('Kaelen Vurr')).toBeInTheDocument()
+    expect(screen.queryByText(/loading/i)).not.toBeInTheDocument()
+    expect(screen.queryAllByTestId('character-card-skeleton')).toHaveLength(0)
+    expect(screen.queryByText(/unavailable/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
   })
 
-  it('renders the demo campaign and character cards with a login/signup CTA', async () => {
-    vi.mocked(api.demo.campaigns).mockResolvedValue([
-      { id: 1, name: 'Demo Campaign', description: 'A sample adventure', creationDate: '2025-01-01T00:00:00.000+00:00', characterCount: 2 },
-    ])
-    vi.mocked(api.demo.characters).mockResolvedValue([
-      { id: 100, name: 'Aldric', raceName: 'Human', level: 3, alignment: 'Lawful Good' },
-      { id: 101, name: 'Seraphine', raceName: 'Elf', level: 2, alignment: 'Chaotic Good' },
-    ])
+  it('renders all three hardcoded character names', () => {
+    render(<DemoLanding onLoginRequest={vi.fn()} />)
 
-    render(
-      <DemoLanding
-        onLoginRequest={onLoginRequest}
-        onSelectCharacter={onSelectCharacter}
-        onSelectCampaign={onSelectCampaign}
-      />,
-    )
-
-    expect(await screen.findByText('Demo Campaign')).toBeInTheDocument()
-    expect(screen.getByText('Aldric')).toBeInTheDocument()
-    expect(screen.getByText('Seraphine')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /log in.*sign up/i })).toBeInTheDocument()
+    expect(screen.getByText('Kaelen Vurr')).toBeInTheDocument()
+    expect(screen.getByText('Sylra Moonhollow')).toBeInTheDocument()
+    expect(screen.getByText('Bram Ironkettle')).toBeInTheDocument()
   })
 
-  it('calls onLoginRequest when the CTA button is clicked', async () => {
+  it('renders the hardcoded campaign name and join code', () => {
+    render(<DemoLanding onLoginRequest={vi.fn()} />)
+
+    expect(screen.getAllByText('The Sunken Crown').length).toBeGreaterThan(0)
+    expect(screen.getByText('A3F9-B72C')).toBeInTheDocument()
+  })
+
+  it('renders the multiclass level badge for Sylra Moonhollow', () => {
+    render(<DemoLanding onLoginRequest={vi.fn()} />)
+
+    expect(screen.getByText('LV 3/2')).toBeInTheDocument()
+  })
+
+  it('renders at least one highlighted (>=16) ability score cell', () => {
+    const { container } = render(<DemoLanding onLoginRequest={vi.fn()} />)
+
+    expect(container.querySelectorAll('[data-highlighted="true"]').length).toBeGreaterThan(0)
+  })
+
+  it('renders exactly 4 metric tiles matching the hardcoded data', () => {
+    render(<DemoLanding onLoginRequest={vi.fn()} />)
+
+    expect(screen.getByText('CAMPAIGNS')).toBeInTheDocument()
+    expect(screen.getByText('CHARACTERS')).toBeInTheDocument()
+    expect(screen.getByText('AS DUNGEON MASTER')).toBeInTheDocument()
+    expect(screen.getByText('PLAYERS AT THIS TABLE')).toBeInTheDocument()
+
+    const grid = screen.getByTestId('demo-metrics-grid')
+    expect(grid.children).toHaveLength(4)
+
+    const charactersTile = screen.getByText('CHARACTERS').closest('div')
+    expect(charactersTile?.parentElement?.textContent).toContain(String(DEMO_CHARACTERS.length))
+    expect(DEMO_CHARACTERS).toHaveLength(3)
+
+    const campaignsTile = screen.getByText('CAMPAIGNS').closest('div')
+    expect(campaignsTile?.parentElement?.textContent).toContain('1')
+  })
+
+  it('renders exactly one button — the Log In / Sign Up CTA', () => {
+    render(<DemoLanding onLoginRequest={vi.fn()} />)
+
+    const buttons = screen.queryAllByRole('button')
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0]).toHaveTextContent(/log in.*sign up/i)
+  })
+
+  it('renders cards with no interactive affordances (no role=button ancestor, no tabindex)', () => {
+    const { container } = render(<DemoLanding onLoginRequest={vi.fn()} />)
+
+    const characterName = screen.getByText('Kaelen Vurr')
+    expect(characterName.closest('[role="button"]')).toBeNull()
+    expect(container.querySelectorAll('[tabindex]')).toHaveLength(0)
+  })
+
+  it('calls onLoginRequest exactly once when the CTA is clicked', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.demo.campaigns).mockResolvedValue([])
-    vi.mocked(api.demo.characters).mockResolvedValue([])
+    const onLoginRequest = vi.fn()
+    render(<DemoLanding onLoginRequest={onLoginRequest} />)
 
-    render(
-      <DemoLanding
-        onLoginRequest={onLoginRequest}
-        onSelectCharacter={onSelectCharacter}
-        onSelectCampaign={onSelectCampaign}
-      />,
-    )
-
-    await user.click(await screen.findByRole('button', { name: /log in.*sign up/i }))
-    expect(onLoginRequest).toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: /log in.*sign up/i }))
+    expect(onLoginRequest).toHaveBeenCalledTimes(1)
   })
 
-  it('calls onSelectCampaign with the campaign id when the campaign card is clicked', async () => {
-    const user = userEvent.setup()
-    vi.mocked(api.demo.campaigns).mockResolvedValue([
-      { id: 1, name: 'Demo Campaign', description: 'A sample adventure', creationDate: '2025-01-01T00:00:00.000+00:00', characterCount: 2 },
-    ])
-    vi.mocked(api.demo.characters).mockResolvedValue([])
+  it('does not render authenticated-only chrome', () => {
+    render(<DemoLanding onLoginRequest={vi.fn()} />)
 
-    render(
-      <DemoLanding
-        onLoginRequest={onLoginRequest}
-        onSelectCharacter={onSelectCharacter}
-        onSelectCampaign={onSelectCampaign}
-      />,
-    )
-
-    await user.click(await screen.findByRole('button', { name: /Demo Campaign/ }))
-    expect(onSelectCampaign).toHaveBeenCalledWith(1)
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
+    expect(screen.queryByRole('search')).not.toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(screen.queryByText(/logout/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/sort characters/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/join a table/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/\+ new character/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/\+ new campaign/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/welcome back/i)).not.toBeInTheDocument()
   })
 
-  it('calls onSelectCharacter with the character id when a character card is opened', async () => {
-    const user = userEvent.setup()
-    vi.mocked(api.demo.campaigns).mockResolvedValue([])
-    vi.mocked(api.demo.characters).mockResolvedValue([
-      { id: 100, name: 'Aldric', raceName: 'Human', level: 3, alignment: 'Lawful Good' },
-    ])
+  it('shows the DEMO_CAMPAIGN name matches what is rendered', () => {
+    render(<DemoLanding onLoginRequest={vi.fn()} />)
 
-    render(<DemoLanding onLoginRequest={onLoginRequest} onSelectCharacter={onSelectCharacter} onSelectCampaign={onSelectCampaign} />)
-
-    await user.click(await screen.findByRole('button', { name: /Aldric/ }))
-    expect(onSelectCharacter).toHaveBeenCalledWith(100)
-  })
-
-  it('shows an empty state when there are no demo characters yet, without crashing', async () => {
-    vi.mocked(api.demo.campaigns).mockResolvedValue([])
-    vi.mocked(api.demo.characters).mockResolvedValue([])
-
-    render(<DemoLanding onLoginRequest={onLoginRequest} onSelectCharacter={onSelectCharacter} onSelectCampaign={onSelectCampaign} />)
-
-    expect(await screen.findByText(/no demo characters/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /log in.*sign up/i })).toBeInTheDocument()
-  })
-
-  it('shows a graceful error state when the demo endpoints fail, keeping the CTA usable', async () => {
-    vi.mocked(api.demo.campaigns).mockRejectedValue(new Error('Error 500: boom'))
-    vi.mocked(api.demo.characters).mockRejectedValue(new Error('Error 500: boom'))
-
-    render(<DemoLanding onLoginRequest={onLoginRequest} onSelectCharacter={onSelectCharacter} onSelectCampaign={onSelectCampaign} />)
-
-    expect(await screen.findByText(/demo.*unavailable/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /log in.*sign up/i })).toBeInTheDocument()
+    expect(screen.getAllByText(DEMO_CAMPAIGN.name).length).toBeGreaterThan(0)
   })
 })
