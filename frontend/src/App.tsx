@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { Login } from './pages/Login'
 import { DemoLanding } from './pages/DemoLanding'
-import { DemoCampaignDetail } from './pages/DemoCampaignDetail'
 import { Characters } from './pages/Characters'
 import { CreateCampaign } from './pages/CreateCampaign'
 import { CreateCharacter } from './pages/CreateCharacter'
@@ -83,8 +82,6 @@ function App() {
   const [editCharacterData, setEditCharacterData] = useState<HydratedCharacterEditData | null>(null)
   const [characterSheetRefreshToken, setCharacterSheetRefreshToken] = useState(0)
   const [authView, setAuthView] = useState<AuthView>('demo')
-  const [demoCharacterId, setDemoCharacterId] = useState<number | null>(null)
-  const [demoCampaignId, setDemoCampaignId] = useState<number | null>(null)
   const [levels, setLevels] = useState<LevelRecord[]>([])
   const [loadingLevels, setLoadingLevels] = useState(false)
   const [levelsError, setLevelsError] = useState<string | null>(null)
@@ -424,8 +421,6 @@ function App() {
     setCharacterReturnView('home')
     setEditCharacterData(null)
     setAuthView('demo')
-    setDemoCharacterId(null)
-    setDemoCampaignId(null)
   }
 
   const handleViewCharacter = (characterId: number) => {
@@ -699,38 +694,13 @@ function App() {
             setView('home')
             setCampaignFeedback(null)
             setAuthView('demo')
-            setDemoCharacterId(null)
-            setDemoCampaignId(null)
           }}
-        />
-      )
-    } else if (demoCharacterId) {
-      content = (
-        <Characters
-          characterId={demoCharacterId}
-          source="demo"
-          onBack={() => setDemoCharacterId(null)}
-          onEditCharacter={() => {}}
-          onLogout={() => setDemoCharacterId(null)}
-          onDeleteCharacter={() => {}}
-          deletingCharacterId={null}
-          deleteError={null}
-        />
-      )
-    } else if (demoCampaignId) {
-      content = (
-        <DemoCampaignDetail
-          campaignId={demoCampaignId}
-          onBack={() => setDemoCampaignId(null)}
-          onSelectCharacter={(characterId) => setDemoCharacterId(characterId)}
         />
       )
     } else {
       content = (
         <DemoLanding
           onLoginRequest={() => setAuthView('login')}
-          onSelectCharacter={(characterId) => setDemoCharacterId(characterId)}
-          onSelectCampaign={(campaignId) => setDemoCampaignId(campaignId)}
         />
       )
     }

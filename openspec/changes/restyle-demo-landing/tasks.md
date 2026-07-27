@@ -26,7 +26,14 @@ Chain strategy: pending
 | 2 | `DemoLanding.tsx` rewrite + test | PR 2 | Depends on PR 1 merged; ~600 lines |
 | 3 | `App.tsx` dead-code removal + `App.test.tsx`/`Home.test.tsx` updates | PR 3 | Depends on PR 2 merged; ~120 lines |
 
-**Known pre-existing failures**: 8 failures in `CreateCharacterCta.test.tsx`/`CreateCharacter.test.tsx` exist before this change starts. Do NOT touch or "fix" these files — they are out of scope. Bar is *no new* failures beyond these 8.
+**Known pre-existing failures (corrected baseline)**: the original "8 failures in
+`CreateCharacterCta.test.tsx`/`CreateCharacter.test.tsx`" reference below was stale —
+`CreateCharacterCta.test.tsx` does not exist in this codebase and `CreateCharacter.test.tsx`'s
+25 tests all pass. The actual baseline is **1 pre-existing flaky `App.test.tsx` fake-timer test**
+(`App create campaign flow > returns home and refreshes characters after creating a character`,
+times out only under full-suite parallel load; reproduces on a clean `git stash` and passes in
+isolation). Do NOT touch or "fix" that test — it is out of scope. Bar is *no new* failures beyond
+this one.
 
 ## Phase 1: `CharacterCard` — `interactive` prop (TDD)
 
@@ -49,13 +56,13 @@ Chain strategy: pending
 
 ## Phase 4: `App.tsx` dead-code removal — depends on Phase 3
 
-- [ ] 4.1 RED: in `App.test.tsx`, swap `Demo Campaign` anchors to `The Sunken Crown`/CTA-button in the 2 surviving tests (L978, L985); delete `beforeEach` `api.demo.*` mocks (L964-975); delete the 4 dead-navigation tests (L994, L1022, L1050, L1068)
-- [ ] 4.2 RED (guard): add one explicit assertion in `Home.test.tsx` that Home's cards still expose `role="button"` + `Open sheet →` (design §6.4)
-- [ ] 4.3 GREEN: apply the 7 point-edits from design §4 in `App.tsx` — delete `DemoCampaignDetail` import (L5), delete `demoCharacterId`/`demoCampaignId` state (L86-87), delete their resets in `handleLogout` (L427-428) and `onAuthSuccess` (L702-703), delete both dead render branches (L707-719, L720-727), trim `<DemoLanding>` props to only `onLoginRequest` (L730-734)
-- [ ] 4.4 Run `cd frontend && npx tsc --noEmit` and `cd frontend && npx eslint .` — both clean, no unused-var/import warnings
+- [x] 4.1 RED: in `App.test.tsx`, swap the `Demo Campaign` anchors to the `Log In / Sign Up` CTA button in the 2 surviving tests; delete `beforeEach` `api.demo.*` mocks; delete the 4 dead-navigation tests
+- [x] 4.2 RED (guard): confirmed `Home.test.tsx` already asserts Home's cards expose `role="button"` + `Open sheet →` (design §6.4) — no edit needed, passes unmodified
+- [x] 4.3 GREEN: applied the 7 point-edits from design §4 in `App.tsx` — deleted `DemoCampaignDetail` import, deleted `demoCharacterId`/`demoCampaignId` state, deleted their resets in `handleLogout` and `onAuthSuccess`, deleted both dead render branches, trimmed `<DemoLanding>` props to only `onLoginRequest`
+- [x] 4.4 Ran `cd frontend && npx tsc -b --noEmit` and `cd frontend && npx eslint .` — both clean, no unused-var/import warnings (note: use `-b`, plain `tsc --noEmit` is a no-op in this repo)
 
 ## Phase 5: Full regression pass
 
-- [ ] 5.1 Run `cd frontend && npx vitest run` — zero new failures beyond the 8 known pre-existing ones in `CreateCharacterCta.test.tsx`/`CreateCharacter.test.tsx` (do not touch those files)
-- [ ] 5.2 Confirm `Home.test.tsx` passes in full, unmodified except the one guard added in 4.2
-- [ ] 5.3 Diff `Home.tsx`, `Characters.tsx`, `DemoCampaignDetail.tsx`, `services/api.ts`, `interfaces/demo.ts` against pre-change — confirm zero changes (out-of-scope requirement)
+- [x] 5.1 Ran `cd frontend && npx vitest run` — zero new failures beyond the 1 known pre-existing flaky `App.test.tsx` fake-timer test (see corrected baseline above)
+- [x] 5.2 Confirmed `Home.test.tsx` passes in full, unmodified (35/35)
+- [x] 5.3 Diffed `Home.tsx`, `Characters.tsx`, `DemoCampaignDetail.tsx`, `services/api.ts`, `interfaces/demo.ts` against pre-change — confirmed zero changes (out-of-scope requirement)

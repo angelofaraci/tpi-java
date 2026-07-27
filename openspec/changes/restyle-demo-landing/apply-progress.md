@@ -1,16 +1,17 @@
 # Apply Progress: Restyle Demo Landing — "Dense Ledger"
 
 **Change**: restyle-demo-landing
-**Batch**: PR #2 of 3 (stacked-to-main chain strategy) — this batch adds to the PR #1 history below
-**Scope this batch**: tasks.md Phase 3 only
+**Batch**: PR #3 of 3 (stacked-to-main chain strategy, FINAL batch) — this batch adds to the
+PR #1/#2 history below
+**Scope this batch**: tasks.md Phase 4 + Phase 5 (the whole remainder)
 
-## Status: Phase 1, Phase 2, and Phase 3 COMPLETE
+## Status: ALL PHASES COMPLETE — change ready for `sdd-verify`
 
 - [x] Phase 1: `CharacterCard` — `interactive` prop (TDD)
 - [x] Phase 2: `CampaignRailCard` — `interactive` prop (TDD)
-- [x] Phase 3: `DemoLanding` rewrite — DONE (this batch, PR #2)
-- [ ] Phase 4: `App.tsx` dead-code removal — NOT STARTED (future PR #3)
-- [ ] Phase 5: Full regression pass — final pass belongs to PR #3
+- [x] Phase 3: `DemoLanding` rewrite (PR #2)
+- [x] Phase 4: `App.tsx` dead-code removal (this batch, PR #3)
+- [x] Phase 5: Full regression pass (this batch, PR #3)
 
 ## What was done
 
@@ -191,11 +192,77 @@ conventions). Committed on `main` (already has PR #1 merged); not pushed, no bra
 PR opened — per instructions, the orchestrator handles branch creation, push, and PR for this
 batch.
 
-## Next batch (PR #3)
+## PR #3 — Phase 4 + Phase 5: `App.tsx` dead-code removal + final regression pass
 
-Phase 4 + 5: `App.tsx` dead-code removal (design.md §4 / ADR-03's 7 point-edits), the
-`App.test.tsx` updates (design.md §6.5 — swap 2 anchors, delete `beforeEach` `api.demo.*` mocks,
-delete 4 dead-navigation tests), the `Home.test.tsx` guard (design.md §6.4), and the final full
-regression pass (tasks.md Phase 5). This will also resolve the one known `tsc -b` error at
-`App.tsx:732-733` and the 6 known `App.test.tsx` failures documented above. Do not start until
-PR #2 is reviewed/merged per the stacked-to-main chain strategy.
+### What was done
+
+- `frontend/src/App.tsx`:
+  - Removed `import { DemoCampaignDetail } from './pages/DemoCampaignDetail'`.
+  - Removed `demoCharacterId`/`demoCampaignId` state slots (`useState<number | null>(null)` pair).
+  - Removed their resets in `handleLogout` (`setDemoCharacterId(null)` / `setDemoCampaignId(null)`).
+  - Removed their resets in `Login`'s `onAuthSuccess` callback.
+  - Removed the two dead render branches (`else if (demoCharacterId) { <Characters source="demo"> }`
+    and `else if (demoCampaignId) { <DemoCampaignDetail> }`) from the unauthenticated routing chain,
+    which now collapses to `if (authView === 'login') { <Login/> } else { <DemoLanding/> }`.
+  - Trimmed the `<DemoLanding>` call site to `onLoginRequest` only (removed `onSelectCharacter`/
+    `onSelectCampaign`), resolving the `App.tsx:732-733` `tsc -b` error from PR #2.
+  - All 7 point-edits from design.md §4/ADR-03 applied exactly as specified.
+- `frontend/src/App.test.tsx`:
+  - Rewrote `describe('App demo landing (unauthenticated)')`: deleted the `beforeEach` `api.demo.*`
+    mock setup (no longer called by the static `DemoLanding`), deleted the 4 dead-navigation tests
+    (read-only demo character sheet, "Back to Demo", demo campaign detail view, character sheet from
+    within demo campaign detail).
+  - The 2 surviving tests (`renders the demo landing instead of the login form…`, `switches to the
+    login form when the demo CTA is clicked`) were re-anchored to the `Log In / Sign Up` CTA button
+    (`getByRole('button', { name: /log in.*sign up/i })`) rather than to campaign-name text.
+  - **Deviation from design.md §6.5's literal instruction** ("swap `Demo Campaign` anchor for `The
+    Sunken Crown`"): using the campaign-name text directly caused a `TestingLibraryElementError:
+    Found multiple elements with the text: The Sunken Crown` — `DEMO_CAMPAIGN.name` ("The Sunken
+    Crown") appears 4 times in the rendered tree (once per `CharacterCard`'s `campaignName` label ×3,
+    once in the `CampaignRailCard` heading). Design.md §6.5 itself flagged the CTA button as the
+    "store-independent" alternative anchor for exactly this reason, so both surviving tests now
+    anchor on the CTA button instead of a text match, which is more robust and still exercises the
+    same routing behavior the tests exist to cover.
+  - Also removed the now-inert `api.demo.campaigns`/`api.demo.characters` mocks from
+    `describe('App logout returns to demo landing')`'s `beforeEach` (optional cleanup per design.md
+    §6.5's table) — that test already asserted on the CTA button, not on demo data, so it needed no
+    other change.
+- `openspec/changes/restyle-demo-landing/tasks.md` / `design.md`: corrected the stale "8
+  pre-existing failures in `CreateCharacterCta.test.tsx`/`CreateCharacter.test.tsx`" baseline
+  (that file doesn't exist) to the actual baseline: 1 pre-existing flaky `App.test.tsx` fake-timer
+  test. Also fixed the exit-gate command from plain `tsc --noEmit` (a no-op in this repo) to
+  `tsc -b --noEmit`. Marked all remaining tasks.md checkboxes complete.
+
+### Final regression pass results
+
+- `cd frontend && npx vitest run` (full suite) → **267 passed, 1 failed** (268 total). The 1
+  failure is the already-known, unrelated, pre-existing flaky `App.test.tsx > App create campaign
+  flow > returns home and refreshes characters after creating a character` fake-timer test — not
+  touched, matches the corrected baseline exactly. This resolves all 6 of the previously-documented
+  `DemoLanding`-related failures from PR #2 (4 deleted as dead-navigation tests, 2 fixed by
+  re-anchoring).
+- `cd frontend && npx tsc -b --noEmit` → clean, zero errors — resolves the one known
+  `App.tsx:732-733` error from PR #2.
+- `cd frontend && npx eslint .` → same 1 pre-existing error (`Characters.tsx:297`,
+  `no-useless-escape`) and 2 pre-existing warnings (`AdminPanel.tsx`,
+  `react-hooks/exhaustive-deps`) as PR #1/#2's baseline — both files untouched by this batch. Zero
+  errors/warnings in `App.tsx`/`App.test.tsx` (no unused-var/import noise from the removed state).
+- Confirmed via `git diff --stat` against `main` that `DemoCampaignDetail.tsx`, `Characters.tsx`,
+  `services/api.ts`, `interfaces/demo.ts` show **zero diff** — fully out-of-scope as required.
+- `Home.test.tsx` → 35/35 passed, unmodified; already contains the `role="button"` + `Open sheet →`
+  assertions design.md §6.4 asked to guard, so no edit to that file was needed.
+
+### Committed
+
+One commit for this work unit (Phase 4 + Phase 5 together — the `App.tsx` cleanup and its test
+updates are a single deliverable: they can't be split further without leaving the tree in a
+broken intermediate state, per `work-unit-commits` conventions). Committed on `main` (already has
+PR #1 + PR #2 merged); not pushed, no branch created, no PR opened — per instructions, the
+orchestrator handles branch creation, push, and PR for this batch.
+
+## Change status: COMPLETE
+
+All 5 phases across PR #1/#2/#3 are done. Full regression suite is green (267/268, 1 known
+unrelated flaky test), `tsc -b --noEmit` is clean, `eslint .` is clean on every file touched by
+this change, and all out-of-scope files are confirmed untouched. Next recommended step is
+`sdd-verify`.

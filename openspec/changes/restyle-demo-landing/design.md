@@ -369,8 +369,10 @@ No structural rework is implied either way.
 ## 6. Testing design
 
 Strict TDD is active. Runner: `cd frontend && npx vitest run`.
-**8 pre-existing failures in `CreateCharacterCta.test.tsx` / `CreateCharacter.test.tsx` are
-known — ignore them, do not fix them.** The bar is *no new* failures.
+**Corrected baseline** (see apply-progress.md): the originally-stated "8 pre-existing failures
+in `CreateCharacterCta.test.tsx`/`CreateCharacter.test.tsx`" do not exist in this codebase.
+The actual baseline is **1 pre-existing flaky `App.test.tsx` fake-timer test** — ignore it, do
+not fix it. The bar is *no new* failures.
 
 TDD ordering (each red before green):
 1. `CharacterCard.test.tsx` / `CampaignRailCard.test.tsx` — the `interactive` prop.
@@ -457,8 +459,8 @@ it is not lost behavior. `DemoCampaignDetail.tsx` keeps its own test file, if an
 
 ### 6.6 Exit gates
 
-- `cd frontend && npx vitest run` → no new failures beyond the 8 known.
-- `cd frontend && npx tsc --noEmit` → clean.
+- `cd frontend && npx vitest run` → no new failures beyond the 1 known pre-existing flaky test.
+- `cd frontend && npx tsc -b --noEmit` → clean (plain `tsc --noEmit` is a no-op in this repo — use `-b`).
 - `cd frontend && npx eslint .` → clean (catches the orphaned `App.tsx` setters that `tsc` misses).
 
 ---
