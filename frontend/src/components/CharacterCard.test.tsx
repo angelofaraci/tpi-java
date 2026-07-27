@@ -208,3 +208,129 @@ describe('CharacterCard — level badge derivation', () => {
     expect(screen.getByText('LV 5')).toBeInTheDocument()
   })
 })
+
+describe('CharacterCard — interactive mode', () => {
+  it('defaults to interactive: role=button, tabIndex=0, CTA and menu present', () => {
+    render(
+      <CharacterCard
+        character={buildCharacter()}
+        campaignName="Stormwreck"
+        isDungeonMaster={false}
+        onOpenSheet={vi.fn()}
+        levelsByCharacterId={emptyLevels}
+      />,
+    )
+
+    const card = screen.getByRole('button', { name: /Iria/ })
+    expect(card).toHaveAttribute('tabIndex', '0')
+    expect(screen.getByText('Open sheet →')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '···' })).toBeInTheDocument()
+  })
+
+  it('interactive={true} explicitly behaves identically to the default', () => {
+    render(
+      <CharacterCard
+        character={buildCharacter()}
+        campaignName="Stormwreck"
+        isDungeonMaster={false}
+        onOpenSheet={vi.fn()}
+        levelsByCharacterId={emptyLevels}
+        interactive
+      />,
+    )
+
+    const card = screen.getByRole('button', { name: /Iria/ })
+    expect(card).toHaveAttribute('tabIndex', '0')
+    expect(screen.getByText('Open sheet →')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '···' })).toBeInTheDocument()
+  })
+
+  it('interactive={false} strips role and tabIndex from the container', () => {
+    render(
+      <CharacterCard
+        character={buildCharacter()}
+        campaignName="Stormwreck"
+        isDungeonMaster={false}
+        levelsByCharacterId={emptyLevels}
+        interactive={false}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: /Iria/ })).not.toBeInTheDocument()
+    const { container } = render(
+      <CharacterCard
+        character={buildCharacter()}
+        campaignName="Stormwreck"
+        isDungeonMaster={false}
+        levelsByCharacterId={emptyLevels}
+        interactive={false}
+      />,
+    )
+    expect(container.querySelectorAll('[tabindex]')).toHaveLength(0)
+  })
+
+  it('interactive={false} hides the "Open sheet →" CTA and the "···" menu', () => {
+    render(
+      <CharacterCard
+        character={buildCharacter()}
+        campaignName="Stormwreck"
+        isDungeonMaster={false}
+        levelsByCharacterId={emptyLevels}
+        interactive={false}
+      />,
+    )
+
+    expect(screen.queryByText('Open sheet →')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '···' })).not.toBeInTheDocument()
+  })
+
+  it('interactive={false} does not invoke onOpenSheet when clicked, even if supplied', () => {
+    const onOpenSheet = vi.fn()
+    const { container } = render(
+      <CharacterCard
+        character={buildCharacter()}
+        campaignName="Stormwreck"
+        isDungeonMaster={false}
+        onOpenSheet={onOpenSheet}
+        levelsByCharacterId={emptyLevels}
+        interactive={false}
+      />,
+    )
+
+    screen.getByText('Iria').click()
+    container.firstElementChild?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+    expect(onOpenSheet).not.toHaveBeenCalled()
+  })
+
+  it('interactive={false} still renders name, race/class, AC, and the ability strip', () => {
+    render(
+      <CharacterCard
+        character={buildCharacter()}
+        campaignName="Stormwreck"
+        isDungeonMaster={false}
+        levelsByCharacterId={emptyLevels}
+        interactive={false}
+      />,
+    )
+
+    expect(screen.getByText('Iria')).toBeInTheDocument()
+    expect(screen.getByText('Elf · Wizard')).toBeInTheDocument()
+    expect(screen.getByTestId('character-card-ac')).toBeInTheDocument()
+    expect(screen.getByText('16')).toHaveAttribute('data-highlighted', 'true')
+  })
+
+  it('renders without onOpenSheet supplied and without throwing at runtime', () => {
+    expect(() =>
+      render(
+        <CharacterCard
+          character={buildCharacter()}
+          campaignName="Stormwreck"
+          isDungeonMaster={false}
+          levelsByCharacterId={emptyLevels}
+          interactive={false}
+        />,
+      ),
+    ).not.toThrow()
+  })
+})
