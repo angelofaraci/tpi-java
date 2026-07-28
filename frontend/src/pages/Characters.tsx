@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ScoreBox } from '../components/scoreBox'
-import '../styles/CharacterSheet.css'
+import { Button } from '../components/ui/Button'
+import { MetricTile } from '../components/MetricTile'
 import { api, API_BASE_URL } from '../services/api'
 import type { Character, CharacterCatalogClassOption, HydratedCharacterEditData, LevelRecord } from '../interfaces/character'
 import type { DemoCharacterDetail } from '../interfaces/demo'
@@ -260,21 +261,42 @@ export function Characters({
   }, [characterId, refreshToken, source])
 
   if (loading) {
-    return <div className="loading-container">Loading character sheet...</div>
+    return (
+      <div className="min-h-screen bg-home-ink-900 p-[26px] text-[12.5px] text-home-dim">
+        Loading character sheet...
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <div>
-        <header className="app-header">
-          <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager</h1>
-          <button onClick={onLogout} className="logout-button">
+      <div className="min-h-screen bg-home-ink-900 text-home-text" style={{ fontFamily: 'var(--font-home-display)' }}>
+        <header className="flex h-[58px] items-center justify-between border-b border-home-line bg-home-ink-800 px-[26px]">
+          <h1
+            onClick={onBack}
+            className="cursor-pointer font-home-display text-[12.5px] font-bold uppercase text-home-text-strong"
+          >
+            D&D Manager
+          </h1>
+          <button
+            onClick={onLogout}
+            type="button"
+            className="text-[12px] text-home-dim transition-colors duration-150 hover:text-home-text-soft"
+          >
             {source === 'demo' ? 'Back to Demo' : 'Logout'}
           </button>
         </header>
-        <div style={{ padding: '2rem' }}>
-          <button className="link-button" onClick={onBack}>← Back to Home</button>
-          <div className="error-message" style={{ marginTop: '1rem' }}>Error: {error}</div>
+        <div className="p-[22px_26px_28px]">
+          <button
+            className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
+            onClick={onBack}
+            type="button"
+          >
+            ← Back to Home
+          </button>
+          <div className="mt-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
+            Error: {error}
+          </div>
         </div>
       </div>
     )
@@ -297,22 +319,40 @@ export function Characters({
   const stripRaceLevelPrefix = (title: string) => title.replace(/^(level|nivel)\s*\d+\s*[:\-]?\s*/i, '').trim()
 
   return (
-    <div>
-      <header className="app-header">
-        <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager</h1>
-        <button onClick={onLogout} className="logout-button">
+    <div className="min-h-screen bg-home-ink-900 text-home-text" style={{ fontFamily: 'var(--font-home-display)' }}>
+      <header className="flex h-[58px] items-center justify-between border-b border-home-line bg-home-ink-800 px-[26px]">
+        <h1
+          onClick={onBack}
+          className="cursor-pointer font-home-display text-[12.5px] font-bold uppercase text-home-text-strong"
+        >
+          D&D Manager
+        </h1>
+        <button
+          onClick={onLogout}
+          type="button"
+          className="text-[12px] text-home-dim transition-colors duration-150 hover:text-home-text-soft"
+        >
           {source === 'demo' ? 'Back to Demo' : 'Logout'}
         </button>
       </header>
-      <div style={{ padding: '1rem 2rem' }}>
-        <button className="link-button" onClick={onBack}>← Back to Home</button>
+      <div className="p-[22px_26px_28px]">
+        <button
+          className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
+          onClick={onBack}
+          type="button"
+        >
+          ← Back to Home
+        </button>
         {feedback && (
-          <div className="status-banner success-banner" role="status" style={{ marginTop: '1rem' }}>
+          <div
+            className="mt-[16px] flex items-center justify-between rounded-home-xl border border-home-border-acc bg-[rgba(37,99,235,.08)] p-[12px_14px] text-[12.5px] text-home-blue-200"
+            role="status"
+          >
             <span>{feedback}</span>
             {onDismissFeedback && (
               <button
                 type="button"
-                className="banner-dismiss-button"
+                className="font-semibold text-home-dim transition-colors duration-150 hover:text-home-text-soft"
                 onClick={onDismissFeedback}
                 aria-label="Dismiss character feedback"
               >
@@ -321,15 +361,18 @@ export function Characters({
             )}
           </div>
         )}
-        {deleteError && <div className="error-message" style={{ marginTop: '1rem' }}>{deleteError}</div>}
+        {deleteError && (
+          <div className="mt-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
+            {deleteError}
+          </div>
+        )}
       </div>
-      <div className="character-sheet">
-        <div className="sheet-actions-row">
+      <div className="flex w-full flex-col items-center p-[22px_26px_28px]">
+        <div className="mx-auto mb-[14px] flex w-full max-w-[1320px] items-center justify-end gap-[10px]">
           {!isReadOnly && (
             <>
-              <button
-                type="button"
-                className="section-action-button sheet-hero-action-button"
+              <Button
+                variant="primary"
                 onClick={() => {
                   if (characterEditData) {
                     onEditCharacter(characterEditData)
@@ -338,10 +381,10 @@ export function Characters({
                 disabled={!characterEditData}
               >
                 Edit Character
-              </button>
+              </Button>
               <button
                 type="button"
-                className="sheet-delete-button sheet-hero-action-button"
+                className="h-[36px] rounded-home-md border border-[#3f2226] bg-[rgba(220,38,38,.12)] px-[16px] font-home-display text-[12.5px] font-semibold text-home-danger transition-colors duration-150 hover:bg-[rgba(220,38,38,.2)] disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={() => onDeleteCharacter(characterId, characterSheetData.name)}
                 disabled={deletingCharacterId === characterId}
               >
@@ -351,12 +394,20 @@ export function Characters({
           )}
         </div>
 
-        <div className="header-section">
-          <div className="sheet-hero-actions">
-            <div className="sheet-hero-content">
-              <span className="sheet-hero-badge">Character Sheet</span>
-              <h2 className="sheet-hero-title">{characterSheetData.name || 'Unnamed Character'}</h2>
-              {!isReadOnly && <p className="sheet-hero-copy">Review the current sheet, class features, and core stats before making your next table decision.</p>}
+        <div className="mx-auto mb-[20px] w-full max-w-[1320px]">
+          <div className="mb-[16px] flex items-center gap-[16px] rounded-home-2xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[22px_24px]">
+            <div className="flex-1">
+              <span className="inline-flex items-center rounded-full bg-[rgba(220,38,38,.12)] px-[7px] py-[2px] font-home-mono text-[10.5px] font-semibold text-[#f2b8b5]">
+                Character Sheet
+              </span>
+              <h2 className="mt-[10px] font-home-display text-[28px] font-semibold text-home-text-strong">
+                {characterSheetData.name || 'Unnamed Character'}
+              </h2>
+              {!isReadOnly && (
+                <p className="mt-[8px] text-[12.5px] leading-[1.5] text-home-muted">
+                  Review the current sheet, class features, and core stats before making your next table decision.
+                </p>
+              )}
             </div>
           </div>
 
@@ -370,97 +421,74 @@ export function Characters({
             </div>
           )}
 
-          <div className="stats-container sheet-top-stats">
-            <div className="stat-box proficiency-stat-box">
-              <div>Proficiency</div>
-              <div className="score proficiency-stat-score">+{characterSheetData.proficiency}</div>
-            </div>
-            <div className="stat-box">
-              <div>Armor Class</div>
-              <div className="score">{10 + dexterityModifier}</div>
-            </div>
-            <div className="stat-box">
-              <div>Initiative</div>
-              <div className="score">{dexterityModifier}</div>
-            </div>
-            <div className="stat-box">
-              <div>Speed</div>
-              <div className="score">{characterSheetData.velocity}</div>
-            </div>
+          <div className="mb-[20px] grid grid-cols-2 gap-[12px] sm:grid-cols-4">
+            <MetricTile value={`+${characterSheetData.proficiency}`} label="PROFICIENCY" valueClassName="text-home-blue-300" />
+            <MetricTile value={10 + dexterityModifier} label="ARMOR CLASS" />
+            <MetricTile value={dexterityModifier} label="INITIATIVE" />
+            <MetricTile value={characterSheetData.velocity} label="SPEED" />
           </div>
 
-          <div className="basic-info">
-            <div className='infobox'>
-              <h3>Class: </h3>
+          <div className="mb-[20px] grid grid-cols-1 gap-[10px] sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-home-lg border border-home-border bg-home-surface p-[10px]">
+              <h3 className="mb-[4px] font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2">Class: </h3>
               {characterSheetData.classes.length > 0 ? (
                 <div>
                   {characterSheetData.classes.map((c) => (
-                    <p key={c.classId}>{c.description} (Level {c.level})</p>
+                    <p key={c.classId} className="text-[12.5px] text-home-text">{c.description} (Level {c.level})</p>
                   ))}
                 </div>
               ) : (
-                <p>Not Specified</p>
+                <p className="text-[12.5px] text-home-text">Not Specified</p>
               )}
             </div>
-            <div className='infobox'>
-              <h3>Race: </h3>
-              <p>{characterSheetData.race}</p>
+            <div className="rounded-home-lg border border-home-border bg-home-surface p-[10px]">
+              <h3 className="mb-[4px] font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2">Race: </h3>
+              <p className="text-[12.5px] text-home-text">{characterSheetData.race}</p>
             </div>
-            <div className='infobox'>
-              <h3>Background: </h3>
-              <p>{characterSheetData.background}</p>
+            <div className="rounded-home-lg border border-home-border bg-home-surface p-[10px]">
+              <h3 className="mb-[4px] font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2">Background: </h3>
+              <p className="text-[12.5px] text-home-text">{characterSheetData.background}</p>
             </div>
-            <div className='infobox'>
-              <h3>Alignment: </h3>
-              <p>{characterSheetData.alignment}</p>
+            <div className="rounded-home-lg border border-home-border bg-home-surface p-[10px]">
+              <h3 className="mb-[4px] font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2">Alignment: </h3>
+              <p className="text-[12.5px] text-home-text">{characterSheetData.alignment}</p>
             </div>
-            <div className='infobox'>
-              <h3>HP: </h3>
-              <p>{characterSheetData.hp}</p>
+            <div className="rounded-home-lg border border-home-border bg-home-surface p-[10px]">
+              <h3 className="mb-[4px] font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2">HP: </h3>
+              <p className="text-[12.5px] text-home-text">{characterSheetData.hp}</p>
             </div>
           </div>
 
           {/* Campaign Info */}
           {characterCampaign && (
-            <div style={{
-              marginTop: '1rem',
-              padding: '0.75rem 1rem',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-              borderRadius: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '1rem',
-              flexWrap: 'wrap',
-            }}>
+            <div className="mt-[16px] flex flex-wrap items-center justify-between gap-[16px] rounded-home-lg border border-home-border-mid bg-home-well p-[12px_16px]">
               <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--color-foreground-muted)' }}>
+                <span className="font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2">
                   CAMPAIGN
                 </span>
-                <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-foreground)', marginTop: '0.25rem' }}>
+                <div className="mt-[4px] text-[16px] font-semibold text-home-text-strong">
                   🗺️ {characterCampaign.name || `Campaign #${characterCampaign.id}`}
                 </div>
               </div>
               {onViewCampaign && (
-                <button
-                  type="button"
-                  className="section-action-button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => onViewCampaign(characterCampaign.id)}
-                  style={{ whiteSpace: 'nowrap' }}
+                  className="whitespace-nowrap"
                 >
                   View Campaign →
-                </button>
+                </Button>
               )}
             </div>
           )}
         </div>
 
-        <div className="sheet-columns">
-          <div className="sheet-column-left">
-            <div className="features-section">
-              <h3>Abilities & Proficiencies</h3>
-              <div className="ability-scores ability-scores-sidebar">
+        <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-[16px] lg:grid-cols-2">
+          <div className="flex flex-col gap-[20px]">
+            <div className="rounded-home-2xl border border-home-border bg-home-surface p-[16px]">
+              <h3 className="mb-[12px] font-home-display text-[13px] font-semibold uppercase tracking-[.13em] text-home-text-strong">Abilities & Proficiencies</h3>
+              <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-2">
                 <ScoreBox
                   label="Strength"
                   score={characterSheetData.abilityScores.Strength}
@@ -528,11 +556,11 @@ export function Characters({
             </div>
           </div>
 
-          <div className="sheet-column-right">
-            <div className="features-section">
-              <h3>Class Features</h3>
+          <div className="flex flex-col gap-[20px]">
+            <div className="rounded-home-2xl border border-home-border bg-home-surface p-[16px]">
+              <h3 className="mb-[12px] font-home-display text-[13px] font-semibold uppercase tracking-[.13em] text-home-text-strong">Class Features</h3>
               {characterSheetData.classes.length === 0 ? (
-                <div className="feature-item">No class features</div>
+                <div className="text-[12.5px] italic text-home-dim">No class features</div>
               ) : (
                 characterSheetData.classes.map((c) => {
                   // Group features by level
@@ -549,22 +577,24 @@ export function Characters({
                   const levels = Object.keys(featuresByLevel).map(Number).sort((a, b) => a - b)
 
                   return (
-                    <div key={c.classId} className="class-features-block">
-                      <div className="class-features-header">
+                    <div key={c.classId} className="mb-[16px] last:mb-0">
+                      <div className="mb-[10px] border-b-2 border-home-line pb-[8px] text-[15px] font-bold text-home-text-strong">
                         {c.description} (Level {c.level})
                       </div>
                       {levels.length === 0 ? (
-                        <div className="feature-item">No features unlocked</div>
+                        <div className="text-[12.5px] italic text-home-dim">No features unlocked</div>
                       ) : (
                         levels.map((level) => (
-                          <div key={`${c.classId}-level-${level}`} className="level-features-group">
-                            <div className="level-features-header">Level {level}</div>
-                            <div className="level-features-list">
+                          <div key={`${c.classId}-level-${level}`} className="mb-[16px] border-l-[3px] border-[#3f2226] pl-[10px] last:mb-0">
+                            <div className="mb-[10px] rounded-r-[4px] bg-[rgba(220,38,38,.08)] px-[10px] py-[6px] font-home-mono text-[10px] font-bold uppercase tracking-[.08em] text-home-danger">
+                              Level {level}
+                            </div>
+                            <div className="flex flex-col gap-[10px] pl-[6px]">
                               {featuresByLevel[level].map((feature, idx) => (
-                                <div key={`${c.classId}-${level}-${idx}`} className="feature-card">
-                                  <div className="feature-title">{feature.title}</div>
+                                <div key={`${c.classId}-${level}-${idx}`} className="rounded-home-md border border-home-border bg-home-ink-900 p-[10px_14px] transition-colors duration-150 hover:border-home-border-hi">
+                                  <div className="mb-[5px] text-[13px] font-bold text-home-text-strong">{feature.title}</div>
                                   {feature.description && (
-                                    <div className="feature-description">{feature.description}</div>
+                                    <div className="text-[12.5px] leading-[1.5] text-home-muted">{feature.description}</div>
                                   )}
                                 </div>
                               ))}
@@ -578,21 +608,21 @@ export function Characters({
               )}
             </div>
 
-            <div className="features-section">
-              <h3>Race Features</h3>
+            <div className="rounded-home-2xl border border-home-border bg-home-surface p-[16px]">
+              <h3 className="mb-[12px] font-home-display text-[13px] font-semibold uppercase tracking-[.13em] text-home-text-strong">Race Features</h3>
               {!characterSheetData.racialFeats || characterSheetData.racialFeats.length === 0 ? (
-                <div className="feature-item">No racial features</div>
+                <div className="text-[12.5px] italic text-home-dim">No racial features</div>
               ) : (
-                <div className="class-features-block">
-                  <div className="class-features-header">{characterSheetData.race || 'Race'}</div>
-                  <div className="level-features-list">
+                <div className="mb-[16px] last:mb-0">
+                  <div className="mb-[10px] border-b-2 border-home-line pb-[8px] text-[15px] font-bold text-home-text-strong">{characterSheetData.race || 'Race'}</div>
+                  <div className="flex flex-col gap-[10px] pl-[6px]">
                     {characterSheetData.racialFeats.map((feat, index) => {
                       const parsed = parseFeature(feat)
                       const cleanedTitle = stripRaceLevelPrefix(parsed.title)
                       return (
-                        <div key={index} className="feature-card">
-                          <div className="feature-title">{cleanedTitle || 'Feature'}</div>
-                          {parsed.description && <div className="feature-description">{parsed.description}</div>}
+                        <div key={index} className="rounded-home-md border border-home-border bg-home-ink-900 p-[10px_14px] transition-colors duration-150 hover:border-home-border-hi">
+                          <div className="mb-[5px] text-[13px] font-bold text-home-text-strong">{cleanedTitle || 'Feature'}</div>
+                          {parsed.description && <div className="text-[12.5px] leading-[1.5] text-home-muted">{parsed.description}</div>}
                         </div>
                       )
                     })}
@@ -601,19 +631,19 @@ export function Characters({
               )}
             </div>
 
-            <div className="features-section">
-              <h3>Character Features</h3>
+            <div className="rounded-home-2xl border border-home-border bg-home-surface p-[16px]">
+              <h3 className="mb-[12px] font-home-display text-[13px] font-semibold uppercase tracking-[.13em] text-home-text-strong">Character Features</h3>
               {characterSheetData.characteristics.length === 0 ? (
-                <div className="feature-item">No character features</div>
+                <div className="text-[12.5px] italic text-home-dim">No character features</div>
               ) : (
-                <div className="class-features-block">
-                  <div className="level-features-list">
+                <div className="mb-[16px] last:mb-0">
+                  <div className="flex flex-col gap-[10px] pl-[6px]">
                     {characterSheetData.characteristics.map((feature, index) => {
                       const parsed = parseFeature(feature)
                       return (
-                        <div key={index} className="feature-card">
-                          <div className="feature-title">{parsed.title || 'Feature'}</div>
-                          {parsed.description && <div className="feature-description">{parsed.description}</div>}
+                        <div key={index} className="rounded-home-md border border-home-border bg-home-ink-900 p-[10px_14px] transition-colors duration-150 hover:border-home-border-hi">
+                          <div className="mb-[5px] text-[13px] font-bold text-home-text-strong">{parsed.title || 'Feature'}</div>
+                          {parsed.description && <div className="text-[12.5px] leading-[1.5] text-home-muted">{parsed.description}</div>}
                         </div>
                       )
                     })}
