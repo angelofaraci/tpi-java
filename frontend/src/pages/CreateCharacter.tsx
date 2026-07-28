@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import '../App.css'
+import { Button } from '../components/ui/Button'
+import { FormField } from '../components/ui/FormField'
+import { Input } from '../components/ui/Input'
 import type {
   AbilityScoreName,
   CharacterCatalogClassOption,
@@ -617,47 +619,88 @@ export function CreateCharacter({
     }
   }
 
+  const selectBase = 'w-full rounded-home-md border bg-home-well px-[10px] py-[5px] text-[12.5px] text-home-muted disabled:opacity-50'
+  const selectBorder = (invalid: boolean) => (invalid ? 'border-home-danger' : 'border-home-border-mid')
+
   return (
-    <div>
-      <header className="app-header">
-        <h1 onClick={onCancel} style={{ cursor: 'pointer' }}>D&D Manager</h1>
-        <button onClick={onLogout} className="logout-button">Logout</button>
+    <div className="min-h-screen bg-home-ink-900 text-home-text" style={{ fontFamily: 'var(--font-home-display)' }}>
+      <header className="flex h-[58px] items-center justify-between border-b border-home-line bg-home-ink-800 px-[26px]">
+        <h1
+          onClick={onCancel}
+          className="cursor-pointer font-home-display text-[12.5px] font-bold uppercase text-home-text-strong"
+        >
+          D&D Manager
+        </h1>
+        <button
+          onClick={onLogout}
+          type="button"
+          className="text-[12px] text-home-dim transition-colors duration-150 hover:text-home-text-soft"
+        >
+          Logout
+        </button>
       </header>
 
-      <div className="page-toolbar">
-        <button className="link-button" onClick={onCancel} type="button">
+      <div className="px-[26px] py-[16px]">
+        <button
+          className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
+          onClick={onCancel}
+          type="button"
+        >
           ← {cancelLabel}
         </button>
       </div>
 
-      <div className="create-character-page">
-        <div className="create-character-card">
-          <div className="create-character-hero">
+      <div className="px-[26px] pb-[28px]">
+        <div className="rounded-home-2xl border border-home-border bg-home-surface p-[14px]">
+          <div className="mb-[16px] flex flex-wrap items-center justify-between gap-[12px]">
             <div>
-              <h2 style={{ margin: 0, fontSize: '1.75rem' }}>{pageTitle}</h2>
-              <p className="create-character-lead">{pageLead}</p>
+              <h2 className="font-home-display text-[20px] font-semibold leading-[1.15] tracking-[-.01em] text-home-text-strong">
+                {pageTitle}
+              </h2>
+              <p className="mt-[8px] text-[12.5px] leading-[1.5] text-home-muted">{pageLead}</p>
             </div>
-            <div className="create-character-summary">
-              <span>Level {totalLevel || 1}</span>
-              <span>AC {armorClass}</span>
-              <span>Speed {speed}</span>
+            <div className="flex items-center gap-[8px]">
+              <span className="rounded-full bg-home-chip px-[7px] py-[2px] font-home-mono text-[10.5px] font-semibold text-[#8fb2ec]">
+                Level {totalLevel || 1}
+              </span>
+              <span className="rounded-full bg-home-chip px-[7px] py-[2px] font-home-mono text-[10.5px] font-semibold text-[#8fb2ec]">
+                AC {armorClass}
+              </span>
+              <span className="rounded-full bg-home-chip px-[7px] py-[2px] font-home-mono text-[10.5px] font-semibold text-[#8fb2ec]">
+                Speed {speed}
+              </span>
             </div>
           </div>
 
-          {isLoadingCatalog && <div className="campaign-section-message">Loading creation options...</div>}
-          {!isLoadingCatalog && catalogError && <div className="error-message">{catalogError}</div>}
+          {isLoadingCatalog && <div className="text-[12.5px] text-home-dim">Loading creation options...</div>}
+          {!isLoadingCatalog && catalogError && (
+            <div className="rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
+              {catalogError}
+            </div>
+          )}
 
           {!isLoadingCatalog && !catalogError && (
             <form onSubmit={handleSubmit} noValidate>
-              {submitError && <div className="error-message">{submitError}</div>}
+              {submitError && (
+                <div className="mb-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
+                  {submitError}
+                </div>
+              )}
 
-              <div className="create-character-layout">
-                <section className="create-character-panel">
-                  <h3>Identity</h3>
+              <div className="grid grid-cols-1 gap-[16px] lg:grid-cols-2">
+                <section className="rounded-home-2xl border border-home-border bg-home-surface p-[14px]">
+                  <h3 className="mb-[12px] font-home-display text-[13px] font-semibold uppercase tracking-[.13em] text-home-text-strong">
+                    Identity
+                  </h3>
 
-                  <div className="form-group">
-                    <label htmlFor="character-campaign-code">Campaign Code</label>
-                    <input
+                  <div className="mb-[14px]">
+                    <label
+                      htmlFor="character-campaign-code"
+                      className="mb-[10px] block font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2"
+                    >
+                      Campaign Code
+                    </label>
+                    <Input
                       id="character-campaign-code"
                       type="text"
                       value={campaignCode}
@@ -665,25 +708,25 @@ export function CreateCharacter({
                       placeholder="Ask your DM for the code — e.g. A3F9-B72C"
                       disabled={isSubmitting}
                       aria-invalid={Boolean(fieldErrors.campaignId) || campaignCodeStatus === 'invalid'}
-                      style={{ textTransform: 'uppercase' }}
+                      invalid={Boolean(fieldErrors.campaignId) || campaignCodeStatus === 'invalid'}
+                      className="uppercase"
                     />
                     {campaignCodeStatus === 'loading' && (
-                      <p className="field-hint">Validating code...</p>
+                      <p className="mt-[5px] block text-[11.5px] text-home-dim">Validating code...</p>
                     )}
                     {campaignCodeStatus === 'valid' && resolvedCampaignName && (
-                      <p className="field-success">✓ Campaign: <strong>{resolvedCampaignName}</strong></p>
+                      <p className="mt-[5px] block text-[11.5px] text-[#22c55e]">✓ Campaign: <strong>{resolvedCampaignName}</strong></p>
                     )}
                     {campaignCodeStatus === 'invalid' && campaignCodeError && (
-                      <p className="field-error">{campaignCodeError}</p>
+                      <p className="mt-[5px] block text-[11.5px] text-home-danger">{campaignCodeError}</p>
                     )}
                     {fieldErrors.campaignId && campaignCodeStatus === 'idle' && (
-                      <p className="field-error">{fieldErrors.campaignId}</p>
+                      <p className="mt-[5px] block text-[11.5px] text-home-danger">{fieldErrors.campaignId}</p>
                     )}
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="character-name">Character Name</label>
-                    <input
+                  <FormField id="character-name" label="Character Name" error={fieldErrors.name}>
+                    <Input
                       id="character-name"
                       type="text"
                       value={draft.name}
@@ -695,13 +738,12 @@ export function CreateCharacter({
                       disabled={isSubmitting}
                       maxLength={100}
                       aria-invalid={Boolean(fieldErrors.name)}
+                      invalid={Boolean(fieldErrors.name)}
                     />
-                    {fieldErrors.name && <p className="field-error">{fieldErrors.name}</p>}
-                  </div>
+                  </FormField>
 
-                  <div className="create-character-two-column">
-                    <div className="form-group">
-                      <label htmlFor="character-alignment">Alignment</label>
+                  <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-2">
+                    <FormField id="character-alignment" label="Alignment" error={fieldErrors.alignment}>
                       <select
                         id="character-alignment"
                         value={draft.alignment}
@@ -712,18 +754,17 @@ export function CreateCharacter({
                         }}
                         disabled={isSubmitting}
                         aria-invalid={Boolean(fieldErrors.alignment)}
+                        className={`${selectBase} ${selectBorder(Boolean(fieldErrors.alignment))}`}
                       >
                         <option value="">Select alignment</option>
                         {canonicalAlignments.map((alignment) => (
                           <option key={alignment} value={alignment}>{alignment}</option>
                         ))}
                       </select>
-                      {fieldErrors.alignment && <p className="field-error">{fieldErrors.alignment}</p>}
-                    </div>
+                    </FormField>
 
-                    <div className="form-group">
-                      <label htmlFor="character-background">Background</label>
-                      <input
+                    <FormField id="character-background" label="Background" error={fieldErrors.background}>
+                      <Input
                         id="character-background"
                         type="text"
                         value={draft.background}
@@ -734,14 +775,13 @@ export function CreateCharacter({
                         }}
                         disabled={isSubmitting}
                         aria-invalid={Boolean(fieldErrors.background)}
+                        invalid={Boolean(fieldErrors.background)}
                       />
-                      {fieldErrors.background && <p className="field-error">{fieldErrors.background}</p>}
-                    </div>
+                    </FormField>
                   </div>
 
-                  <div className="create-character-two-column">
-                    <div className="form-group">
-                      <label htmlFor="character-race">Race</label>
+                  <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-2">
+                    <FormField id="character-race" label="Race" error={fieldErrors.raceId}>
                       <select
                         id="character-race"
                         value={draft.raceId ?? ''}
@@ -753,64 +793,56 @@ export function CreateCharacter({
                         }}
                         disabled={isSubmitting}
                         aria-invalid={Boolean(fieldErrors.raceId)}
+                        className={`${selectBase} ${selectBorder(Boolean(fieldErrors.raceId))}`}
                       >
                         <option value="">Select a race</option>
                         {races.map((race) => (
                           <option key={race.id} value={race.id}>{race.name}</option>
                         ))}
                       </select>
-                      {fieldErrors.raceId && <p className="field-error">{fieldErrors.raceId}</p>}
-                    </div>
+                    </FormField>
                   </div>
 
                   {/* Portrait upload — optional */}
                   {!isEditMode && (
-                    <div className="form-group">
-                      <label>Portrait <span style={{ fontWeight: 400, color: 'var(--color-foreground-muted)' }}>(optional)</span></label>
+                    <div className="mb-[14px]">
+                      <label className="mb-[10px] block font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2">
+                        Portrait <span className="font-normal normal-case tracking-normal text-home-dim">(optional)</span>
+                      </label>
                       <div
                         onDragOver={handlePortraitDragOver}
                         onDragLeave={handlePortraitDragLeave}
                         onDrop={handlePortraitDrop}
                         onClick={() => !portraitPreview && document.getElementById('portrait-file-input')?.click()}
-                        style={{
-                          border: `2px dashed ${isDragOver ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                          borderRadius: '0.5rem',
-                          padding: '1rem',
-                          textAlign: 'center',
-                          cursor: portraitPreview ? 'default' : 'pointer',
-                          background: isDragOver ? 'var(--color-surface)' : 'transparent',
-                          transition: 'border-color 0.2s, background 0.2s',
-                          minHeight: '8rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.5rem',
-                        }}
+                        className={
+                          isDragOver
+                            ? 'flex min-h-[128px] flex-col items-center justify-center gap-[8px] rounded-home-lg border-2 border-dashed border-home-border-acc bg-home-surface p-[16px] text-center transition-colors duration-150'
+                            : 'flex min-h-[128px] flex-col items-center justify-center gap-[8px] rounded-home-lg border-2 border-dashed border-home-border-mid bg-transparent p-[16px] text-center transition-colors duration-150'
+                        }
+                        style={{ cursor: portraitPreview ? 'default' : 'pointer' }}
                       >
                         {portraitPreview ? (
                           <>
                             <img
                               src={portraitPreview}
                               alt="Portrait preview"
-                              style={{ maxWidth: '120px', maxHeight: '120px', borderRadius: '0.25rem', objectFit: 'cover' }}
+                              className="max-h-[120px] max-w-[120px] rounded-home-sm object-cover"
                             />
                             <button
                               type="button"
-                              className="link-button"
+                              className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
                               onClick={(e) => { e.stopPropagation(); handleRemovePortrait() }}
-                              style={{ fontSize: '0.8rem' }}
                             >
                               Remove
                             </button>
                           </>
                         ) : (
                           <>
-                            <span style={{ fontSize: '2rem' }}>🖼️</span>
-                            <span style={{ fontSize: '0.875rem', color: 'var(--color-foreground-muted)' }}>
+                            <span className="text-[32px]">🖼️</span>
+                            <span className="text-[12.5px] text-home-dim">
                               Drag & drop or click to select
                             </span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--color-foreground-muted)' }}>
+                            <span className="text-[11.5px] text-home-dim">
                               JPEG, PNG, WebP, GIF · max 5 MB
                             </span>
                           </>
@@ -823,42 +855,43 @@ export function CreateCharacter({
                         style={{ display: 'none' }}
                         onChange={handlePortraitInputChange}
                       />
-                      {portraitError && <p className="field-error">{portraitError}</p>}
+                      {portraitError && <p className="mt-[5px] block text-[11.5px] text-home-danger">{portraitError}</p>}
                     </div>
                   )}
 
-                  <section className="create-character-subsection">
-                    <h4>{isEditMode ? 'Level For Class' : 'Class'}</h4>
-                    {isMulticlassEdit && <p className="section-subtitle">Multiclass rows are locked during editing.</p>}
+                  <section className="mb-[14px]">
+                    <h4 className="mb-[10px] font-home-display text-[13px] font-semibold uppercase tracking-[.13em] text-home-text-strong">
+                      {isEditMode ? 'Level For Class' : 'Class'}
+                    </h4>
+                    {isMulticlassEdit && (
+                      <p className="mt-[6px] mb-[10px] text-[13px] text-home-muted">Multiclass rows are locked during editing.</p>
+                    )}
                     {isMulticlassEdit ? (
-                      <div className="create-character-skill-groups">
+                      <div className="grid grid-cols-1 gap-[12px] md:grid-cols-2 xl:grid-cols-3">
                         {draft.classLevels.map((entry, index) => (
-                          <div key={`${entry.classId}-${index}`} className="skill-group-card">
-                            <div className="create-character-two-column create-character-class-row">
-                              <div className="form-group">
-                                <label htmlFor={`character-class-${index}`}>Class</label>
-                                <input
+                          <div key={`${entry.classId}-${index}`} className="rounded-home-2xl border border-home-border bg-home-surface p-[14px]">
+                            <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-2">
+                              <FormField id={`character-class-${index}`} label="Class">
+                                <Input
                                   id={`character-class-${index}`}
                                   type="text"
                                   value={classes.find((dndClass) => dndClass.id === entry.classId)?.name ?? editClassNameById.get(entry.classId) ?? `Class ${entry.classId}`}
                                   disabled
                                 />
-                              </div>
-                              <div className="form-group">
-                                <label htmlFor={`character-level-${index}`}>Level</label>
-                                <input id={`character-level-${index}`} type="number" value={entry.level} disabled />
-                              </div>
+                              </FormField>
+                              <FormField id={`character-level-${index}`} label="Level">
+                                <Input id={`character-level-${index}`} type="number" value={entry.level} disabled />
+                              </FormField>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <>
-                        <div className="create-character-skill-groups">
-                          <div className="skill-group-card">
-                            <div className="create-character-two-column create-character-class-row">
-                              <div className="form-group">
-                                <label htmlFor="character-class">{isEditMode ? 'Class' : 'Primary Class'}</label>
+                        <div className="grid grid-cols-1 gap-[12px] md:grid-cols-2 xl:grid-cols-3">
+                          <div className="rounded-home-2xl border border-home-border bg-home-surface p-[14px]">
+                            <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-2">
+                              <FormField id="character-class" label={isEditMode ? 'Class' : 'Primary Class'}>
                                 <select
                                   id="character-class"
                                   value={primaryCreateRow.classId > 0 ? primaryCreateRow.classId : ''}
@@ -881,17 +914,17 @@ export function CreateCharacter({
                                   }}
                                   disabled={isSubmitting || !canEditSingleClass}
                                   aria-invalid={Boolean(fieldErrors.classId)}
+                                  className={`${selectBase} ${selectBorder(Boolean(fieldErrors.classId))}`}
                                 >
                                   <option value="">Select a class</option>
                                   {classes.map((dndClass) => (
                                     <option key={dndClass.id} value={dndClass.id}>{dndClass.name}</option>
                                   ))}
                                 </select>
-                              </div>
+                              </FormField>
 
-                              <div className="form-group">
-                                <label htmlFor="character-level">{isEditMode ? 'Level' : 'Primary Level'}</label>
-                                <input
+                              <FormField id="character-level" label={isEditMode ? 'Level' : 'Primary Level'}>
+                                <Input
                                   id="character-level"
                                   type="number"
                                   min="1"
@@ -914,32 +947,31 @@ export function CreateCharacter({
                                   }}
                                   disabled={isSubmitting || !canEditSingleClass}
                                 />
-                              </div>
+                              </FormField>
                             </div>
                           </div>
 
                           {!isEditMode && secondaryCreateRow ? (
-                            <div className="skill-group-card">
-                              <div className="create-character-two-column create-character-class-row">
-                                <div className="form-group">
-                                  <label htmlFor="character-secondary-class">Secondary Class</label>
+                            <div className="rounded-home-2xl border border-home-border bg-home-surface p-[14px]">
+                              <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-2">
+                                <FormField id="character-secondary-class" label="Secondary Class">
                                   <select
                                     id="character-secondary-class"
                                     value={secondaryCreateRow.classId > 0 ? secondaryCreateRow.classId : ''}
                                     onChange={(event) => handleCreateClassChange(1, event.target.value ? Number(event.target.value) : 0)}
                                     disabled={isSubmitting}
                                     aria-invalid={Boolean(fieldErrors.classId)}
+                                    className={`${selectBase} ${selectBorder(Boolean(fieldErrors.classId))}`}
                                   >
                                     <option value="">Select a class</option>
                                     {classes.map((dndClass) => (
                                       <option key={dndClass.id} value={dndClass.id}>{dndClass.name}</option>
                                     ))}
                                   </select>
-                                </div>
+                                </FormField>
 
-                                <div className="form-group">
-                                  <label htmlFor="character-secondary-level">Secondary Level</label>
-                                  <input
+                                <FormField id="character-secondary-level" label="Secondary Level">
+                                  <Input
                                     id="character-secondary-level"
                                     type="number"
                                     min="1"
@@ -948,9 +980,14 @@ export function CreateCharacter({
                                     onChange={(event) => handleCreateLevelChange(1, event.target.value)}
                                     disabled={isSubmitting}
                                   />
-                                </div>
+                                </FormField>
                               </div>
-                              <button type="button" className="link-button" onClick={handleRemoveSecondaryClassRow} disabled={isSubmitting}>
+                              <button
+                                type="button"
+                                className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
+                                onClick={handleRemoveSecondaryClassRow}
+                                disabled={isSubmitting}
+                              >
                                 Remove Secondary Class
                               </button>
                             </div>
@@ -958,20 +995,24 @@ export function CreateCharacter({
                         </div>
 
                         {!isEditMode && !secondaryCreateRow ? (
-                          <button type="button" className="link-button" onClick={handleAddSecondaryClassRow} disabled={isSubmitting}>
+                          <button
+                            type="button"
+                            className="mt-[10px] font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
+                            onClick={handleAddSecondaryClassRow}
+                            disabled={isSubmitting}
+                          >
                             Add Secondary Class
                           </button>
                         ) : null}
 
-                        {fieldErrors.classId && <p className="field-error">{fieldErrors.classId}</p>}
+                        {fieldErrors.classId && <p className="mt-[5px] block text-[11.5px] text-home-danger">{fieldErrors.classId}</p>}
                       </>
                     )}
                   </section>
 
-                  <div className="create-character-two-column create-character-compact-stats">
-                    <div className="form-group">
-                      <label htmlFor="character-hp">Hit Points</label>
-                      <input
+                  <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-4">
+                    <FormField id="character-hp" label="Hit Points">
+                      <Input
                         id="character-hp"
                         type="number"
                         min="1"
@@ -982,7 +1023,7 @@ export function CreateCharacter({
                         }}
                         disabled={isSubmitting || autoCalculateHp}
                       />
-                      <label className="create-character-inline-checkbox" htmlFor="character-hp-auto">
+                      <label className="mt-[8px] flex items-center gap-[8px] text-[11.5px] text-home-muted" htmlFor="character-hp-auto">
                         <input
                           id="character-hp-auto"
                           type="checkbox"
@@ -1003,14 +1044,14 @@ export function CreateCharacter({
                             }
                           }}
                           disabled={isSubmitting}
+                          className="h-[16px] w-[16px] rounded-home-md border border-home-border-mid bg-home-well accent-home-blue-600 disabled:opacity-50"
                         />
                         <span>Auto-calculate (D&D fixed HP average)</span>
                       </label>
-                    </div>
+                    </FormField>
 
-                    <div className="form-group">
-                      <label htmlFor="character-speed">Speed</label>
-                      <input
+                    <FormField id="character-speed" label="Speed">
+                      <Input
                         id="character-speed"
                         type="number"
                         min="0"
@@ -1022,11 +1063,10 @@ export function CreateCharacter({
                         }}
                         disabled={isSubmitting}
                       />
-                    </div>
+                    </FormField>
 
-                    <div className="form-group">
-                      <label htmlFor="character-xp">XP</label>
-                      <input
+                    <FormField id="character-xp" label="XP">
+                      <Input
                         id="character-xp"
                         type="number"
                         min={minXp}
@@ -1037,11 +1077,10 @@ export function CreateCharacter({
                         }}
                         disabled={isSubmitting}
                       />
-                    </div>
+                    </FormField>
 
-                    <div className="form-group">
-                      <label htmlFor="character-proficiency">Proficiency Bonus</label>
-                      <input
+                    <FormField id="character-proficiency" label="Proficiency Bonus">
+                      <Input
                         id="character-proficiency"
                         type="number"
                         min="1"
@@ -1050,17 +1089,24 @@ export function CreateCharacter({
                         disabled
                         readOnly
                       />
-                    </div>
+                    </FormField>
                   </div>
                 </section>
 
-                <section className="create-character-panel">
-                  <h3>Ability Scores</h3>
-                  <div className="create-character-ability-grid">
+                <section className="rounded-home-2xl border border-home-border bg-home-surface p-[14px]">
+                  <h3 className="mb-[12px] font-home-display text-[13px] font-semibold uppercase tracking-[.13em] text-home-text-strong">
+                    Ability Scores
+                  </h3>
+                  <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-2 lg:grid-cols-3">
                     {abilityScoreOrder.map((ability) => (
-                      <div key={ability} className="ability-draft-card">
-                        <label htmlFor={`ability-${ability}`}>{ability}</label>
-                        <input
+                      <div key={ability} className="rounded-home-2xl border border-home-border bg-home-surface p-[14px]">
+                        <label
+                          htmlFor={`ability-${ability}`}
+                          className="mb-[10px] block font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2"
+                        >
+                          {ability}
+                        </label>
+                        <Input
                           id={`ability-${ability}`}
                           type="number"
                           min="1"
@@ -1079,10 +1125,10 @@ export function CreateCharacter({
                           }}
                           disabled={isSubmitting}
                         />
-                        <span className="ability-draft-modifier">
+                        <span className="mt-[6px] block text-[11.5px] text-home-dim">
                           Mod {Math.floor((draft.abilityScores[ability] - 10) / 2)}
                         </span>
-                        <label htmlFor={`saving-${ability}`} className="ability-save-row">
+                        <label htmlFor={`saving-${ability}`} className="mt-[8px] flex items-center gap-[8px] text-[11.5px] text-home-muted">
                           <input
                             id={`saving-${ability}`}
                             type="checkbox"
@@ -1099,22 +1145,22 @@ export function CreateCharacter({
                               setSubmitError(null)
                             }}
                             disabled={isSubmitting}
+                            className="h-[16px] w-[16px] rounded-home-md border border-home-border-mid bg-home-well accent-home-blue-600 disabled:opacity-50"
                           />
                           <span>Saving Throw Proficiency</span>
                           {classSavingThrowDefaults[ability] > 0 && (
-                            <span className="ability-save-granted">Class</span>
+                            <span className="rounded-full bg-home-chip px-[7px] py-[2px] font-home-mono text-[10.5px] font-semibold text-[#8fb2ec]">Class</span>
                           )}
                         </label>
                       </div>
                     ))}
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="character-characteristics">Characteristics</label>
+                  <FormField id="character-characteristics" label="Characteristics">
                     <textarea
                       id="character-characteristics"
                       rows={3}
-                      className="form-textarea"
+                      className="min-h-[80px] w-full resize-y rounded-home-lg border border-home-border-mid bg-home-well px-[11px] py-[8px] text-[12.5px] text-home-text outline-none transition-colors duration-150 placeholder:text-home-placeholder focus:border-home-border-acc disabled:opacity-50"
                       value={characteristicsInput}
                       onChange={(event) => setCharacteristicsInput(event.target.value)}
                       onBlur={commitCharacteristics}
@@ -1123,12 +1169,12 @@ export function CreateCharacter({
                       disabled={isSubmitting}
                     />
                     {draft.characteristics.length > 0 && (
-                      <div className="characteristics-chip-list">
+                      <div className="mt-[10px] flex flex-wrap gap-[8px]">
                         {draft.characteristics.map((entry) => (
                           <button
                             key={entry}
                             type="button"
-                            className="characteristic-chip"
+                            className="rounded-full bg-home-chip px-[7px] py-[2px] font-home-mono text-[10.5px] font-semibold text-[#8fb2ec]"
                             onClick={() => {
                               setDraft((current) => ({
                                 ...current,
@@ -1142,17 +1188,18 @@ export function CreateCharacter({
                         ))}
                       </div>
                     )}
-                  </div>
+                  </FormField>
 
-                  <section className="create-character-subsection">
-                    <h4>Roleplay Details</h4>
-                    <div className="create-character-details-grid">
-                      <div className="form-group">
-                        <label htmlFor="character-personality-traits">Personality Traits</label>
+                  <section className="mb-[14px]">
+                    <h4 className="mb-[10px] font-home-display text-[13px] font-semibold uppercase tracking-[.13em] text-home-text-strong">
+                      Roleplay Details
+                    </h4>
+                    <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-2">
+                      <FormField id="character-personality-traits" label="Personality Traits">
                         <textarea
                           id="character-personality-traits"
                           rows={2}
-                          className="form-textarea"
+                          className="min-h-[80px] w-full resize-y rounded-home-lg border border-home-border-mid bg-home-well px-[11px] py-[8px] text-[12.5px] text-home-text outline-none transition-colors duration-150 placeholder:text-home-placeholder focus:border-home-border-acc disabled:opacity-50"
                           value={draft.details.personalityTraits}
                           onChange={(event) => {
                             setDraft((current) => ({
@@ -1163,14 +1210,13 @@ export function CreateCharacter({
                           }}
                           disabled={isSubmitting}
                         />
-                      </div>
+                      </FormField>
 
-                      <div className="form-group">
-                        <label htmlFor="character-ideals">Ideals</label>
+                      <FormField id="character-ideals" label="Ideals">
                         <textarea
                           id="character-ideals"
                           rows={2}
-                          className="form-textarea"
+                          className="min-h-[80px] w-full resize-y rounded-home-lg border border-home-border-mid bg-home-well px-[11px] py-[8px] text-[12.5px] text-home-text outline-none transition-colors duration-150 placeholder:text-home-placeholder focus:border-home-border-acc disabled:opacity-50"
                           value={draft.details.ideals}
                           onChange={(event) => {
                             setDraft((current) => ({
@@ -1181,14 +1227,13 @@ export function CreateCharacter({
                           }}
                           disabled={isSubmitting}
                         />
-                      </div>
+                      </FormField>
 
-                      <div className="form-group">
-                        <label htmlFor="character-bonds">Bonds</label>
+                      <FormField id="character-bonds" label="Bonds">
                         <textarea
                           id="character-bonds"
                           rows={2}
-                          className="form-textarea"
+                          className="min-h-[80px] w-full resize-y rounded-home-lg border border-home-border-mid bg-home-well px-[11px] py-[8px] text-[12.5px] text-home-text outline-none transition-colors duration-150 placeholder:text-home-placeholder focus:border-home-border-acc disabled:opacity-50"
                           value={draft.details.bonds}
                           onChange={(event) => {
                             setDraft((current) => ({
@@ -1199,14 +1244,13 @@ export function CreateCharacter({
                           }}
                           disabled={isSubmitting}
                         />
-                      </div>
+                      </FormField>
 
-                      <div className="form-group">
-                        <label htmlFor="character-flaws">Flaws</label>
+                      <FormField id="character-flaws" label="Flaws">
                         <textarea
                           id="character-flaws"
                           rows={2}
-                          className="form-textarea"
+                          className="min-h-[80px] w-full resize-y rounded-home-lg border border-home-border-mid bg-home-well px-[11px] py-[8px] text-[12.5px] text-home-text outline-none transition-colors duration-150 placeholder:text-home-placeholder focus:border-home-border-acc disabled:opacity-50"
                           value={draft.details.flaws}
                           onChange={(event) => {
                             setDraft((current) => ({
@@ -1217,28 +1261,30 @@ export function CreateCharacter({
                           }}
                           disabled={isSubmitting}
                         />
-                      </div>
+                      </FormField>
                     </div>
                   </section>
                 </section>
 
               </div>
 
-              <section className="create-character-panel create-character-panel-wide">
-                <h3>Skill Proficiencies</h3>
-                <div className="create-character-skill-groups">
+              <section className="rounded-home-2xl border border-home-border bg-home-surface p-[14px]">
+                <h3 className="mb-[12px] font-home-display text-[13px] font-semibold uppercase tracking-[.13em] text-home-text-strong">
+                  Skill Proficiencies
+                </h3>
+                <div className="grid grid-cols-1 gap-[12px] md:grid-cols-2 xl:grid-cols-3">
                   {skillGroups.map((group) => (
                     <div
                       key={group.ability}
-                      className={`skill-group-card ${group.ability === 'Charisma' ? 'skill-group-card-centered' : ''}`}
+                      className={`rounded-home-2xl border border-home-border bg-home-surface p-[14px] ${group.ability === 'Charisma' ? 'md:col-start-2' : ''}`}
                     >
-                      <span className="sheet-strip-label">{group.ability}</span>
-                      <div className="skill-group-list">
+                      <span className="mb-[10px] block font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2">{group.ability}</span>
+                      <div className="flex flex-col gap-[10px]">
                         {group.skills.map((skill) => (
-                          <div key={skill} className="skill-select-row">
-                            <label htmlFor={`skill-${skill}-proficient`}>{skill}</label>
-                            <div className="skill-checkbox-grid">
-                              <label htmlFor={`skill-${skill}-proficient`} className="skill-checkbox-inline">
+                          <div key={skill} className="flex items-center justify-between gap-[12px]">
+                            <label htmlFor={`skill-${skill}-proficient`} className="text-[12.5px] text-home-text-soft">{skill}</label>
+                            <div className="flex items-center gap-[12px]">
+                              <label htmlFor={`skill-${skill}-proficient`} className="flex items-center gap-[6px] text-[11.5px] text-home-muted">
                                 <input
                                   id={`skill-${skill}-proficient`}
                                   type="checkbox"
@@ -1258,12 +1304,13 @@ export function CreateCharacter({
                                     setSubmitError(null)
                                   }}
                                   disabled={isSubmitting}
+                                  className="h-[16px] w-[16px] rounded-home-md border border-home-border-mid bg-home-well accent-home-blue-600 disabled:opacity-50"
                                 />
                                 <span>Proficiency</span>
                               </label>
 
                               {(draft.proficiencies[skill] ?? 0) > 0 && (
-                                <label htmlFor={`skill-${skill}-expertise`} className="skill-checkbox-inline">
+                                <label htmlFor={`skill-${skill}-expertise`} className="flex items-center gap-[6px] text-[11.5px] text-home-muted">
                                   <input
                                     id={`skill-${skill}-expertise`}
                                     type="checkbox"
@@ -1280,6 +1327,7 @@ export function CreateCharacter({
                                       setSubmitError(null)
                                     }}
                                     disabled={isSubmitting}
+                                    className="h-[16px] w-[16px] rounded-home-md border border-home-border-mid bg-home-well accent-home-blue-600 disabled:opacity-50"
                                   />
                                   <span>Expertise</span>
                                 </label>
@@ -1293,13 +1341,18 @@ export function CreateCharacter({
                 </div>
               </section>
 
-              <div className="form-actions">
-                <button type="button" className="logout-button" onClick={onCancel} disabled={isSubmitting}>
+              <div className="mt-[20px] flex justify-end gap-[10px]">
+                <button
+                  type="button"
+                  className="text-[12px] text-home-dim transition-colors duration-150 hover:text-home-text-soft"
+                  onClick={onCancel}
+                  disabled={isSubmitting}
+                >
                   {cancelLabel}
                 </button>
-                <button type="submit" className="login-button form-submit-button" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? submittingLabel : submitLabel}
-                </button>
+                </Button>
               </div>
             </form>
           )}
