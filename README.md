@@ -39,7 +39,7 @@ On first backend startup, a default administrator is seeded:
 | --- | --- |
 | `admin` | `admin123` |
 
-Use this account only for local development. The application also provides registration from its login screen.
+These are development defaults, overridable via the `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_EMAIL` environment variables (see `backend/src/main/resources/application.properties`). A `.env` file in `backend/` is picked up automatically at startup and is git-ignored. Use the default account only for local development. The application also provides registration from its login screen.
 
 ## What the application supports
 
@@ -114,6 +114,6 @@ compose.yaml PostgreSQL service for local development
 ## Current limitations
 
 - The frontend backend URL and backend CORS origins are hard-coded for local development; they are not configurable through checked-in environment files.
-- Database credentials and the seeded administrator account are development defaults committed in source configuration.
+- Database credentials are development defaults committed in source configuration. The seeded administrator account also defaults to `admin`/`admin123` but is overridable via `ADMIN_USERNAME`/`ADMIN_PASSWORD`/`ADMIN_EMAIL`.
 - The Compose definition does not declare a persistent database volume.
 - The repository contains no deployment, production configuration, or CI workflow documentation.
