@@ -3,7 +3,10 @@ import { api, type DndClassDto, type RaceDto } from '../services/api'
 import type { Character, CharacterCatalogRaceOption } from '../interfaces/character'
 import type { User } from '../interfaces/user'
 import type { Campaign } from '../interfaces/campaign'
-import '../styles/CharacterSheet.css'
+import { Button } from '../components/ui/Button'
+import { FormField } from '../components/ui/FormField'
+import { Input } from '../components/ui/Input'
+import { Modal } from '../components/ui/Modal'
 
 interface AdminPanelProps {
   onBack: () => void
@@ -27,6 +30,45 @@ const ALIGNMENTS = [
   'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
   'Lawful Evil', 'Neutral Evil', 'Chaotic Evil',
 ]
+
+// Danger recipe (design.md "Recipe Catalog") — destructive buttons stay raw <button>,
+// not a 4th Button variant (design decision #5). Reused verbatim from App.tsx.
+const dangerButtonClasses =
+  'h-[36px] rounded-home-md border border-[#3f2226] bg-[rgba(220,38,38,.12)] px-[16px] font-home-display text-[12.5px] font-semibold text-home-danger transition-colors duration-150 hover:bg-[rgba(220,38,38,.2)] disabled:cursor-not-allowed disabled:opacity-50'
+
+// Small variant of the danger recipe, sized to match Button's `sm` size for card action rows.
+const dangerButtonSmClasses =
+  'h-[30px] flex-1 rounded-home-md border border-[#3f2226] bg-[rgba(220,38,38,.12)] px-[12px] font-home-display text-[11.5px] font-semibold text-home-danger transition-colors duration-150 hover:bg-[rgba(220,38,38,.2)] disabled:cursor-not-allowed disabled:opacity-50'
+
+// Select recipe (design.md Recipe Catalog: Home.tsx:354), `w-full` added for form-row alignment
+// — same "add what the row needs" precedent as CreateCharacter.tsx's selectBase.
+const selectClasses =
+  'w-full rounded-home-md border border-home-border-mid bg-home-well px-[10px] py-[5px] text-[12.5px] text-home-muted disabled:opacity-50'
+
+// Textarea recipe (design.md: Input base minus h-[34px], plus min-h-[80px] resize-y py-[8px]),
+// reused verbatim from CreateCampaign.tsx's description textarea.
+const textareaClasses =
+  'min-h-[80px] w-full resize-y rounded-home-lg border border-home-border-mid bg-home-well px-[11px] py-[8px] text-[12.5px] text-home-text outline-none transition-colors duration-150 placeholder:text-home-placeholder focus:border-home-border-acc disabled:opacity-50'
+
+// Checkbox recipe, reused verbatim from CreateCampaign.tsx / CreateCharacter.tsx.
+const checkboxClasses =
+  'h-[16px] w-[16px] rounded-home-md border border-home-border-mid bg-home-well accent-home-blue-600 disabled:opacity-50'
+
+// Card recipe (design.md Recipe Catalog: Home.tsx:82).
+const cardClasses = 'rounded-home-2xl border border-home-border bg-home-surface p-[14px]'
+
+// Entity grid recipe (design.md Recipe Catalog).
+const gridClasses = 'grid grid-cols-1 gap-[12px] md:grid-cols-2 xl:grid-cols-3'
+
+// Edit/Delete circular icon buttons for the level-feature / racial-feature rows.
+// Legacy `editIconStyle`/`deleteIconStyle` colors (#2563eb/#1d4ed8, #dc2626/#b91c1c) have no
+// home-* token equivalent (home-blue-600 matches the fill but not the border, home-danger is
+// lighter than the legacy delete fill) — carried over via Tailwind arbitrary-value syntax per
+// design's "legacy hex colors with no home-* equivalent" precedent.
+const editIconButtonClasses =
+  'inline-flex h-[30px] w-[30px] items-center justify-center rounded-home-md border border-[#1d4ed8] bg-home-blue-600 text-[16px] leading-none text-white transition-colors duration-150 hover:bg-home-blue-500'
+const deleteIconButtonClasses =
+  'inline-flex h-[30px] w-[30px] items-center justify-center rounded-home-md border border-[#b91c1c] bg-[#dc2626] text-[16px] leading-none text-white transition-colors duration-150 hover:bg-[rgba(220,38,38,.85)]'
 
 export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>('classes')
@@ -436,110 +478,106 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     { key: 'campaigns', label: 'Campaigns' },
   ]
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '0.5rem', fontSize: '1rem',
-    borderRadius: '4px', border: '1px solid var(--color-border)',
-    backgroundColor: 'var(--color-surface)', color: 'var(--color-foreground)',
-    boxSizing: 'border-box',
-  }
-
-  const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '0.35rem', fontWeight: 'bold' }
-
-  const fieldStyle: React.CSSProperties = { marginBottom: '1rem' }
-
-  // ── Edit forms rendered as modal-like inline panels ──────────────────────────
+  // ── Edit forms rendered via the shared Modal primitive ───────────────────────
   const renderCharacterEditForm = () => {
     if (!editingCharacter) return null
     return (
-      <div style={overlayStyle}>
-        <div style={modalStyle}>
-          <h3 style={{ marginTop: 0 }}>Edit Character</h3>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Name</label>
-            <input style={inputStyle} value={charName} onChange={e => setCharName(e.target.value)} />
-          </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Alignment</label>
-            <select style={inputStyle} value={charAlignment} onChange={e => setCharAlignment(e.target.value)}>
-              <option value="">— No alignment —</option>
-              {ALIGNMENTS.map(a => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Background</label>
-            <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2}
-              value={charBackground} onChange={e => setCharBackground(e.target.value)} />
-          </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Race</label>
-            <select style={inputStyle} value={charRaceId} onChange={e => setCharRaceId(e.target.value === '' ? '' : Number(e.target.value))}>
-              <option value="">— Keep unchanged —</option>
-              {charCatalogRaces.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-            <button type="button" onClick={handleCancelCharacterEdit} style={cancelBtnStyle}>Cancel</button>
-            <button type="button" onClick={handleSaveCharacter} className="section-action-button">Save</button>
-          </div>
-        </div>
-      </div>
+      <Modal
+        open
+        onClose={handleCancelCharacterEdit}
+        titleId="admin-character-edit-title"
+        title="Edit Character"
+        maxWidthClassName="max-w-[520px]"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={handleCancelCharacterEdit}>Cancel</Button>
+            <Button type="button" onClick={handleSaveCharacter}>Save</Button>
+          </>
+        }
+      >
+        <FormField id="admin-character-name" label="Name">
+          <Input id="admin-character-name" value={charName} onChange={e => setCharName(e.target.value)} />
+        </FormField>
+        <FormField id="admin-character-alignment" label="Alignment">
+          <select id="admin-character-alignment" className={selectClasses} value={charAlignment} onChange={e => setCharAlignment(e.target.value)}>
+            <option value="">— No alignment —</option>
+            {ALIGNMENTS.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </FormField>
+        <FormField id="admin-character-background" label="Background">
+          <textarea id="admin-character-background" className={textareaClasses} rows={2}
+            value={charBackground} onChange={e => setCharBackground(e.target.value)} />
+        </FormField>
+        <FormField id="admin-character-race" label="Race">
+          <select id="admin-character-race" className={selectClasses} value={charRaceId} onChange={e => setCharRaceId(e.target.value === '' ? '' : Number(e.target.value))}>
+            <option value="">— Keep unchanged —</option>
+            {charCatalogRaces.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+        </FormField>
+      </Modal>
     )
   }
 
   const renderUserEditForm = () => {
     if (!editingUser) return null
     return (
-      <div style={overlayStyle}>
-        <div style={modalStyle}>
-          <h3 style={{ marginTop: 0 }}>Edit User</h3>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Username</label>
-            <input style={inputStyle} value={userUsername} onChange={e => setUserUsername(e.target.value)} />
-          </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Email</label>
-            <input style={inputStyle} type="email" value={userEmail} onChange={e => setUserEmail(e.target.value)} />
-          </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>New password <span style={{ fontWeight: 'normal', color: '#888' }}>(leave blank to keep unchanged)</span></label>
-            <input style={inputStyle} type="password" placeholder="••••••••"
-              value={userPassword} onChange={e => setUserPassword(e.target.value)} />
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-            <button type="button" onClick={handleCancelUserEdit} style={cancelBtnStyle}>Cancel</button>
-            <button type="button" onClick={handleSaveUser} className="section-action-button">Save</button>
-          </div>
-        </div>
-      </div>
+      <Modal
+        open
+        onClose={handleCancelUserEdit}
+        titleId="admin-user-edit-title"
+        title="Edit User"
+        maxWidthClassName="max-w-[520px]"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={handleCancelUserEdit}>Cancel</Button>
+            <Button type="button" onClick={handleSaveUser}>Save</Button>
+          </>
+        }
+      >
+        <FormField id="admin-user-username" label="Username">
+          <Input id="admin-user-username" value={userUsername} onChange={e => setUserUsername(e.target.value)} />
+        </FormField>
+        <FormField id="admin-user-email" label="Email">
+          <Input id="admin-user-email" type="email" value={userEmail} onChange={e => setUserEmail(e.target.value)} />
+        </FormField>
+        <FormField id="admin-user-password" label="New password" hint="(leave blank to keep unchanged)">
+          <Input id="admin-user-password" type="password" placeholder="••••••••"
+            value={userPassword} onChange={e => setUserPassword(e.target.value)} />
+        </FormField>
+      </Modal>
     )
   }
 
   const renderCampaignEditForm = () => {
     if (!editingCampaign) return null
     return (
-      <div style={overlayStyle}>
-        <div style={modalStyle}>
-          <h3 style={{ marginTop: 0 }}>Edit Campaign</h3>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Name</label>
-            <input style={inputStyle} value={campaignName} onChange={e => setCampaignName(e.target.value)} />
-          </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Description</label>
-            <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={3}
-              value={campaignDescription} onChange={e => setCampaignDescription(e.target.value)} />
-          </div>
-          <div style={{ ...fieldStyle, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <input type="checkbox" id="camp-privacy" checked={campaignPrivacy}
-              onChange={e => setCampaignPrivacy(e.target.checked)} />
-            <label htmlFor="camp-privacy" style={{ fontWeight: 'bold', marginBottom: 0 }}>Private campaign</label>
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-            <button type="button" onClick={handleCancelCampaignEdit} style={cancelBtnStyle}>Cancel</button>
-            <button type="button" onClick={handleSaveCampaign} className="section-action-button" disabled={!campaignName.trim()}>Save</button>
-          </div>
+      <Modal
+        open
+        onClose={handleCancelCampaignEdit}
+        titleId="admin-campaign-edit-title"
+        title="Edit Campaign"
+        maxWidthClassName="max-w-[520px]"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={handleCancelCampaignEdit}>Cancel</Button>
+            <Button type="button" onClick={handleSaveCampaign} disabled={!campaignName.trim()}>Save</Button>
+          </>
+        }
+      >
+        <FormField id="admin-campaign-name" label="Name">
+          <Input id="admin-campaign-name" value={campaignName} onChange={e => setCampaignName(e.target.value)} />
+        </FormField>
+        <FormField id="admin-campaign-description" label="Description">
+          <textarea id="admin-campaign-description" className={textareaClasses} rows={3}
+            value={campaignDescription} onChange={e => setCampaignDescription(e.target.value)} />
+        </FormField>
+        <div className="mb-[14px] flex items-center gap-[10px]">
+          <input type="checkbox" id="admin-campaign-privacy" checked={campaignPrivacy}
+            onChange={e => setCampaignPrivacy(e.target.checked)}
+            className={checkboxClasses} />
+          <label htmlFor="admin-campaign-privacy" className="text-[12.5px] text-home-muted">Private campaign</label>
         </div>
-      </div>
+      </Modal>
     )
   }
 
@@ -549,73 +587,73 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
     const title = isClassFeature ? `Edit Class Feature (Level ${featureEditModal.level})` : 'Edit Race Feature'
 
     return (
-      <div style={overlayStyle}>
-        <div style={{ ...modalStyle, maxWidth: '560px' }}>
-          <h3 style={{ marginTop: 0 }}>{title}</h3>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Title</label>
-            <input
-              style={inputStyle}
-              value={featureEditModal.title}
-              onChange={e => setFeatureEditModal(prev => prev ? { ...prev, title: e.target.value } : prev)}
-            />
-          </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Description</label>
-            <textarea
-              style={{ ...inputStyle, resize: 'vertical' }}
-              rows={4}
-              value={featureEditModal.description}
-              onChange={e => setFeatureEditModal(prev => prev ? { ...prev, description: e.target.value } : prev)}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-            <button type="button" onClick={() => setFeatureEditModal(null)} style={cancelBtnStyle}>Cancel</button>
-            <button
+      <Modal
+        open
+        onClose={() => setFeatureEditModal(null)}
+        titleId="admin-feature-edit-title"
+        title={title}
+        maxWidthClassName="max-w-[560px]"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setFeatureEditModal(null)}>Cancel</Button>
+            <Button
               type="button"
               onClick={handleSaveFeatureModal}
-              className="section-action-button"
               disabled={!featureEditModal.title.trim() || !featureEditModal.description.trim()}
             >
               Save
-            </button>
-          </div>
-        </div>
-      </div>
+            </Button>
+          </>
+        }
+      >
+        <FormField id="admin-feature-title" label="Title">
+          <Input
+            id="admin-feature-title"
+            value={featureEditModal.title}
+            onChange={e => setFeatureEditModal(prev => prev ? { ...prev, title: e.target.value } : prev)}
+          />
+        </FormField>
+        <FormField id="admin-feature-description" label="Description">
+          <textarea
+            id="admin-feature-description"
+            className={textareaClasses}
+            rows={4}
+            value={featureEditModal.description}
+            onChange={e => setFeatureEditModal(prev => prev ? { ...prev, description: e.target.value } : prev)}
+          />
+        </FormField>
+      </Modal>
     )
   }
 
   // ── Classes tab with inline edit panel ───────────────────────────────────────
   const renderClassesTab = () => {
-    if (classesLoading) return <p>Loading classes...</p>
+    if (classesLoading) return <p className="text-[12.5px] text-home-dim">Loading classes...</p>
     if (classEditMode !== 'none') {
       const isCreate = classEditMode === 'create'
       return (
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <button className="link-button" onClick={handleCancelClassEdit}>← Back to Classes</button>
-          <div style={sectionCardStyle}>
-            <h2 style={{ marginTop: 0, textAlign: 'center' }}>{isCreate ? 'Create Class' : 'Edit Class'}</h2>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Name</label>
-              <input style={inputStyle} value={className} onChange={e => setClassName(e.target.value)} />
-            </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Description</label>
-              <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={3}
+        <div className="mx-auto max-w-[800px]">
+          <button type="button" className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300" onClick={handleCancelClassEdit}>← Back to Classes</button>
+          <div className="mt-[24px] rounded-home-3xl border border-home-border bg-home-surface p-[22px_24px] shadow-[0_24px_60px_-20px_rgba(0,0,0,.8)]">
+            <h2 className="mb-[20px] text-center font-home-display text-[17px] font-semibold text-home-text-strong">{isCreate ? 'Create Class' : 'Edit Class'}</h2>
+            <FormField id="admin-class-name" label="Name">
+              <Input id="admin-class-name" value={className} onChange={e => setClassName(e.target.value)} />
+            </FormField>
+            <FormField id="admin-class-description" label="Description">
+              <textarea id="admin-class-description" className={textareaClasses} rows={3}
                 value={classDescription} onChange={e => setClassDescription(e.target.value)} />
-            </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Hit Dice</label>
-              <input style={inputStyle} type="number" min={1} max={20}
+            </FormField>
+            <FormField id="admin-class-hitdice" label="Hit Dice">
+              <Input id="admin-class-hitdice" type="number" min={1} max={20}
                 value={classHitDice} onChange={e => setClassHitDice(Number(e.target.value))} />
-            </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Saving Throw Proficiencies</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.5rem' }}>
+            </FormField>
+            <FormField id="admin-class-saving-throws" label="Saving Throw Proficiencies">
+              <div className="flex flex-wrap gap-[8px_24px]">
                 {(['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma'] as const).map(ability => (
-                  <label key={ability} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                  <label key={ability} className="flex cursor-pointer items-center gap-[6px] text-[12.5px] text-home-text">
                     <input
                       type="checkbox"
+                      className={checkboxClasses}
                       checked={classSavingThrows.includes(ability)}
                       onChange={() => setClassSavingThrows(prev =>
                         prev.includes(ability) ? prev.filter(a => a !== ability) : [...prev, ability]
@@ -625,40 +663,42 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                   </label>
                 ))}
               </div>
-            </div>
-            <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
-              <h4 style={{ marginTop: 0 }}>Level features</h4>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <input type="number" placeholder="Level" value={newLevel} min={1} max={20}
-                  onChange={e => setNewLevel(Number(e.target.value))}
-                  style={{ width: '80px', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
-                <input type="text" placeholder="Title" value={newFeatureTitle}
-                  onChange={e => setNewFeatureTitle(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddLevelCharacteristic()}
-                  style={{ flex: 1, padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
-                <button type="button" onClick={handleAddLevelCharacteristic} className="section-action-button" style={{ padding: '0.4rem 0.75rem' }}>Add</button>
+            </FormField>
+            <div className="mb-[24px] rounded-home-lg border border-home-border-mid bg-home-well p-[16px]">
+              <h4 className="mb-[12px] block font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2">Level features</h4>
+              <div className="mb-[12px] flex gap-[8px]">
+                <div className="w-[80px]">
+                  <Input type="number" placeholder="Level" value={newLevel} min={1} max={20}
+                    onChange={e => setNewLevel(Number(e.target.value))} />
+                </div>
+                <div className="flex-1">
+                  <Input type="text" placeholder="Title" value={newFeatureTitle}
+                    onChange={e => setNewFeatureTitle(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddLevelCharacteristic()} />
+                </div>
+                <Button type="button" size="sm" onClick={handleAddLevelCharacteristic}>Add</Button>
               </div>
-              <div style={{ marginBottom: '0.75rem' }}>
+              <div className="mb-[12px]">
                 <textarea
                   placeholder="Description"
                   value={newFeatureDescription}
                   onChange={e => setNewFeatureDescription(e.target.value)}
                   rows={3}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)', resize: 'vertical', boxSizing: 'border-box' }}
+                  className={textareaClasses}
                 />
               </div>
-              <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+              <div className="max-h-[200px] overflow-y-auto">
                 {Object.entries(levelCharacteristics).sort(([a], [b]) => Number(a) - Number(b)).map(([lvl, feat]) => (
-                  <div key={lvl} style={rowItemStyle}>
+                  <div key={lvl} className="mb-[7px] flex items-center justify-between gap-[12px] rounded-home-md bg-home-well px-[10px] py-[7px] text-[12.5px] text-home-text">
                     <span>
                       <strong>Level {lvl}:</strong> {parseFeature(feat).title}
                       {parseFeature(feat).description ? ` — ${parseFeature(feat).description}` : ''}
                     </span>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <div className="flex gap-[4px]">
                       <button
                         type="button"
                         onClick={() => handleEditLevelCharacteristic(Number(lvl))}
-                        style={editIconStyle}
+                        className={editIconButtonClasses}
                         title="Edit feature"
                         aria-label="Edit feature"
                       >
@@ -667,7 +707,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                       <button
                         type="button"
                         onClick={() => handleRemoveLevelCharacteristic(Number(lvl))}
-                        style={deleteIconStyle}
+                        className={deleteIconButtonClasses}
                         title="Delete feature"
                         aria-label="Delete feature"
                       >
@@ -676,14 +716,14 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                     </div>
                   </div>
                 ))}
-                {Object.keys(levelCharacteristics).length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>No features configured</p>}
+                {Object.keys(levelCharacteristics).length === 0 && <p className="text-center text-[12.5px] text-home-dim">No features configured</p>}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-              <button type="button" onClick={handleSaveClass} className="section-action-button" disabled={!className || !classDescription}>
+            <div className="flex justify-center gap-[16px]">
+              <Button type="button" onClick={handleSaveClass} disabled={!className || !classDescription}>
                 {isCreate ? 'Create Class' : 'Update Class'}
-              </button>
-              <button type="button" onClick={handleCancelClassEdit} style={cancelBtnStyle}>Cancel</button>
+              </Button>
+              <Button type="button" variant="secondary" onClick={handleCancelClassEdit}>Cancel</Button>
             </div>
           </div>
         </div>
@@ -692,20 +732,20 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
     return (
       <>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-          <button type="button" className="section-action-button" onClick={handleOpenCreateClass}>+ Create Class</button>
+        <div className="mb-[16px] flex justify-end">
+          <Button type="button" onClick={handleOpenCreateClass}>+ Create Class</Button>
         </div>
-        {classes.length === 0 && <p style={{ color: '#888' }}>No classes registered.</p>}
-        <div style={gridStyle}>
+        {classes.length === 0 && <p className="text-[12.5px] text-home-dim">No classes registered.</p>}
+        <div className={gridClasses}>
           {classes.map(c => (
-            <div key={c.id} style={cardStyle}>
-              <h3 style={{ margin: '0 0 0.4rem 0' }}>{c.name}</h3>
-              <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.4rem' }}>{c.description}</p>
-              <p style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Hit Dice:</strong> d{c.hitDice}</p>
-              <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}><strong>Levels:</strong> {Object.keys(c.levelCharacteristics || {}).length} configured</p>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="button" onClick={() => handleOpenEditClass(c)} className="section-action-button" style={cardBtnStyle}>Edit</button>
-                <button type="button" onClick={() => handleDeleteClass(c.id!)} className="sheet-delete-button" style={cardBtnStyle}>Delete</button>
+            <div key={c.id} className={cardClasses}>
+              <h3 className="mb-[6px] font-home-display text-[15px] font-semibold text-home-text-strong">{c.name}</h3>
+              <p className="mb-[6px] text-[12.5px] text-home-muted">{c.description}</p>
+              <p className="mb-[6px] text-[12.5px] text-home-muted"><strong className="text-home-text-soft">Hit Dice:</strong> d{c.hitDice}</p>
+              <p className="mb-[12px] text-[12.5px] text-home-muted"><strong className="text-home-text-soft">Levels:</strong> {Object.keys(c.levelCharacteristics || {}).length} configured</p>
+              <div className="flex gap-[8px]">
+                <Button type="button" variant="primary" size="sm" className="flex-1" onClick={() => handleOpenEditClass(c)}>Edit</Button>
+                <button type="button" onClick={() => handleDeleteClass(c.id!)} className={dangerButtonSmClasses}>Delete</button>
               </div>
             </div>
           ))}
@@ -715,53 +755,52 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const renderRacesTab = () => {
-    if (racesLoading) return <p>Loading races...</p>
+    if (racesLoading) return <p className="text-[12.5px] text-home-dim">Loading races...</p>
     if (raceEditMode !== 'none') {
       const isCreate = raceEditMode === 'create'
       return (
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <button className="link-button" onClick={handleCancelRaceEdit}>← Back to Races</button>
-          <div style={sectionCardStyle}>
-            <h2 style={{ marginTop: 0, textAlign: 'center' }}>{isCreate ? 'Create Race' : 'Edit Race'}</h2>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Name</label>
-              <input style={inputStyle} value={raceName} onChange={e => setRaceName(e.target.value)} />
-            </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Description</label>
-              <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={3}
+        <div className="mx-auto max-w-[800px]">
+          <button type="button" className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300" onClick={handleCancelRaceEdit}>← Back to Races</button>
+          <div className="mt-[24px] rounded-home-3xl border border-home-border bg-home-surface p-[22px_24px] shadow-[0_24px_60px_-20px_rgba(0,0,0,.8)]">
+            <h2 className="mb-[20px] text-center font-home-display text-[17px] font-semibold text-home-text-strong">{isCreate ? 'Create Race' : 'Edit Race'}</h2>
+            <FormField id="admin-race-name" label="Name">
+              <Input id="admin-race-name" value={raceName} onChange={e => setRaceName(e.target.value)} />
+            </FormField>
+            <FormField id="admin-race-description" label="Description">
+              <textarea id="admin-race-description" className={textareaClasses} rows={3}
                 value={raceDescription} onChange={e => setRaceDescription(e.target.value)} />
-            </div>
-            <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
-              <h4 style={{ marginTop: 0 }}>Racial Features</h4>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <input type="text" placeholder="Title" value={newRacialFeatTitle}
-                  onChange={e => setNewRacialFeatTitle(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddRacialFeat()}
-                  style={{ flex: 1, padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
-                <button type="button" onClick={handleAddRacialFeat} className="section-action-button" style={{ padding: '0.4rem 0.75rem' }}>Add</button>
+            </FormField>
+            <div className="mb-[24px] rounded-home-lg border border-home-border-mid bg-home-well p-[16px]">
+              <h4 className="mb-[12px] block font-home-mono text-[10px] uppercase tracking-[.16em] text-home-dim-2">Racial Features</h4>
+              <div className="mb-[12px] flex gap-[8px]">
+                <div className="flex-1">
+                  <Input type="text" placeholder="Title" value={newRacialFeatTitle}
+                    onChange={e => setNewRacialFeatTitle(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddRacialFeat()} />
+                </div>
+                <Button type="button" size="sm" onClick={handleAddRacialFeat}>Add</Button>
               </div>
-              <div style={{ marginBottom: '0.75rem' }}>
+              <div className="mb-[12px]">
                 <textarea
                   placeholder="Description"
                   value={newRacialFeatDescription}
                   onChange={e => setNewRacialFeatDescription(e.target.value)}
                   rows={3}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)', resize: 'vertical', boxSizing: 'border-box' }}
+                  className={textareaClasses}
                 />
               </div>
-              <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+              <div className="max-h-[200px] overflow-y-auto">
                 {racialFeats.map((feat, i) => (
-                  <div key={i} style={rowItemStyle}>
+                  <div key={i} className="mb-[7px] flex items-center justify-between gap-[12px] rounded-home-md bg-home-well px-[10px] py-[7px] text-[12.5px] text-home-text">
                     <span>
                       <strong>{parseFeature(feat).title}</strong>
                       {parseFeature(feat).description ? ` — ${parseFeature(feat).description}` : ''}
                     </span>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <div className="flex gap-[4px]">
                       <button
                         type="button"
                         onClick={() => handleEditRacialFeat(i)}
-                        style={editIconStyle}
+                        className={editIconButtonClasses}
                         title="Edit feature"
                         aria-label="Edit feature"
                       >
@@ -770,7 +809,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                       <button
                         type="button"
                         onClick={() => handleRemoveRacialFeat(i)}
-                        style={deleteIconStyle}
+                        className={deleteIconButtonClasses}
                         title="Delete feature"
                         aria-label="Delete feature"
                       >
@@ -779,14 +818,14 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
                     </div>
                   </div>
                 ))}
-                {racialFeats.length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>No racial features</p>}
+                {racialFeats.length === 0 && <p className="text-center text-[12.5px] text-home-dim">No racial features</p>}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-              <button type="button" onClick={handleSaveRace} className="section-action-button" disabled={!raceName || !raceDescription}>
+            <div className="flex justify-center gap-[16px]">
+              <Button type="button" onClick={handleSaveRace} disabled={!raceName || !raceDescription}>
                 {isCreate ? 'Create Race' : 'Update Race'}
-              </button>
-              <button type="button" onClick={handleCancelRaceEdit} style={cancelBtnStyle}>Cancel</button>
+              </Button>
+              <Button type="button" variant="secondary" onClick={handleCancelRaceEdit}>Cancel</Button>
             </div>
           </div>
         </div>
@@ -795,19 +834,19 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
     return (
       <>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-          <button type="button" className="section-action-button" onClick={handleOpenCreateRace}>+ Create Race</button>
+        <div className="mb-[16px] flex justify-end">
+          <Button type="button" onClick={handleOpenCreateRace}>+ Create Race</Button>
         </div>
-        {races.length === 0 && <p style={{ color: '#888' }}>No races registered.</p>}
-        <div style={gridStyle}>
+        {races.length === 0 && <p className="text-[12.5px] text-home-dim">No races registered.</p>}
+        <div className={gridClasses}>
           {races.map(r => (
-            <div key={r.id} style={cardStyle}>
-              <h3 style={{ margin: '0 0 0.4rem 0' }}>{r.name}</h3>
-              <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.4rem' }}>{r.description}</p>
-              <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}><strong>Features:</strong> {r.racialFeats?.length || 0}</p>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="button" onClick={() => handleOpenEditRace(r)} className="section-action-button" style={cardBtnStyle}>Edit</button>
-                <button type="button" onClick={() => handleDeleteRace(r.id!)} className="sheet-delete-button" style={cardBtnStyle}>Delete</button>
+            <div key={r.id} className={cardClasses}>
+              <h3 className="mb-[6px] font-home-display text-[15px] font-semibold text-home-text-strong">{r.name}</h3>
+              <p className="mb-[6px] text-[12.5px] text-home-muted">{r.description}</p>
+              <p className="mb-[12px] text-[12.5px] text-home-muted"><strong className="text-home-text-soft">Features:</strong> {r.racialFeats?.length || 0}</p>
+              <div className="flex gap-[8px]">
+                <Button type="button" variant="primary" size="sm" className="flex-1" onClick={() => handleOpenEditRace(r)}>Edit</Button>
+                <button type="button" onClick={() => handleDeleteRace(r.id!)} className={dangerButtonSmClasses}>Delete</button>
               </div>
             </div>
           ))}
@@ -817,29 +856,29 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const renderCharactersTab = () => {
-    if (charactersLoading) return <p>Loading characters...</p>
+    if (charactersLoading) return <p className="text-[12.5px] text-home-dim">Loading characters...</p>
     return (
       <>
-        {characters.length === 0 && <p style={{ color: '#888' }}>No characters registered.</p>}
-        <div style={gridStyle}>
+        {characters.length === 0 && <p className="text-[12.5px] text-home-dim">No characters registered.</p>}
+        <div className={gridClasses}>
           {characters.map(c => (
-            <div key={c.id} style={cardStyle}>
-              <h3 style={{ margin: '0 0 0.4rem 0' }}>{c.name}</h3>
-              <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.25rem' }}>
-                <strong>Player:</strong> {c.user?.username ?? '—'}
+            <div key={c.id} className={cardClasses}>
+              <h3 className="mb-[6px] font-home-display text-[15px] font-semibold text-home-text-strong">{c.name}</h3>
+              <p className="mb-[4px] text-[12.5px] text-home-muted">
+                <strong className="text-home-text-soft">Player:</strong> {c.user?.username ?? '—'}
               </p>
-              <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.25rem' }}>
-                <strong>Campaign:</strong> {(c.campaign as { name?: string } | null)?.name ?? '—'}
+              <p className="mb-[4px] text-[12.5px] text-home-muted">
+                <strong className="text-home-text-soft">Campaign:</strong> {(c.campaign as { name?: string } | null)?.name ?? '—'}
               </p>
-              <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.25rem' }}>
-                <strong>Race:</strong> {c.race?.name ?? '—'}
+              <p className="mb-[4px] text-[12.5px] text-home-muted">
+                <strong className="text-home-text-soft">Race:</strong> {c.race?.name ?? '—'}
               </p>
-              <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-                <strong>Alignment:</strong> {c.alignment || '—'}
+              <p className="mb-[12px] text-[12.5px] text-home-muted">
+                <strong className="text-home-text-soft">Alignment:</strong> {c.alignment || '—'}
               </p>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="button" onClick={() => handleOpenEditCharacter(c)} className="section-action-button" style={cardBtnStyle}>Edit</button>
-                <button type="button" onClick={() => handleDeleteCharacter(c.id)} className="sheet-delete-button" style={cardBtnStyle}>Delete</button>
+              <div className="flex gap-[8px]">
+                <Button type="button" variant="primary" size="sm" className="flex-1" onClick={() => handleOpenEditCharacter(c)}>Edit</Button>
+                <button type="button" onClick={() => handleDeleteCharacter(c.id)} className={dangerButtonSmClasses}>Delete</button>
               </div>
             </div>
           ))}
@@ -849,21 +888,21 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const renderUsersTab = () => {
-    if (usersLoading) return <p>Loading users...</p>
+    if (usersLoading) return <p className="text-[12.5px] text-home-dim">Loading users...</p>
     return (
       <>
-        {users.length === 0 && <p style={{ color: '#888' }}>No users registered.</p>}
-        <div style={gridStyle}>
+        {users.length === 0 && <p className="text-[12.5px] text-home-dim">No users registered.</p>}
+        <div className={gridClasses}>
           {users.map(u => (
-            <div key={u.id} style={cardStyle}>
-              <h3 style={{ margin: '0 0 0.4rem 0' }}>{u.username}</h3>
-              <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.25rem' }}>{u.email}</p>
-              <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-                <strong>Role:</strong> {u.role === 'ROLE_ADMIN' ? 'Admin' : 'User'}
+            <div key={u.id} className={cardClasses}>
+              <h3 className="mb-[6px] font-home-display text-[15px] font-semibold text-home-text-strong">{u.username}</h3>
+              <p className="mb-[4px] text-[12.5px] text-home-muted">{u.email}</p>
+              <p className="mb-[12px] text-[12.5px] text-home-muted">
+                <strong className="text-home-text-soft">Role:</strong> {u.role === 'ROLE_ADMIN' ? 'Admin' : 'User'}
               </p>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="button" onClick={() => handleOpenEditUser(u)} className="section-action-button" style={cardBtnStyle}>Edit</button>
-                <button type="button" onClick={() => handleDeleteUser(u.id)} className="sheet-delete-button" style={cardBtnStyle}>Delete</button>
+              <div className="flex gap-[8px]">
+                <Button type="button" variant="primary" size="sm" className="flex-1" onClick={() => handleOpenEditUser(u)}>Edit</Button>
+                <button type="button" onClick={() => handleDeleteUser(u.id)} className={dangerButtonSmClasses}>Delete</button>
               </div>
             </div>
           ))}
@@ -873,26 +912,26 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
   }
 
   const renderCampaignsTab = () => {
-    if (campaignsLoading) return <p>Loading campaigns...</p>
+    if (campaignsLoading) return <p className="text-[12.5px] text-home-dim">Loading campaigns...</p>
     return (
       <>
-        {campaignsList.length === 0 && <p style={{ color: '#888' }}>No campaigns registered.</p>}
-        <div style={gridStyle}>
+        {campaignsList.length === 0 && <p className="text-[12.5px] text-home-dim">No campaigns registered.</p>}
+        <div className={gridClasses}>
           {campaignsList.map(c => (
-            <div key={c.id} style={cardStyle}>
-              <h3 style={{ margin: '0 0 0.4rem 0' }}>{c.name}</h3>
-              <p style={{ fontSize: '0.85rem', color: '#777', marginBottom: '0.25rem' }}>{c.description}</p>
-              <p style={{ fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                <strong>Privacy:</strong> {c.privacy ? 'Private' : 'Public'}
+            <div key={c.id} className={cardClasses}>
+              <h3 className="mb-[6px] font-home-display text-[15px] font-semibold text-home-text-strong">{c.name}</h3>
+              <p className="mb-[4px] text-[12.5px] text-home-muted">{c.description}</p>
+              <p className="mb-[4px] text-[12.5px] text-home-muted">
+                <strong className="text-home-text-soft">Privacy:</strong> {c.privacy ? 'Private' : 'Public'}
               </p>
               {c.joinCode && (
-                <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-                  <strong>Code:</strong> {c.joinCode}
+                <p className="mb-[12px] text-[12.5px] text-home-muted">
+                  <strong className="text-home-text-soft">Code:</strong> {c.joinCode}
                 </p>
               )}
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="button" onClick={() => handleOpenEditCampaign(c)} className="section-action-button" style={cardBtnStyle}>Edit</button>
-                <button type="button" onClick={() => handleDeleteCampaign(c.id)} className="sheet-delete-button" style={cardBtnStyle}>Delete</button>
+              <div className="flex gap-[8px]">
+                <Button type="button" variant="primary" size="sm" className="flex-1" onClick={() => handleOpenEditCampaign(c)}>Edit</Button>
+                <button type="button" onClick={() => handleDeleteCampaign(c.id)} className={dangerButtonSmClasses}>Delete</button>
               </div>
             </div>
           ))}
@@ -903,35 +942,49 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <div>
-      <header className="app-header">
-        <h1 onClick={onBack} style={{ cursor: 'pointer' }}>D&D Manager — Admin Panel</h1>
-        <button onClick={onLogout} className="logout-button">Logout</button>
+    <div className="min-h-screen bg-home-ink-900 text-home-text" style={{ fontFamily: 'var(--font-home-display)' }}>
+      <header className="flex h-[58px] items-center justify-between border-b border-home-line bg-home-ink-800 px-[26px]">
+        <h1 onClick={onBack} className="cursor-pointer font-home-display text-[12.5px] font-bold uppercase text-home-text-strong">D&D Manager — Admin Panel</h1>
+        <button onClick={onLogout} type="button" className="text-[12px] text-home-dim transition-colors duration-150 hover:text-home-text-soft">Logout</button>
       </header>
 
-      <div style={{ padding: '1.5rem 2rem' }}>
-        <button className="link-button" onClick={onBack}>← Back to home</button>
+      <div className="p-[22px_26px_28px]">
+        <button type="button" className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300" onClick={onBack}>← Back to home</button>
 
         {/* Feedback banner */}
         {feedback && (
-          <div className={`status-banner ${feedback.type === 'success' ? 'success-banner' : 'error-banner'}`}
-            role="status" style={{ marginTop: '1rem' }}>
+          <div
+            className={
+              feedback.type === 'success'
+                ? 'mt-[16px] flex items-center justify-between rounded-home-xl border border-home-border-acc bg-[rgba(37,99,235,.08)] p-[12px_14px] text-[12.5px] text-home-blue-200'
+                : 'mt-[16px] flex items-center justify-between rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]'
+            }
+            role="status"
+          >
             <span>{feedback.message}</span>
-            <button type="button" className="banner-dismiss-button" onClick={() => setFeedback(null)} aria-label="Dismiss feedback">x</button>
+            <button type="button" className="font-semibold text-home-dim transition-colors duration-150 hover:text-home-text-soft" onClick={() => setFeedback(null)} aria-label="Dismiss feedback">x</button>
           </div>
         )}
 
-        {/* Confirm modal */}
+        {/* Confirm modal — legacy markup had no separate heading; the confirmation message
+            itself is used as the Modal's required `title` (kept as the sole accessible name
+            via aria-labelledby) with no body content, since Modal always renders an <h2>. */}
         {confirmModal && (
-          <div style={overlayStyle}>
-            <div style={{ ...modalStyle, maxWidth: '420px' }}>
-              <p style={{ margin: '0 0 1.5rem 0', lineHeight: '1.5' }}>{confirmModal.message}</p>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setConfirmModal(null)} style={cancelBtnStyle}>Cancel</button>
-                <button type="button" onClick={() => { confirmModal.onConfirm(); setConfirmModal(null) }} className="sheet-delete-button" style={{ padding: '0.5rem 1.25rem' }}>Confirm</button>
-              </div>
-            </div>
-          </div>
+          <Modal
+            open
+            onClose={() => setConfirmModal(null)}
+            titleId="admin-confirm-modal-title"
+            title={confirmModal.message}
+            maxWidthClassName="max-w-[420px]"
+            footer={
+              <>
+                <Button type="button" variant="secondary" onClick={() => setConfirmModal(null)}>Cancel</Button>
+                <button type="button" onClick={() => { confirmModal.onConfirm(); setConfirmModal(null) }} className={dangerButtonClasses}>Confirm</button>
+              </>
+            }
+          >
+            {null}
+          </Modal>
         )}
 
         {/* Edit modals */}
@@ -941,24 +994,19 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
         {renderFeatureEditModal()}
 
         {/* Tabs nav */}
-        <nav role="tablist" aria-label="Admin sections" style={{ display: 'flex', gap: '0', marginTop: '1.5rem', borderBottom: '2px solid var(--color-border)' }}>
+        <nav role="tablist" aria-label="Admin sections" className="mt-[24px] flex items-center border-b border-home-line">
           {tabs.map(tab => (
             <button
               key={tab.key}
+              type="button"
               role="tab"
               aria-selected={activeTab === tab.key}
               onClick={() => handleTabChange(tab.key)}
-              style={{
-                padding: '0.65rem 1.25rem',
-                border: 'none',
-                borderBottom: activeTab === tab.key ? '3px solid var(--color-accent, #6d4fc2)' : '3px solid transparent',
-                background: 'none',
-                cursor: 'pointer',
-                fontWeight: activeTab === tab.key ? 'bold' : 'normal',
-                color: activeTab === tab.key ? 'var(--color-accent, #6d4fc2)' : 'var(--color-foreground)',
-                fontSize: '0.95rem',
-                transition: 'border-color 0.15s',
-              }}
+              className={
+                activeTab === tab.key
+                  ? 'border-b-2 border-home-blue-500 px-[14px] py-[12px] font-home-display text-[13px] font-semibold text-home-text-strong transition-colors duration-150'
+                  : 'px-[14px] py-[12px] font-home-display text-[13px] text-home-dim transition-colors duration-150 hover:text-home-text-soft'
+              }
             >
               {tab.label}
             </button>
@@ -966,7 +1014,7 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
         </nav>
 
         {/* Tab content */}
-        <div role="tabpanel" style={{ marginTop: '1.5rem' }}>
+        <div role="tabpanel" className="mt-[24px]">
           {activeTab === 'classes' && renderClassesTab()}
           {activeTab === 'races' && renderRacesTab()}
           {activeTab === 'characters' && renderCharactersTab()}
@@ -976,86 +1024,4 @@ export function AdminPanel({ onBack, onLogout }: AdminPanelProps) {
       </div>
     </div>
   )
-}
-
-// ── Style constants ────────────────────────────────────────────────────────────
-const gridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: '1rem',
-}
-
-const cardStyle: React.CSSProperties = {
-  border: '1px solid var(--color-border)',
-  borderRadius: '8px',
-  padding: '1rem',
-  backgroundColor: 'var(--color-surface)',
-}
-
-const cardBtnStyle: React.CSSProperties = {
-  flex: 1,
-  padding: '0.45rem',
-  fontSize: '0.85rem',
-}
-
-const sectionCardStyle: React.CSSProperties = {
-  marginTop: '1.5rem',
-  border: '1px solid var(--color-border)',
-  borderRadius: '8px',
-  padding: '2rem',
-  backgroundColor: 'var(--color-surface)',
-}
-
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-}
-
-const modalStyle: React.CSSProperties = {
-  backgroundColor: 'var(--color-surface)', borderRadius: '8px',
-  padding: '2rem', maxWidth: '520px', width: '90%',
-  border: '1px solid var(--color-border)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-  maxHeight: '90vh', overflowY: 'auto',
-}
-
-const cancelBtnStyle: React.CSSProperties = {
-  padding: '0.5rem 1.25rem', borderRadius: '4px',
-  border: '1px solid var(--color-border)', cursor: 'pointer',
-  background: 'none',
-}
-
-const rowItemStyle: React.CSSProperties = {
-  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-  marginBottom: '0.4rem', padding: '0.4rem 0.5rem',
-  background: 'rgba(0,0,0,0.03)', borderRadius: '4px',
-}
-
-const editIconStyle: React.CSSProperties = {
-  color: '#ffffff',
-  backgroundColor: '#2563eb',
-  border: '1px solid #1d4ed8',
-  borderRadius: '8px',
-  cursor: 'pointer',
-  fontSize: '1rem',
-  width: '30px',
-  height: '30px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  lineHeight: 1,
-}
-
-const deleteIconStyle: React.CSSProperties = {
-  color: '#ffffff',
-  backgroundColor: '#dc2626',
-  border: '1px solid #b91c1c',
-  borderRadius: '8px',
-  cursor: 'pointer',
-  fontSize: '1rem',
-  width: '30px',
-  height: '30px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  lineHeight: 1,
 }
