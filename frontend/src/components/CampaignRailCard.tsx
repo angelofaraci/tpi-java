@@ -17,7 +17,6 @@ export interface CampaignRailCardProps {
   featured?: boolean
   /** Required only in interactive mode. */
   onOpen?: (campaignId: number) => void
-  onManage?: (campaignId: number) => void
   /** Default true. When false: name is a span, no action row, no copy button. */
   interactive?: boolean
 }
@@ -26,7 +25,6 @@ export function CampaignRailCard({
   campaign,
   featured = false,
   onOpen,
-  onManage,
   interactive = true,
 }: CampaignRailCardProps) {
   const { id, name, role, joinCode, playerCount, characterCount, heroName } = campaign
@@ -84,15 +82,6 @@ export function CampaignRailCard({
             >
               Open table
             </button>
-            {isDungeonMaster && (
-              <button
-                type="button"
-                onClick={() => onManage?.(id)}
-                className="rounded-home-lg border border-home-border-mid px-[11px] py-[7px] font-home-display text-[11.5px] font-semibold text-home-muted transition-colors duration-150 hover:border-home-border-hi hover:text-home-text-soft"
-              >
-                Manage
-              </button>
-            )}
           </div>
         )
       ) : (

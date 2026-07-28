@@ -41,24 +41,6 @@ describe('CampaignRailCard — role logic and variants', () => {
     expect(screen.queryByText(/Session/)).not.toBeInTheDocument()
   })
 
-  it('shows Manage only for the featured DM variant', () => {
-    render(<CampaignRailCard campaign={buildCampaign()} featured onOpen={vi.fn()} onManage={vi.fn()} />)
-
-    expect(screen.getByRole('button', { name: 'Manage' })).toBeInTheDocument()
-  })
-
-  it('hides Manage for a featured player campaign', () => {
-    render(
-      <CampaignRailCard
-        campaign={buildCampaign({ role: 'PLAYER', joinCode: undefined })}
-        featured
-        onOpen={vi.fn()}
-      />,
-    )
-
-    expect(screen.queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument()
-  })
-
   it('shows "Your hero: {name}" in the normal player variant', () => {
     render(
       <CampaignRailCard
@@ -79,22 +61,13 @@ describe('CampaignRailCard — role logic and variants', () => {
     expect(onOpen).toHaveBeenCalledWith(42)
   })
 
-  it('calls onManage with the campaign id when Manage is clicked', () => {
-    const onManage = vi.fn()
-    render(<CampaignRailCard campaign={buildCampaign()} featured onOpen={vi.fn()} onManage={onManage} />)
-
-    screen.getByRole('button', { name: 'Manage' }).click()
-
-    expect(onManage).toHaveBeenCalledWith(42)
-  })
 })
 
 describe('CampaignRailCard — interactive mode', () => {
-  it('interactive={false}, featured DM: hides Open table/Manage/Open → and has no buttons at all', () => {
+  it('interactive={false}, featured DM: hides Open table/Open → and has no buttons at all', () => {
     render(<CampaignRailCard campaign={buildCampaign()} featured interactive={false} />)
 
     expect(screen.queryByRole('button', { name: 'Open table' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Open →' })).not.toBeInTheDocument()
     expect(screen.queryAllByRole('button')).toHaveLength(0)
   })
