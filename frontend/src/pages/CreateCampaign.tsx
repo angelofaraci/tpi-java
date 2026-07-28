@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react'
-import '../App.css'
 import type { CreateCampaignPayload } from '../interfaces/campaign'
 import { api } from '../services/api'
+import { Button } from '../components/ui/Button'
+import { FormField } from '../components/ui/FormField'
+import { Input } from '../components/ui/Input'
 
 interface CreatedCampaignResult {
   campaignName: string
@@ -86,33 +88,53 @@ export function CreateCampaign({ onCancel, onLogout, onSuccess }: CreateCampaign
   }
 
   return (
-    <div>
-      <header className="app-header">
-        <h1 onClick={onCancel} style={{ cursor: 'pointer' }}>D&D Manager</h1>
-        <button onClick={onLogout} className="logout-button">Logout</button>
+    <div className="min-h-screen bg-home-ink-900 text-home-text" style={{ fontFamily: 'var(--font-home-display)' }}>
+      <header className="flex h-[58px] items-center justify-between border-b border-home-line bg-home-ink-800 px-[26px]">
+        <h1
+          onClick={onCancel}
+          className="cursor-pointer font-home-display text-[12.5px] font-bold uppercase text-home-text-strong"
+        >
+          D&D Manager
+        </h1>
+        <button
+          onClick={onLogout}
+          type="button"
+          className="text-[12px] text-home-dim transition-colors duration-150 hover:text-home-text-soft"
+        >
+          Logout
+        </button>
       </header>
 
-      <div className="page-toolbar">
-        <button className="link-button" onClick={onCancel} type="button">
+      <div className="px-[26px] py-[16px]">
+        <button
+          className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
+          onClick={onCancel}
+          type="button"
+        >
           ← Cancel
         </button>
       </div>
 
-      <div className="create-campaign-page">
-        <div className="create-campaign-card">
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h2 style={{ margin: 0, fontSize: '1.75rem' }}>Create Campaign</h2>
-            <p style={{ margin: '0.5rem 0 0', color: 'var(--color-foreground-muted)' }}>
+      <div className="px-[26px] pb-[28px]">
+        <div className="mx-auto max-w-[720px] rounded-home-3xl border border-home-border bg-home-surface p-[22px_24px] shadow-[0_24px_60px_-20px_rgba(0,0,0,.8)]">
+          <div className="mb-[24px]">
+            <h2 className="font-home-display text-[20px] font-semibold leading-[1.15] tracking-[-.01em] text-home-text-strong">
+              Create Campaign
+            </h2>
+            <p className="mt-[8px] text-[12.5px] leading-[1.5] text-home-muted">
               Start a new campaign and the backend will assign the authenticated user as DM.
             </p>
           </div>
 
-          {submitError && <div className="error-message">{submitError}</div>}
+          {submitError && (
+            <div className="mb-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
+              {submitError}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} noValidate>
-            <div className="form-group">
-              <label htmlFor="campaign-name">Campaign Name</label>
-              <input
+            <FormField id="campaign-name" label="Campaign Name">
+              <Input
                 id="campaign-name"
                 type="text"
                 value={formState.name}
@@ -124,6 +146,7 @@ export function CreateCampaign({ onCancel, onLogout, onSuccess }: CreateCampaign
                 disabled={isSubmitting}
                 maxLength={100}
                 required
+                invalid={Boolean(fieldErrors.name)}
                 aria-invalid={Boolean(fieldErrors.name)}
                 aria-describedby={fieldErrors.name ? 'campaign-name-error' : undefined}
               />
@@ -131,15 +154,14 @@ export function CreateCampaign({ onCancel, onLogout, onSuccess }: CreateCampaign
                 <p
                   id="campaign-name-error"
                   role="alert"
-                  style={{ margin: '0.5rem 0 0', color: '#fca5a5', fontSize: '0.875rem' }}
+                  className="mt-[5px] block text-[11.5px] text-home-danger"
                 >
                   {fieldErrors.name}
                 </p>
               )}
-            </div>
+            </FormField>
 
-            <div className="form-group">
-              <label htmlFor="campaign-description">Description</label>
+            <FormField id="campaign-description" label="Description">
               <textarea
                 id="campaign-description"
                 value={formState.description}
@@ -149,11 +171,11 @@ export function CreateCampaign({ onCancel, onLogout, onSuccess }: CreateCampaign
                 }}
                 disabled={isSubmitting}
                 rows={6}
-                className="form-textarea"
+                className="min-h-[80px] w-full resize-y rounded-home-lg border border-home-border-mid bg-home-well px-[11px] py-[8px] text-[12.5px] text-home-text outline-none transition-colors duration-150 placeholder:text-home-placeholder focus:border-home-border-acc disabled:opacity-50"
               />
-            </div>
+            </FormField>
 
-            <div className="checkbox-row">
+            <div className="mb-[14px] flex items-center gap-[10px]">
               <input
                 id="campaign-privacy"
                 type="checkbox"
@@ -163,24 +185,20 @@ export function CreateCampaign({ onCancel, onLogout, onSuccess }: CreateCampaign
                   setSubmitError(null)
                 }}
                 disabled={isSubmitting}
+                className="h-[16px] w-[16px] rounded-home-md border border-home-border-mid bg-home-well accent-home-blue-600 disabled:opacity-50"
               />
-              <label htmlFor="campaign-privacy" style={{ margin: 0 }}>
+              <label htmlFor="campaign-privacy" className="text-[12.5px] text-home-muted">
                 Private campaign
               </label>
             </div>
 
-            <div className="form-actions">
-              <button
-                type="button"
-                className="logout-button"
-                onClick={onCancel}
-                disabled={isSubmitting}
-              >
+            <div className="mt-[20px] flex justify-end gap-[10px]">
+              <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
                 Cancel
-              </button>
-              <button type="submit" className="login-button form-submit-button" disabled={isSubmitting}>
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating...' : 'Create Campaign'}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
