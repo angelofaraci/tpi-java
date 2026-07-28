@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../services/api'
-import '../App.css'
+import { Button } from '../components/ui/Button'
+import { FormField } from '../components/ui/FormField'
+import { Input } from '../components/ui/Input'
 
 interface AuthResponse {
   token?: string
@@ -129,18 +131,28 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-form">
-        <h1>D&D Character Manager</h1>
-        <h2>{showRegister ? 'Register' : 'Login'}</h2>
+    <div
+      className="grid min-h-screen place-items-center bg-home-ink-900 p-[24px] text-home-text"
+      style={{ fontFamily: 'var(--font-home-display)' }}
+    >
+      <div className="w-full max-w-[400px] rounded-home-3xl border border-home-border bg-home-surface p-[22px_24px] shadow-[0_24px_60px_-20px_rgba(0,0,0,.8)]">
+        <h1 className="mb-[8px] font-home-mono text-[10px] tracking-[.18em] text-[#5b6deb]">
+          D&D Character Manager
+        </h1>
+        <h2 className="font-home-display text-[20px] font-semibold leading-[1.15] tracking-[-.01em] text-home-text-strong">
+          {showRegister ? 'Register' : 'Login'}
+        </h2>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="mt-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
+            {error}
+          </div>
+        )}
 
         {!showRegister && (
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label htmlFor="login-username">Username:</label>
-              <input
+          <form onSubmit={handleLogin} className="mt-[20px]">
+            <FormField id="login-username" label="Username:">
+              <Input
                 type="text"
                 id="login-username"
                 value={loginForm.username}
@@ -148,10 +160,9 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                 required
                 disabled={isLoggingIn}
               />
-            </div>
-            <div className="form-group">
-              <label htmlFor="login-password">Password:</label>
-              <input
+            </FormField>
+            <FormField id="login-password" label="Password:">
+              <Input
                 type="password"
                 id="login-password"
                 value={loginForm.password}
@@ -159,22 +170,17 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                 required
                 disabled={isLoggingIn}
               />
-            </div>
-            <button
-              type="submit"
-              disabled={isLoggingIn || !loginForm.username || !loginForm.password}
-              className="login-button"
-            >
+            </FormField>
+            <Button type="submit" disabled={isLoggingIn || !loginForm.username || !loginForm.password}>
               {isLoggingIn ? 'Logging in...' : 'Login'}
-            </button>
+            </Button>
           </form>
         )}
 
         {showRegister && (
-          <form onSubmit={handleRegister}>
-            <div className="form-group">
-              <label htmlFor="reg-email">Email:</label>
-              <input
+          <form onSubmit={handleRegister} className="mt-[20px]">
+            <FormField id="reg-email" label="Email:">
+              <Input
                 type="email"
                 id="reg-email"
                 value={registerForm.email}
@@ -182,10 +188,9 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                 required
                 disabled={isRegistering}
               />
-            </div>
-            <div className="form-group">
-              <label htmlFor="reg-username">Username:</label>
-              <input
+            </FormField>
+            <FormField id="reg-username" label="Username:">
+              <Input
                 type="text"
                 id="reg-username"
                 value={registerForm.username}
@@ -193,10 +198,9 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                 required
                 disabled={isRegistering}
               />
-            </div>
-            <div className="form-group">
-              <label htmlFor="reg-password">Password:</label>
-              <input
+            </FormField>
+            <FormField id="reg-password" label="Password:">
+              <Input
                 type="password"
                 id="reg-password"
                 value={registerForm.password}
@@ -204,25 +208,23 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                 required
                 disabled={isRegistering}
               />
-            </div>
-            <div className="form-group">
-              <label htmlFor="reg-confirm">Confirm Password:</label>
-              <input
+            </FormField>
+            <FormField
+              id="reg-confirm"
+              label="Confirm Password:"
+              error={passwordMismatch ? 'Passwords do not match' : undefined}
+            >
+              <Input
                 type="password"
                 id="reg-confirm"
                 value={registerForm.confirmPassword}
                 onChange={(e) => setRegisterForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                 required
                 disabled={isRegistering}
-                style={passwordMismatch ? { borderColor: '#ef4444' } : undefined}
+                invalid={passwordMismatch}
               />
-              {passwordMismatch && (
-                <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
-                  Passwords do not match
-                </span>
-              )}
-            </div>
-            <button
+            </FormField>
+            <Button
               type="submit"
               disabled={
                 isRegistering ||
@@ -232,16 +234,15 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                 !registerForm.confirmPassword ||
                 passwordMismatch
               }
-              className="login-button"
             >
               {isRegistering ? 'Registering...' : 'Register'}
-            </button>
+            </Button>
           </form>
         )}
 
-        <div className="register-link">
+        <div className="mt-[16px]">
           {showRegister ? (
-            <p>
+            <p className="text-[12.5px] text-home-muted">
               Already have an account?{' '}
               <button
                 type="button"
@@ -249,13 +250,13 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                   setShowRegister(false)
                   setError(null)
                 }}
-                className="link-button"
+                className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
               >
                 Login here
               </button>
             </p>
           ) : (
-            <p>
+            <p className="text-[12.5px] text-home-muted">
               Don't have an account?{' '}
               <button
                 type="button"
@@ -263,7 +264,7 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                   setShowRegister(true)
                   setError(null)
                 }}
-                className="link-button"
+                className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
               >
                 Register here
               </button>
