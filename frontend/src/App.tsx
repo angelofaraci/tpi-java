@@ -95,6 +95,7 @@ function App() {
   const [homeFilter, setHomeFilter] = useState<HomeFilter>(readStoredHomeFilter)
   const [homeSort, setHomeSort] = useState<HomeSort>(readStoredHomeSort)
   const [joinCode, setJoinCode] = useState('')
+  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null)
   const currentUserIdRef = useRef<number | null>(null)
   const latestCharacterRequestId = useRef(0)
   const latestCampaignRequestId = useRef(0)
@@ -389,7 +390,7 @@ function App() {
       }
 
       setJoinCode('')
-      handleOpenCreateCharacter()
+      handleOpenCreateCharacter(trimmed)
     } catch (err: unknown) {
       setCampaignsError(err instanceof Error ? err.message : 'Failed to look up join code')
     }
@@ -415,6 +416,7 @@ function App() {
     setLoadingLevels(false)
     setLevelsError(null)
     setJoinCode('')
+    setPendingJoinCode(null)
     setCampaignFeedback(null)
     setCharacterSheetFeedback(null)
     setCampaignViewFeedback(null)
@@ -506,12 +508,13 @@ function App() {
     setView('create-campaign')
   }
 
-  const handleOpenCreateCharacter = () => {
+  const handleOpenCreateCharacter = (joinCodeToPrefill?: string) => {
     setCampaignFeedback(null)
     setCharacterSheetFeedback(null)
     setCharacterFormMode('create')
     setCharacterReturnView('home')
     setEditCharacterData(null)
+    setPendingJoinCode(joinCodeToPrefill ?? null)
     setView('create-character')
   }
 
@@ -765,6 +768,7 @@ function App() {
         currentUserId={currentUserId}
         mode={characterFormMode}
         initialEditData={editCharacterData}
+        initialCampaignCode={pendingJoinCode}
         onCancel={handleCancelCreateCharacter}
         onLogout={handleLogout}
         onSuccess={handleCreateCharacterSuccess}
@@ -821,11 +825,10 @@ function App() {
         sort={homeSort}
         joinCode={joinCode}
         errorMessage={homeErrorMessage}
-        onOpenCreateCharacter={handleOpenCreateCharacter}
+        onOpenCreateCharacter={() => handleOpenCreateCharacter()}
         onOpenCreateCampaign={handleOpenCreateCampaign}
         onOpenSheet={handleViewCharacter}
         onOpenCampaign={handleViewCampaign}
-        onManageCampaign={handleViewCampaign}
         onRequestDeleteCharacter={handleRequestDeleteCharacter}
         onFilterChange={setHomeFilter}
         onSortChange={setHomeSort}

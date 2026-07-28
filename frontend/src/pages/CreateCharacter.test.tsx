@@ -163,6 +163,25 @@ describe('CreateCharacter', () => {
     expect(api.characters.create).not.toHaveBeenCalled()
   })
 
+  it('pre-fills and validates the campaign code from initialCampaignCode (join-a-table flow)', async () => {
+    render(
+      <CreateCharacter
+        currentUserId={4}
+        initialCampaignCode="OPEN-TABL"
+        onCancel={onCancel}
+        onLogout={onLogout}
+        onSuccess={onSuccess}
+      />,
+    )
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Create Character' })).toBeInTheDocument()
+    await act(async () => {})
+    expect(screen.getByLabelText('Campaign Code')).toHaveValue('OPEN-TABL')
+
+    expect(await screen.findByText('Open Table', {}, { timeout: 2000 })).toBeInTheDocument()
+    expect(api.campaigns.findByCode).toHaveBeenCalledWith('OPEN-TABL')
+  })
+
   it('submits the typed payload after loading the creation catalogs', async () => {
     vi.mocked(api.characters.create).mockResolvedValueOnce({
       id: 21,

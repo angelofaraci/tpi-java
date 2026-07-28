@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Home } from './Home'
 import type { Character, LevelRecord } from '../interfaces/character'
@@ -52,7 +51,6 @@ const defaultProps = {
   onOpenCreateCampaign: vi.fn(),
   onOpenSheet: vi.fn(),
   onOpenCampaign: vi.fn(),
-  onManageCampaign: vi.fn(),
   onRequestDeleteCharacter: vi.fn(),
   onFilterChange: vi.fn(),
   onSortChange: vi.fn(),
@@ -67,15 +65,14 @@ describe('Home — top bar', () => {
 
     expect(screen.getByText('D&D MANAGER')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Characters' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Campaigns' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Characters' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Campaigns' })).not.toBeInTheDocument()
   })
 
   it('marks Home as the active nav item by default', () => {
     render(<Home {...defaultProps} />)
 
     expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('button', { name: 'Characters' })).not.toHaveAttribute('aria-current')
   })
 
   it('marks Admin as the active nav item when activeNav is admin', () => {
@@ -106,18 +103,10 @@ describe('Home — top bar', () => {
     expect(onOpenAdmin).toHaveBeenCalledTimes(1)
   })
 
-  it('renders an inert search field that is not wired to any handler', async () => {
-    const user = userEvent.setup()
+  it('does not render the unimplemented search field', () => {
     render(<Home {...defaultProps} />)
 
-    const search = screen.getByPlaceholderText('Search or paste join code')
-    expect(search).toBeInTheDocument()
-
-    // Uncontrolled + unhandled: typing must not throw, call any prop, or
-    // trigger navigation/filtering — there is no search logic in this change.
-    await user.type(search, 'curse of strahd')
-    expect(search).toHaveValue('curse of strahd')
-    expect(defaultProps.onLogout).not.toHaveBeenCalled()
+    expect(screen.queryByPlaceholderText('Search or paste join code')).not.toBeInTheDocument()
   })
 
   it('derives avatar initials from the uppercased first two characters of the username', () => {

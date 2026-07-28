@@ -28,6 +28,8 @@ interface CreateCharacterProps {
   currentUserId: number
   mode?: 'create' | 'edit'
   initialEditData?: HydratedCharacterEditData | null
+  /** Pre-filled campaign join code (e.g. from the home screen's "Join a table" flow). */
+  initialCampaignCode?: string | null
   onCancel: () => void
   onLogout: () => void
   onSuccess: (result: { characterId?: number; characterName: string }) => void
@@ -151,6 +153,7 @@ export function CreateCharacter({
   currentUserId,
   mode = 'create',
   initialEditData = null,
+  initialCampaignCode = null,
   onCancel,
   onLogout,
   onSuccess,
@@ -187,11 +190,11 @@ export function CreateCharacter({
     setSubmitError(null)
     setAutoCalculateHp(false)
     setLastAutoSavingThrowsKey(null)
-    setCampaignCode('')
+    setCampaignCode(initialCampaignCode ?? '')
     setCampaignCodeError(null)
     setCampaignCodeStatus('idle')
     setResolvedCampaignName(null)
-  }, [currentUserId, initialEditData, mode])
+  }, [currentUserId, initialEditData, mode, initialCampaignCode])
 
   useEffect(() => {
     let isMounted = true
@@ -419,6 +422,13 @@ export function CreateCharacter({
       }
     }, 600)
   }
+
+  useEffect(() => {
+    if (initialCampaignCode) {
+      handleCampaignCodeChange(initialCampaignCode)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCampaignCode])
 
   const validateForm = (nextDraft: CharacterDraft = draft) => {
     const nextErrors: CharacterFormErrors = {}

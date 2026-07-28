@@ -41,7 +41,6 @@ export interface HomeProps {
   onOpenCreateCampaign: () => void
   onOpenSheet: (characterId: number) => void
   onOpenCampaign: (campaignId: number) => void
-  onManageCampaign?: (campaignId: number) => void
   onRequestDeleteCharacter?: (characterId: number, name?: string) => void
   onFilterChange: (filter: HomeFilter) => void
   onSortChange: (sort: HomeSort) => void
@@ -128,7 +127,6 @@ export function Home({
   onOpenCreateCampaign,
   onOpenSheet,
   onOpenCampaign,
-  onManageCampaign,
   onRequestDeleteCharacter,
   onFilterChange,
   onSortChange,
@@ -195,28 +193,6 @@ export function Home({
             >
               Home
             </button>
-            <button
-              type="button"
-              aria-current={activeNav === 'characters' ? 'page' : undefined}
-              className={
-                activeNav === 'characters'
-                  ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong transition-colors duration-150'
-                  : 'py-[19px] text-home-dim transition-colors duration-150 hover:text-home-text-soft'
-              }
-            >
-              Characters
-            </button>
-            <button
-              type="button"
-              aria-current={activeNav === 'campaigns' ? 'page' : undefined}
-              className={
-                activeNav === 'campaigns'
-                  ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong transition-colors duration-150'
-                  : 'py-[19px] text-home-dim transition-colors duration-150 hover:text-home-text-soft'
-              }
-            >
-              Campaigns
-            </button>
             {isAdmin && (
               <button
                 type="button"
@@ -235,23 +211,6 @@ export function Home({
         </div>
 
         <div className="flex items-center gap-[12px]">
-          <div
-            role="search"
-            className="flex h-[32px] items-center gap-[8px] rounded-home-md border border-home-border-mid bg-home-well px-[12px]"
-          >
-            <span
-              aria-hidden="true"
-              className="h-[11px] w-[11px] rounded-full border-[1.5px] border-home-dim"
-            />
-            <input
-              type="text"
-              placeholder="Search or paste join code"
-              aria-label="Search or paste join code"
-              className="border-0 bg-transparent font-home-mono text-[11.5px] text-home-text outline-none placeholder:text-home-placeholder"
-              style={{ fontFamily: 'var(--font-home-mono)' }}
-            />
-          </div>
-
           <div
             role="img"
             aria-label={`Avatar for ${username}`}
@@ -429,7 +388,6 @@ export function Home({
                       campaign={campaign}
                       featured={campaign.id === featuredCampaignId}
                       onOpen={onOpenCampaign}
-                      onManage={onManageCampaign}
                     />
                   </div>
                 ))}

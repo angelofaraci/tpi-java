@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -746,6 +746,27 @@ describe('App home navigation and persistence', () => {
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
     await waitFor(() => expect(api.campaigns.findById).toHaveBeenCalledWith(11))
+  })
+
+  it('opens character creation with the campaign code pre-filled after a successful "Join a table"', async () => {
+    vi.mocked(api.campaigns.findByCode).mockResolvedValue({
+      id: 11,
+      name: 'Intro to Stormwreck Isle',
+      description: 'Starter set adventure',
+      privacy: false,
+    } as never)
+
+    render(<App />)
+
+    await screen.findByText('Iria')
+
+    fireEvent.change(screen.getByLabelText('Join a table by code'), { target: { value: 'AB12-CD34' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Join' }))
+
+    await waitFor(() => expect(api.campaigns.findByCode).toHaveBeenCalledWith('AB12-CD34'))
+    expect(await screen.findByRole('heading', { level: 2, name: 'Create Character' })).toBeInTheDocument()
+    await act(async () => {})
+    expect(screen.getByLabelText('Campaign Code')).toHaveValue('AB12-CD34')
   })
 })
 
