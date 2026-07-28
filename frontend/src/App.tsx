@@ -9,6 +9,8 @@ import { ViewCampaign } from './pages/ViewCampaign'
 import { AdminPanel } from './pages/AdminPanel'
 import { Home, type HomeFilter, type HomeSort, type HomeStatus } from './pages/Home'
 import { CopyCodeButton } from './components/CopyCodeButton'
+import { Modal } from './components/ui/Modal'
+import { Button } from './components/ui/Button'
 import type { RailCampaign } from './components/CampaignRailCard'
 import { api } from './services/api'
 import type { OwnedCampaignSummary, PlayerCampaignSummary } from './interfaces/campaign'
@@ -49,6 +51,11 @@ interface JoinCodeDialogState {
   campaignName: string
   joinCode: string
 }
+
+// Danger recipe (design.md "Recipe Catalog") — destructive buttons stay raw <button>,
+// not a 4th Button variant (design decision #5).
+const dangerButtonClasses =
+  'h-[36px] rounded-home-md border border-[#3f2226] bg-[rgba(220,38,38,.12)] px-[16px] font-home-display text-[12.5px] font-semibold text-home-danger transition-colors duration-150 hover:bg-[rgba(220,38,38,.2)] disabled:cursor-not-allowed disabled:opacity-50'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -783,11 +790,14 @@ function App() {
     content = (
       <>
         {campaignFeedback && (
-          <div className="status-banner success-banner" role="status">
+          <div
+            className="mb-[16px] flex items-center justify-between gap-[16px] rounded-home-xl border border-home-border-acc bg-[rgba(37,99,235,.08)] p-[12px_14px] text-[12.5px] text-home-blue-200"
+            role="status"
+          >
             <span>{campaignFeedback}</span>
             <button
               type="button"
-              className="banner-dismiss-button"
+              className="font-semibold text-home-dim transition-colors duration-150 hover:text-home-text-soft"
               onClick={() => setCampaignFeedback(null)}
               aria-label="Dismiss campaign feedback"
             >
@@ -831,103 +841,92 @@ function App() {
     <>
       {content}
       {joinCodeDialog && (
-        <div className="confirmation-backdrop" role="presentation">
-          <div className="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="join-code-title">
-            <span className="confirmation-eyebrow">Campaign created!</span>
-            <h2 id="join-code-title">🎲 {joinCodeDialog.campaignName}</h2>
-            <p>
-              Share this code with your players so they can join the campaign:
-            </p>
-            <div style={{
-              background: 'var(--color-background)',
-              border: '2px solid var(--color-border)',
-              borderRadius: '0.5rem',
-              padding: '1rem 1.5rem',
-              margin: '1rem 0',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.1em', color: 'var(--color-foreground-muted)', marginBottom: '0.5rem' }}>
-                JOIN CODE
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-                <div style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '0.15em', color: 'var(--color-foreground)', fontFamily: 'monospace' }}>
-                  {joinCodeDialog.joinCode}
-                </div>
-                <CopyCodeButton code={joinCodeDialog.joinCode} size="md" />
-              </div>
+        <Modal
+          open
+          onClose={() => setJoinCodeDialog(null)}
+          titleId="join-code-title"
+          eyebrow="Campaign created!"
+          title={`🎲 ${joinCodeDialog.campaignName}`}
+          footer={
+            <Button variant="primary" onClick={() => setJoinCodeDialog(null)}>
+              Got it!
+            </Button>
+          }
+        >
+          <p>Share this code with your players so they can join the campaign:</p>
+          <div className="my-[16px] rounded-home-lg border border-home-border-mid bg-home-well p-[16px_24px] text-center">
+            <div className="mb-[8px] font-home-mono text-[10px] font-bold uppercase tracking-[.16em] text-home-dim-2">
+              JOIN CODE
             </div>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-foreground-muted)', margin: '0 0 1.5rem' }}>
-              You can also find this code later in the campaign view.
-            </p>
-            <div className="confirmation-actions">
-              <button
-                type="button"
-                className="login-button"
-                onClick={() => setJoinCodeDialog(null)}
-              >
-                Got it!
-              </button>
+            <div className="flex items-center justify-center gap-[12px]">
+              <div className="font-home-mono text-[32px] font-black tracking-[.15em] text-home-text-strong">
+                {joinCodeDialog.joinCode}
+              </div>
+              <CopyCodeButton code={joinCodeDialog.joinCode} size="md" />
             </div>
           </div>
-        </div>
+          <p className="mb-0">You can also find this code later in the campaign view.</p>
+        </Modal>
       )}
       {deleteDialog && (
-        <div className="confirmation-backdrop" role="presentation">
-          <div className="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-character-title">
-            <span className="confirmation-eyebrow">Character deletion</span>
-            <h2 id="delete-character-title">Delete {deleteDialog.characterName}?</h2>
-            <p>
-              This permanently removes the character sheet and linked progression data from your roster.
-            </p>
-            <div className="confirmation-actions">
-              <button
-                type="button"
-                className="confirmation-secondary-button"
+        <Modal
+          open
+          onClose={handleCloseDeleteDialog}
+          titleId="delete-character-title"
+          eyebrow="Character deletion"
+          title={`Delete ${deleteDialog.characterName}?`}
+          footer={
+            <>
+              <Button
+                variant="secondary"
                 onClick={handleCloseDeleteDialog}
                 disabled={deletingCharacterId === deleteDialog.characterId}
               >
                 Cancel
-              </button>
+              </Button>
               <button
                 type="button"
-                className="confirmation-danger-button"
+                className={dangerButtonClasses}
                 onClick={() => void handleConfirmDeleteCharacter()}
                 disabled={deletingCharacterId === deleteDialog.characterId}
               >
                 {deletingCharacterId === deleteDialog.characterId ? 'Deleting...' : 'Delete character'}
               </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        >
+          <p>This permanently removes the character sheet and linked progression data from your roster.</p>
+        </Modal>
       )}
       {deleteCampaignDialog && (
-        <div className="confirmation-backdrop" role="presentation">
-          <div className="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-campaign-title">
-            <span className="confirmation-eyebrow">Campaign deletion</span>
-            <h2 id="delete-campaign-title">Delete {deleteCampaignDialog.campaignName}?</h2>
-            <p>
-              This permanently removes the campaign and all associated player assignments. Characters will not be deleted.
-            </p>
-            <div className="confirmation-actions">
-              <button
-                type="button"
-                className="confirmation-secondary-button"
+        <Modal
+          open
+          onClose={handleCloseDeleteCampaignDialog}
+          titleId="delete-campaign-title"
+          eyebrow="Campaign deletion"
+          title={`Delete ${deleteCampaignDialog.campaignName}?`}
+          footer={
+            <>
+              <Button
+                variant="secondary"
                 onClick={handleCloseDeleteCampaignDialog}
                 disabled={deletingCampaignId === deleteCampaignDialog.campaignId}
               >
                 Cancel
-              </button>
+              </Button>
               <button
                 type="button"
-                className="confirmation-danger-button"
+                className={dangerButtonClasses}
                 onClick={() => void handleConfirmDeleteCampaign()}
                 disabled={deletingCampaignId === deleteCampaignDialog.campaignId}
               >
                 {deletingCampaignId === deleteCampaignDialog.campaignId ? 'Deleting...' : 'Delete campaign'}
               </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        >
+          <p>This permanently removes the campaign and all associated player assignments. Characters will not be deleted.</p>
+        </Modal>
       )}
     </>
   )
