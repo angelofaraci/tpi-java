@@ -709,6 +709,34 @@ describe('App home navigation and persistence', () => {
     } as never)
   })
 
+  it('renders public campaigns from GET /campaigns and navigates to the read-only view on click', async () => {
+    vi.mocked(api.campaigns.findAllPublic).mockResolvedValue([
+      { id: 99, name: 'Open Table', description: 'Drop-in one-shot', privacy: false },
+    ])
+    vi.mocked(api.campaigns.findById).mockImplementation(async (id: number) =>
+      id === 99
+        ? ({ id: 99, name: 'Open Table', description: 'Drop-in one-shot', privacy: false, players: [], characters: [] } as never)
+        : ({
+            id: 11,
+            name: 'Intro to Stormwreck Isle',
+            description: 'Starter set adventure',
+            privacy: false,
+            players: [],
+            characters: [],
+          } as never),
+    )
+
+    render(<App />)
+
+    expect(await screen.findByText('PUBLIC CAMPAIGNS')).toBeInTheDocument()
+    expect(screen.getByText('Open Table')).toBeInTheDocument()
+    expect(screen.getByText('READ-ONLY')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'View →' }))
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Open Table' })).toBeInTheDocument()
+  })
+
   it('persists filter and sort to localStorage and restores them after a character-sheet round trip', async () => {
     render(<App />)
 

@@ -7,6 +7,8 @@ import type { Campaign, CampaignParticipant, CampaignCharacterReference } from '
 interface ViewCampaignProps {
   campaignId: number
   isDungeonMaster: boolean
+  /** Used to show the Edit action on a character the viewer owns, even when not the DM. */
+  currentUserId?: number | null
   onBack: () => void
   onLogout: () => void
   onDeleteCampaign: (campaignId: number, campaignName: string) => void
@@ -40,6 +42,7 @@ function formatDate(dateString?: string) {
 export function ViewCampaign({
   campaignId,
   isDungeonMaster,
+  currentUserId,
   onBack,
   onLogout,
   onDeleteCampaign,
@@ -353,7 +356,8 @@ export function ViewCampaign({
                             </svg>
                           </button>
                         )}
-                        {isDungeonMaster && onEditCharacter && (
+                        {(isDungeonMaster || (currentUserId != null && character.user?.id === currentUserId)) &&
+                          onEditCharacter && (
                           <button
                             type="button"
                             title="Edit Character"

@@ -182,8 +182,12 @@ public class CharacterService {
      *   - the owner of the character, OR
      *   - the DM of the campaign this character belongs to, OR
      *   - a player (via campaign_players) of that same campaign, OR
+     *   - the owner of another character in that same campaign (joined via a
+     *     character rather than the explicit players list — see
+     *     CampaignService.canAccess() for the same fix applied there), OR
      *   - the campaign is public (privacy == false or null)
      */
+    @Transactional(readOnly = true)
     public boolean canAccess(CharacterEntity character, String username) {
         return userRepository.findByUsername(username).map(user -> {
             // owner
@@ -201,9 +205,15 @@ public class CharacterService {
             if (campaign.getDm() != null && campaign.getDm().getId().equals(user.getId())) {
                 return true;
             }
-            // fellow player
-            if (campaign.getPlayers() != null) {
-                return campaign.getPlayers().stream().anyMatch(p -> p.getId().equals(user.getId()));
+            // fellow player (explicit players list)
+            if (campaign.getPlayers() != null &&
+                    campaign.getPlayers().stream().anyMatch(p -> p.getId().equals(user.getId()))) {
+                return true;
+            }
+            // fellow player (joined by owning another character in the same campaign)
+            if (campaign.getCharacters() != null) {
+                return campaign.getCharacters().stream()
+                        .anyMatch(c -> c.getUser() != null && c.getUser().getId().equals(user.getId()));
             }
             return false;
         }).orElse(false);
