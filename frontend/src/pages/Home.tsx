@@ -23,6 +23,7 @@ export interface HomeProps {
   /** Which nav item is visually active. Defaults to 'home' — Home.tsx only ever mounts on the home view (ADR-02). */
   activeNav?: HomeNavItem
   onOpenAdmin?: () => void
+  onGoHome: () => void
   onLogout: () => void
 
   status: HomeStatus
@@ -113,6 +114,7 @@ export function Home({
   userRole,
   activeNav = 'home',
   onOpenAdmin,
+  onGoHome,
   onLogout,
   status,
   characters,
@@ -179,6 +181,7 @@ export function Home({
             <button
               type="button"
               aria-current={activeNav === 'home' ? 'page' : undefined}
+              onClick={onGoHome}
               className={
                 activeNav === 'home'
                   ? 'border-b-2 border-home-blue-500 py-[19px] font-semibold text-home-text-strong transition-colors duration-150'

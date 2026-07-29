@@ -38,6 +38,7 @@ function buildCharacter(overrides: Partial<Character> = {}): Character {
 const defaultProps = {
   username: 'pancho',
   userRole: 'ROLE_USER' as const,
+  onGoHome: vi.fn(),
   onLogout: vi.fn(),
   status: 'ready' as const,
   characters: [] as Character[],
@@ -102,6 +103,15 @@ describe('Home — top bar', () => {
     screen.getByRole('button', { name: 'Admin' }).click()
 
     expect(onOpenAdmin).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls onGoHome when the Home nav item is clicked', () => {
+    const onGoHome = vi.fn()
+    render(<Home {...defaultProps} onGoHome={onGoHome} />)
+
+    screen.getByRole('button', { name: 'Home' }).click()
+
+    expect(onGoHome).toHaveBeenCalledTimes(1)
   })
 
   it('does not render the unimplemented search field', () => {

@@ -833,6 +833,7 @@ function App() {
         userRole={userRole}
         activeNav="home"
         onOpenAdmin={handleOpenAdminPanel}
+        onGoHome={handleBackToHome}
         onLogout={handleLogout}
         status={homeStatus}
         characters={characters}
