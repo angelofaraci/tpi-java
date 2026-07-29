@@ -7,7 +7,7 @@ import { CreateCampaign } from './pages/CreateCampaign'
 import { CreateCharacter } from './pages/CreateCharacter'
 import { ViewCampaign } from './pages/ViewCampaign'
 import { AdminPanel } from './pages/AdminPanel'
-import { Home, type HomeFilter, type HomeSort, type HomeStatus } from './pages/Home'
+import { Home, type HomeSort, type HomeStatus } from './pages/Home'
 import { CopyCodeButton } from './components/CopyCodeButton'
 import { Modal } from './components/ui/Modal'
 import { Button } from './components/ui/Button'
@@ -24,13 +24,7 @@ type CharacterFormMode = 'create' | 'edit'
 type CharacterReturnView = 'home' | 'character-sheet'
 type AuthView = 'demo' | 'login'
 
-const HOME_FILTER_VALUES: HomeFilter[] = ['all', 'active', 'retired']
 const HOME_SORT_VALUES: HomeSort[] = ['recent', 'level', 'name']
-
-function readStoredHomeFilter(): HomeFilter {
-  const stored = localStorage.getItem('home.filter')
-  return (HOME_FILTER_VALUES as string[]).includes(stored ?? '') ? (stored as HomeFilter) : 'all'
-}
 
 function readStoredHomeSort(): HomeSort {
   const stored = localStorage.getItem('home.sort')
@@ -93,7 +87,6 @@ function App() {
   const [levels, setLevels] = useState<LevelRecord[]>([])
   const [loadingLevels, setLoadingLevels] = useState(false)
   const [levelsError, setLevelsError] = useState<string | null>(null)
-  const [homeFilter, setHomeFilter] = useState<HomeFilter>(readStoredHomeFilter)
   const [homeSort, setHomeSort] = useState<HomeSort>(readStoredHomeSort)
   const [joinCode, setJoinCode] = useState('')
   const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null)
@@ -297,10 +290,6 @@ function App() {
 
     void loadLevels()
   }, [isAuthenticated, loadLevels])
-
-  useEffect(() => {
-    localStorage.setItem('home.filter', homeFilter)
-  }, [homeFilter])
 
   useEffect(() => {
     localStorage.setItem('home.sort', homeSort)
@@ -852,7 +841,6 @@ function App() {
         railCampaigns={railCampaigns}
         publicCampaigns={publicCampaigns}
         metrics={metrics}
-        filter={homeFilter}
         sort={homeSort}
         joinCode={joinCode}
         errorMessage={homeErrorMessage}
@@ -862,7 +850,6 @@ function App() {
         onOpenCampaign={handleViewCampaign}
         onOpenPublicCampaign={handleViewCampaign}
         onRequestDeleteCharacter={handleRequestDeleteCharacter}
-        onFilterChange={setHomeFilter}
         onSortChange={setHomeSort}
         onJoinCodeChange={setJoinCode}
         onJoinSubmit={() => void handleJoinByCode()}

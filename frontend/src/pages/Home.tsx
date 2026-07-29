@@ -7,7 +7,6 @@ import type { PublicCampaignSummary } from '../interfaces/campaign'
 
 export type HomeNavItem = 'home' | 'characters' | 'campaigns' | 'admin'
 export type HomeStatus = 'loading' | 'ready' | 'error'
-export type HomeFilter = 'all' | 'active' | 'retired'
 export type HomeSort = 'recent' | 'level' | 'name'
 
 export interface HomeMetrics {
@@ -35,7 +34,6 @@ export interface HomeProps {
   /** GET /campaigns (public-only, read-only) — shown below the user's own tables. */
   publicCampaigns: PublicCampaignSummary[]
   metrics: HomeMetrics
-  filter: HomeFilter
   sort: HomeSort
   joinCode: string
   errorMessage?: string | null
@@ -46,7 +44,6 @@ export interface HomeProps {
   onOpenCampaign: (campaignId: number) => void
   onOpenPublicCampaign: (campaignId: number) => void
   onRequestDeleteCharacter?: (characterId: number, name?: string) => void
-  onFilterChange: (filter: HomeFilter) => void
   onSortChange: (sort: HomeSort) => void
   onJoinCodeChange: (value: string) => void
   onJoinSubmit: () => void
@@ -124,7 +121,6 @@ export function Home({
   railCampaigns,
   publicCampaigns,
   metrics,
-  filter,
   sort,
   joinCode,
   errorMessage,
@@ -134,7 +130,6 @@ export function Home({
   onOpenCampaign,
   onOpenPublicCampaign,
   onRequestDeleteCharacter,
-  onFilterChange,
   onSortChange,
   onJoinCodeChange,
   onJoinSubmit,
@@ -153,11 +148,7 @@ export function Home({
       ? 'Pick up where you left off with your tables.'
       : 'Start by creating a campaign, or join one with a code.'
 
-  // No `active`/`retired`/`status` field exists on Character (spec.md Plan B):
-  // treat everything as active — `retired` yields an empty grid, `all`/`active` are identical.
-  const filteredCharacters = filter === 'retired' ? [] : characters
-
-  const sortedCharacters = [...filteredCharacters].sort((a, b) => {
+  const sortedCharacters = [...characters].sort((a, b) => {
     if (sort === 'name') {
       return a.name.toLowerCase().localeCompare(b.name.toLowerCase())
     }
@@ -297,21 +288,6 @@ export function Home({
                 </span>
               </div>
               <div className="flex items-center gap-[6px] font-home-display text-[11px] font-medium">
-                {(['all', 'active', 'retired'] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => onFilterChange(option)}
-                    aria-pressed={filter === option}
-                    className={
-                      filter === option
-                        ? 'rounded-home-md bg-home-chip px-[10px] py-[5px] text-home-text-soft transition-colors duration-150'
-                        : 'rounded-home-md px-[10px] py-[5px] text-home-dim transition-colors duration-150 hover:bg-home-chip hover:text-home-text-soft'
-                    }
-                  >
-                    {option === 'all' ? 'All' : option === 'active' ? 'Active' : 'Retired'}
-                  </button>
-                ))}
                 <select
                   aria-label="Sort characters"
                   value={sort}

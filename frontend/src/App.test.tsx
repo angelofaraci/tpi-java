@@ -647,7 +647,6 @@ describe('App home navigation and persistence', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     localStorage.setItem('token', 'test-token')
-    localStorage.removeItem('home.filter')
     localStorage.removeItem('home.sort')
 
     vi.mocked(api.auth.me).mockResolvedValue({ id: 7, username: 'pancho' } as User)
@@ -737,25 +736,21 @@ describe('App home navigation and persistence', () => {
     expect(await screen.findByRole('heading', { level: 2, name: 'Open Table' })).toBeInTheDocument()
   })
 
-  it('persists filter and sort to localStorage and restores them after a character-sheet round trip', async () => {
+  it('persists sort to localStorage and restores it after a character-sheet round trip', async () => {
     render(<App />)
 
     expect(await screen.findByText('Iria')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retired' }))
     fireEvent.change(screen.getByLabelText('Sort characters'), { target: { value: 'level' } })
 
-    expect(localStorage.getItem('home.filter')).toBe('retired')
     expect(localStorage.getItem('home.sort')).toBe('level')
 
-    // Navigate away (retired filter empties the grid, so open the sheet via the rail instead)
     fireEvent.click(screen.getByRole('button', { name: 'Intro to Stormwreck Isle' }))
     expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '← Back to Home' }))
 
     await screen.findByText('Forge another adventurer')
-    expect(screen.getByRole('button', { name: 'Retired' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByLabelText('Sort characters')).toHaveValue('level')
   })
 

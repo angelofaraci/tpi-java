@@ -46,7 +46,6 @@ const defaultProps = {
   railCampaigns: [] as RailCampaign[],
   publicCampaigns: [] as PublicCampaignSummary[],
   metrics: { campaignsCount: 0, charactersCount: 0, asDmCount: 0, playersAtTables: 0 },
-  filter: 'all' as const,
   sort: 'recent' as const,
   joinCode: '',
   onOpenCreateCharacter: vi.fn(),
@@ -55,7 +54,6 @@ const defaultProps = {
   onOpenCampaign: vi.fn(),
   onOpenPublicCampaign: vi.fn(),
   onRequestDeleteCharacter: vi.fn(),
-  onFilterChange: vi.fn(),
   onSortChange: vi.fn(),
   onJoinCodeChange: vi.fn(),
   onJoinSubmit: vi.fn(),
@@ -212,22 +210,6 @@ describe('Home — character grid', () => {
     expect(onOpenSheet).toHaveBeenCalledWith(1)
   })
 
-  it('the retired filter yields an empty grid (no active/retired field exists)', () => {
-    render(<Home {...defaultProps} characters={[buildCharacter()]} filter="retired" />)
-
-    expect(screen.queryByText('Iria')).not.toBeInTheDocument()
-    expect(screen.getByText('Forge another adventurer')).toBeInTheDocument()
-  })
-
-  it('all and active filters render identical results', () => {
-    const { unmount } = render(<Home {...defaultProps} characters={[buildCharacter()]} filter="all" />)
-    expect(screen.getByText('Iria')).toBeInTheDocument()
-    unmount()
-
-    render(<Home {...defaultProps} characters={[buildCharacter()]} filter="active" />)
-    expect(screen.getByText('Iria')).toBeInTheDocument()
-  })
-
   it('sorts by name ascending, case-insensitively', () => {
     render(
       <Home
@@ -241,15 +223,12 @@ describe('Home — character grid', () => {
     expect(names).toEqual(['Aldric', 'zara'])
   })
 
-  it('calls onFilterChange and onSortChange from the grid controls', () => {
-    const onFilterChange = vi.fn()
+  it('calls onSortChange from the grid controls', () => {
     const onSortChange = vi.fn()
-    render(<Home {...defaultProps} onFilterChange={onFilterChange} onSortChange={onSortChange} />)
+    render(<Home {...defaultProps} onSortChange={onSortChange} />)
 
-    screen.getByRole('button', { name: 'Retired' }).click()
-    expect(onFilterChange).toHaveBeenCalledWith('retired')
-
-    screen.getByLabelText('Sort characters').focus()
+    fireEvent.change(screen.getByLabelText('Sort characters'), { target: { value: 'level' } })
+    expect(onSortChange).toHaveBeenCalledWith('level')
   })
 })
 
