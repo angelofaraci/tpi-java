@@ -13,7 +13,7 @@ import { Modal } from './components/ui/Modal'
 import { Button } from './components/ui/Button'
 import type { RailCampaign } from './components/CampaignRailCard'
 import { api } from './services/api'
-import type { OwnedCampaignSummary, PlayerCampaignSummary } from './interfaces/campaign'
+import type { OwnedCampaignSummary, PlayerCampaignSummary, PublicCampaignSummary } from './interfaces/campaign'
 import type { Character, HydratedCharacterEditData, LevelRecord } from './interfaces/character'
 import type { User } from './interfaces/user'
 import { hydrateCharacterEditData } from './utils/characterDraft'
@@ -66,6 +66,7 @@ function App() {
   const [characters, setCharacters] = useState<Character[]>([])
   const [campaigns, setCampaigns] = useState<OwnedCampaignSummary[]>([])
   const [playerCampaigns, setPlayerCampaigns] = useState<PlayerCampaignSummary[]>([])
+  const [publicCampaigns, setPublicCampaigns] = useState<PublicCampaignSummary[]>([])
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null)
   const [loadingCharacters, setLoadingCharacters] = useState(false)
   const [loadingCampaigns, setLoadingCampaigns] = useState(false)
@@ -100,6 +101,7 @@ function App() {
   const latestCharacterRequestId = useRef(0)
   const latestCampaignRequestId = useRef(0)
   const latestPlayerCampaignRequestId = useRef(0)
+  const latestPublicCampaignRequestId = useRef(0)
   const latestLevelsRequestId = useRef(0)
 
   useEffect(() => {
@@ -232,6 +234,32 @@ function App() {
 
     void loadPlayerCampaigns()
   }, [isAuthenticated, loadPlayerCampaigns])
+
+  // Public Campaigns section (restored — GET /campaigns is public-only/read-only, see
+  // CampaignService.findAll()). Non-critical like loadLevels below: a failure here only
+  // leaves the Public Campaigns section empty, it does not block the rest of the home.
+  const loadPublicCampaigns = useCallback(async () => {
+    const requestId = latestPublicCampaignRequestId.current + 1
+    latestPublicCampaignRequestId.current = requestId
+
+    try {
+      const data = await api.campaigns.findAllPublic()
+
+      if (requestId !== latestPublicCampaignRequestId.current) {
+        return
+      }
+
+      setPublicCampaigns(Array.isArray(data) ? data : [])
+    } catch (err: unknown) {
+      console.warn('Failed to load public campaigns', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    void loadPublicCampaigns()
+  }, [isAuthenticated, loadPublicCampaigns])
 
   // Third parallel fetch alongside characters/campaigns (design.md "Revised: parallel
   // fetch includes levels") — feeds CharacterCard's level-badge derivation via GET /levels,
@@ -368,6 +396,7 @@ function App() {
     void loadCharacters()
     void loadCampaigns()
     void loadPlayerCampaigns()
+    void loadPublicCampaigns()
     void loadLevels()
   }
 
@@ -751,6 +780,7 @@ function App() {
       <ViewCampaign
         campaignId={selectedCampaignId}
         isDungeonMaster={isDungeonMaster}
+        currentUserId={currentUserId}
         onBack={handleBackToHome}
         onLogout={handleLogout}
         onDeleteCampaign={handleRequestDeleteCampaign}
@@ -759,7 +789,7 @@ function App() {
         feedback={campaignViewFeedback}
         onDismissFeedback={() => setCampaignViewFeedback(null)}
         onViewCharacter={handleViewCharacterReadOnly}
-        onEditCharacter={isDungeonMaster ? handleEditCharacterFromCampaign : undefined}
+        onEditCharacter={handleEditCharacterFromCampaign}
       />
     )
   } else if (view === 'create-character' && currentUserId) {
@@ -820,6 +850,7 @@ function App() {
         campaignNameById={campaignNameById}
         levelsByCharacterId={levelsByCharacterId}
         railCampaigns={railCampaigns}
+        publicCampaigns={publicCampaigns}
         metrics={metrics}
         filter={homeFilter}
         sort={homeSort}
@@ -829,6 +860,7 @@ function App() {
         onOpenCreateCampaign={handleOpenCreateCampaign}
         onOpenSheet={handleViewCharacter}
         onOpenCampaign={handleViewCampaign}
+        onOpenPublicCampaign={handleViewCampaign}
         onRequestDeleteCharacter={handleRequestDeleteCharacter}
         onFilterChange={setHomeFilter}
         onSortChange={setHomeSort}

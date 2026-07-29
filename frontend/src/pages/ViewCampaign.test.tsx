@@ -125,3 +125,61 @@ describe('ViewCampaign — DM Edit button visibility', () => {
     expect(editButtons).toHaveLength(0)
   })
 })
+
+describe('ViewCampaign — own-character Edit button visibility (non-DM players)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(api.campaigns.findById).mockResolvedValue(mockCampaignWithCharacters as never)
+  })
+
+  it('renders an Edit button only for the character owned by currentUserId when not the DM', async () => {
+    render(
+      <ViewCampaign
+        {...defaultProps}
+        isDungeonMaster={false}
+        currentUserId={3}
+        onEditCharacter={vi.fn()}
+      />,
+    )
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
+
+    const editButtons = screen.getAllByRole('button', { name: /Edit/ })
+    expect(editButtons).toHaveLength(1)
+  })
+
+  it('calls onEditCharacter with the owned character id when a player clicks Edit on their own character', async () => {
+    const user = userEvent.setup()
+    const onEditCharacter = vi.fn()
+
+    render(
+      <ViewCampaign
+        {...defaultProps}
+        isDungeonMaster={false}
+        currentUserId={3}
+        onEditCharacter={onEditCharacter}
+      />,
+    )
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Edit/ }))
+
+    expect(onEditCharacter).toHaveBeenCalledWith(31)
+  })
+
+  it('does NOT render an Edit button for another player\'s character when not the DM', async () => {
+    render(
+      <ViewCampaign
+        {...defaultProps}
+        isDungeonMaster={false}
+        currentUserId={999}
+        onEditCharacter={vi.fn()}
+      />,
+    )
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Intro to Stormwreck Isle' })).toBeInTheDocument()
+
+    expect(screen.queryAllByRole('button', { name: /Edit/ })).toHaveLength(0)
+  })
+})

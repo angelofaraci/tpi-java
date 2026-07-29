@@ -3,6 +3,7 @@ import { CampaignRailCard, type RailCampaign } from '../components/CampaignRailC
 import { MetricTile } from '../components/MetricTile'
 import { formatJoinCodeInput } from '../utils/joinCode'
 import type { Character, LevelRecord } from '../interfaces/character'
+import type { PublicCampaignSummary } from '../interfaces/campaign'
 
 export type HomeNavItem = 'home' | 'characters' | 'campaigns' | 'admin'
 export type HomeStatus = 'loading' | 'ready' | 'error'
@@ -31,6 +32,8 @@ export interface HomeProps {
   /** Grouped GET /levels response by characterId — see design.md "Revised: parallel fetch includes levels". */
   levelsByCharacterId: Map<number, LevelRecord[]>
   railCampaigns: RailCampaign[]
+  /** GET /campaigns (public-only, read-only) — shown below the user's own tables. */
+  publicCampaigns: PublicCampaignSummary[]
   metrics: HomeMetrics
   filter: HomeFilter
   sort: HomeSort
@@ -41,6 +44,7 @@ export interface HomeProps {
   onOpenCreateCampaign: () => void
   onOpenSheet: (characterId: number) => void
   onOpenCampaign: (campaignId: number) => void
+  onOpenPublicCampaign: (campaignId: number) => void
   onRequestDeleteCharacter?: (characterId: number, name?: string) => void
   onFilterChange: (filter: HomeFilter) => void
   onSortChange: (sort: HomeSort) => void
@@ -118,6 +122,7 @@ export function Home({
   campaignNameById,
   levelsByCharacterId,
   railCampaigns,
+  publicCampaigns,
   metrics,
   filter,
   sort,
@@ -127,6 +132,7 @@ export function Home({
   onOpenCreateCampaign,
   onOpenSheet,
   onOpenCampaign,
+  onOpenPublicCampaign,
   onRequestDeleteCharacter,
   onFilterChange,
   onSortChange,
@@ -393,6 +399,51 @@ export function Home({
                 ))}
               </div>
             )}
+
+            <div className="mt-[22px] border-t border-home-line pt-[18px]">
+              <div className="mb-[10px] flex items-center gap-[8px]">
+                <h2 className="font-home-mono text-[10px] tracking-[.16em] text-home-dim-2">PUBLIC CAMPAIGNS</h2>
+                <span className="rounded-full bg-home-chip px-[7px] py-[2px] font-home-mono text-[10.5px] font-semibold text-[#8fb2ec]">
+                  {publicCampaigns.length}
+                </span>
+              </div>
+
+              {publicCampaigns.length === 0 ? (
+                <div className="mb-[9px] rounded-home-2xl border border-dashed border-home-border-dash p-[14px]">
+                  <div className="text-[11.5px] text-home-dim">No public tables right now.</div>
+                </div>
+              ) : (
+                <div data-testid="home-public-campaigns-list">
+                  {publicCampaigns.map((campaign) => (
+                    <div
+                      key={campaign.id}
+                      className="mb-[9px] rounded-home-2xl border border-home-border bg-home-surface p-[13px_14px]"
+                    >
+                      <div className="flex items-center justify-between gap-[10px]">
+                        <span className="font-home-display text-[13.5px] font-semibold text-home-text-strong">
+                          {campaign.name}
+                        </span>
+                        <span className="rounded-home-sm bg-[#1b2029] px-[7px] py-[3px] font-home-mono text-[9px] font-bold tracking-[.12em] text-home-muted">
+                          READ-ONLY
+                        </span>
+                      </div>
+                      {campaign.description && (
+                        <p className="mt-[5px] line-clamp-2 text-[11.5px] text-home-muted-2">{campaign.description}</p>
+                      )}
+                      <div className="mt-[9px] flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => onOpenPublicCampaign(campaign.id)}
+                          className="font-home-display text-[11.5px] font-semibold text-home-blue-400 transition-colors duration-150 hover:text-home-blue-300"
+                        >
+                          View →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="mt-[22px] border-t border-home-line pt-[18px]">
               <div className="mb-[10px] font-home-mono text-[10px] tracking-[.16em] text-home-dim-2">JOIN A TABLE</div>

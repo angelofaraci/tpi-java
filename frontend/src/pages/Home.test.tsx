@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Home } from './Home'
 import type { Character, LevelRecord } from '../interfaces/character'
 import type { RailCampaign } from '../components/CampaignRailCard'
+import type { PublicCampaignSummary } from '../interfaces/campaign'
 
 function buildCharacter(overrides: Partial<Character> = {}): Character {
   return {
@@ -43,6 +44,7 @@ const defaultProps = {
   campaignNameById: new Map<number, string>(),
   levelsByCharacterId: new Map<number, LevelRecord[]>(),
   railCampaigns: [] as RailCampaign[],
+  publicCampaigns: [] as PublicCampaignSummary[],
   metrics: { campaignsCount: 0, charactersCount: 0, asDmCount: 0, playersAtTables: 0 },
   filter: 'all' as const,
   sort: 'recent' as const,
@@ -51,6 +53,7 @@ const defaultProps = {
   onOpenCreateCampaign: vi.fn(),
   onOpenSheet: vi.fn(),
   onOpenCampaign: vi.fn(),
+  onOpenPublicCampaign: vi.fn(),
   onRequestDeleteCharacter: vi.fn(),
   onFilterChange: vi.fn(),
   onSortChange: vi.fn(),
@@ -286,6 +289,48 @@ describe('Home — campaign rail', () => {
     screen.getByText('Stormwreck').click()
 
     expect(onOpenCampaign).toHaveBeenCalledWith(9)
+  })
+})
+
+describe('Home — public campaigns', () => {
+  const publicCampaign: PublicCampaignSummary = {
+    id: 5,
+    name: 'The Open Table',
+    description: 'Anyone can drop in and watch this campaign unfold.',
+    privacy: false,
+    creationDate: '2026-01-01',
+  }
+
+  it('renders a Public Campaigns section with the campaign name and count', () => {
+    render(<Home {...defaultProps} publicCampaigns={[publicCampaign]} />)
+
+    expect(screen.getByText('PUBLIC CAMPAIGNS')).toBeInTheDocument()
+    expect(screen.getByText('The Open Table')).toBeInTheDocument()
+    expect(screen.getByText('1')).toBeInTheDocument()
+  })
+
+  it('marks each public campaign card as read-only and does not render an edit affordance', () => {
+    render(<Home {...defaultProps} publicCampaigns={[publicCampaign]} />)
+
+    expect(screen.getByText('READ-ONLY')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument()
+  })
+
+  it('calls onOpenPublicCampaign with the campaign id when View is clicked', () => {
+    const onOpenPublicCampaign = vi.fn()
+    render(
+      <Home {...defaultProps} publicCampaigns={[publicCampaign]} onOpenPublicCampaign={onOpenPublicCampaign} />,
+    )
+
+    screen.getByRole('button', { name: 'View →' }).click()
+
+    expect(onOpenPublicCampaign).toHaveBeenCalledWith(5)
+  })
+
+  it('shows an empty state when there are no public campaigns', () => {
+    render(<Home {...defaultProps} publicCampaigns={[]} />)
+
+    expect(screen.getByText('No public tables right now.')).toBeInTheDocument()
   })
 })
 
