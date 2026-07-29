@@ -24,11 +24,11 @@ type CharacterFormMode = 'create' | 'edit'
 type CharacterReturnView = 'home' | 'character-sheet'
 type AuthView = 'demo' | 'login'
 
-const HOME_SORT_VALUES: HomeSort[] = ['recent', 'level', 'name']
+const HOME_SORT_VALUES: HomeSort[] = ['level', 'name']
 
 function readStoredHomeSort(): HomeSort {
   const stored = localStorage.getItem('home.sort')
-  return (HOME_SORT_VALUES as string[]).includes(stored ?? '') ? (stored as HomeSort) : 'recent'
+  return (HOME_SORT_VALUES as string[]).includes(stored ?? '') ? (stored as HomeSort) : 'level'
 }
 
 interface DeleteDialogState {

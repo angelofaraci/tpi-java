@@ -46,7 +46,7 @@ const defaultProps = {
   railCampaigns: [] as RailCampaign[],
   publicCampaigns: [] as PublicCampaignSummary[],
   metrics: { campaignsCount: 0, charactersCount: 0, asDmCount: 0, playersAtTables: 0 },
-  sort: 'recent' as const,
+  sort: 'level' as const,
   joinCode: '',
   onOpenCreateCharacter: vi.fn(),
   onOpenCreateCampaign: vi.fn(),

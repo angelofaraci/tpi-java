@@ -7,7 +7,7 @@ import type { PublicCampaignSummary } from '../interfaces/campaign'
 
 export type HomeNavItem = 'home' | 'characters' | 'campaigns' | 'admin'
 export type HomeStatus = 'loading' | 'ready' | 'error'
-export type HomeSort = 'recent' | 'level' | 'name'
+export type HomeSort = 'level' | 'name'
 
 export interface HomeMetrics {
   campaignsCount: number
@@ -152,10 +152,7 @@ export function Home({
     if (sort === 'name') {
       return a.name.toLowerCase().localeCompare(b.name.toLowerCase())
     }
-    if (sort === 'level') {
-      return deriveCharacterLevel(b, levelsByCharacterId) - deriveCharacterLevel(a, levelsByCharacterId)
-    }
-    return 0 // 'recent' — keep API order
+    return deriveCharacterLevel(b, levelsByCharacterId) - deriveCharacterLevel(a, levelsByCharacterId)
   })
 
   const dmCampaignIds = new Set(railCampaigns.filter((c) => c.role === 'DM').map((c) => c.id))
@@ -294,7 +291,6 @@ export function Home({
                   onChange={(event) => onSortChange(event.target.value as HomeSort)}
                   className="ml-[6px] rounded-home-md border border-home-border-mid px-[10px] py-[5px] text-home-muted"
                 >
-                  <option value="recent">Recently played</option>
                   <option value="level">Level</option>
                   <option value="name">Name</option>
                 </select>
