@@ -20,4 +20,6 @@ public interface CharacterRepository extends JpaRepository<CharacterEntity, Long
     Optional<CharacterEntity> findDemoById(Long id);
 
     boolean existsByDemoSlug(String demoSlug);
+
+    boolean existsByCampaignId(Long campaignId);
 }

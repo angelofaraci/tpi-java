@@ -134,6 +134,10 @@ public class CampaignService {
 
     }
 
+    public boolean hasCharacters(Long id) {
+        return characterRepository.existsByCampaignId(id);
+    }
+
     public void delete(Long id) {
         campaignRepository.deleteById(id);
     }

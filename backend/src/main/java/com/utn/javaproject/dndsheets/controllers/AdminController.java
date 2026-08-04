@@ -169,9 +169,13 @@ public class AdminController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/campaigns/{id}")
-    public ResponseEntity<Void> deleteCampaign(@PathVariable Long id) {
+    public ResponseEntity<?> deleteCampaign(@PathVariable Long id) {
         if (!campaignService.isExists(id)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        if (campaignService.hasCharacters(id)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Cannot delete a campaign that still has characters. Delete or reassign its characters first.");
         }
         campaignService.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);

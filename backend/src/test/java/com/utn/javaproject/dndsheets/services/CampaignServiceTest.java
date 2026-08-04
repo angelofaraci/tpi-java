@@ -218,6 +218,20 @@ class CampaignServiceTest {
         assertThat(campaignService.countCharacters(campaign)).isEqualTo(0);
     }
 
+    @Test
+    void hasCharacters_returnsTrue_whenCampaignHasAtLeastOneCharacter() {
+        when(characterRepository.existsByCampaignId(1L)).thenReturn(true);
+
+        assertThat(campaignService.hasCharacters(1L)).isTrue();
+    }
+
+    @Test
+    void hasCharacters_returnsFalse_whenCampaignHasNoCharacters() {
+        when(characterRepository.existsByCampaignId(1L)).thenReturn(false);
+
+        assertThat(campaignService.hasCharacters(1L)).isFalse();
+    }
+
     // Helper to set the ID field via reflection (entities use @GeneratedValue)
     private static void setId(UserEntity entity, Long id) {
         try {

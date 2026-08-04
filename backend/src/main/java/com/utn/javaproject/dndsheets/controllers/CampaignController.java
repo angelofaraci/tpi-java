@@ -127,7 +127,11 @@ public class CampaignController {
     }
 
     @DeleteMapping(path = "campaign/{id}")
-    public ResponseEntity<Void> deleteCampaign(@PathVariable("id") Long id){
+    public ResponseEntity<?> deleteCampaign(@PathVariable("id") Long id){
+        if (campaignService.hasCharacters(id)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Cannot delete a campaign that still has characters. Delete or reassign its characters first.");
+        }
         campaignService.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
