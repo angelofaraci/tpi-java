@@ -64,6 +64,7 @@ public class DndClassController {
         return new ResponseEntity<>(dndClassMapper.mapTo(savedEntity), HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping(path = "dnd-class/{id}")
     public ResponseEntity<DndClassDto> partialUpdate(
             @PathVariable("id") Long id,
@@ -78,6 +79,7 @@ public class DndClassController {
         return new ResponseEntity<>(dndClassMapper.mapTo(updatedDndClass), HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping(path = "dnd-class/{id}")
     public ResponseEntity deleteDndClass(@PathVariable("id") Long id) {
         dndClassService.delete(id);
