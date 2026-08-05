@@ -3,11 +3,14 @@ package com.utn.javaproject.dndsheets.controllers;
 import com.utn.javaproject.dndsheets.domain.dto.CharacterStatsDto;
 import com.utn.javaproject.dndsheets.domain.entities.CharacterStatsEntity;
 import com.utn.javaproject.dndsheets.mappers.Mapper;
+import com.utn.javaproject.dndsheets.services.CharacterService;
 import com.utn.javaproject.dndsheets.services.CharacterStatsService;
 import com.utn.javaproject.dndsheets.services.CharacterCreateRequestValidator;
 import com.utn.javaproject.dndsheets.services.LevelService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import com.utn.javaproject.dndsheets.domain.entities.LevelKey;
 import com.utn.javaproject.dndsheets.domain.entities.LevelEntity;
@@ -23,15 +26,18 @@ public class CharacterStatsController {
     private final CharacterStatsService characterStatsService;
     private final CharacterCreateRequestValidator characterCreateRequestValidator;
     private final LevelService levelService;
+    private final CharacterService characterService;
 
     public CharacterStatsController(Mapper<CharacterStatsEntity, CharacterStatsDto> characterStatsMapper,
                                     CharacterStatsService characterStatsService,
                                     CharacterCreateRequestValidator characterCreateRequestValidator,
-                                    LevelService levelService) {
+                                    LevelService levelService,
+                                    CharacterService characterService) {
         this.characterStatsMapper = characterStatsMapper;
         this.characterStatsService = characterStatsService;
         this.characterCreateRequestValidator = characterCreateRequestValidator;
         this.levelService = levelService;
+        this.characterService = characterService;
     }
 
     @PostMapping(path = "/character-stats")
@@ -83,14 +89,28 @@ public class CharacterStatsController {
     @PutMapping(path = "character-stats/{id}")
     public ResponseEntity<CharacterStatsDto> fullUpdateCharacterStats(
             @PathVariable("id") Long id,
-            @RequestBody CharacterStatsDto characterStatsDto) {
+            @RequestBody CharacterStatsDto characterStatsDto,
+            @AuthenticationPrincipal UserDetails principal) {
 
-        if (!characterStatsService.isExists(id)) {
+        Optional<CharacterStatsEntity> found = characterStatsService.findOne(id);
+        if (found.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (principal == null || !characterService.canEdit(found.get().getCharacter(), principal.getUsername())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
         characterStatsDto.setId(id);
         CharacterStatsEntity characterStatsEntity = characterStatsMapper.mapFrom(characterStatsDto);
+        // CharacterStatsDto has no "character" field, so it cannot legitimately carry one — but
+        // ModelMapper's default matching strategy spuriously maps the DTO's top-level "id" onto
+        // the entity's unmatched nested "character.id" path (both leaf-named "id"), silently
+        // corrupting the character-stats -> character association with a bogus reference on
+        // every PUT. Character is immutable after creation (mirrors the same fix already applied
+        // to campaign in CharacterController#fullUpdateCharacter) — always preserve the existing
+        // association instead of trusting the mapper's guess.
+        characterStatsEntity.setCharacter(found.get().getCharacter());
         CharacterStatsEntity savedEntity = characterStatsService.save(characterStatsEntity);
         return new ResponseEntity<>(characterStatsMapper.mapTo(savedEntity), HttpStatus.OK);
     }
@@ -98,10 +118,16 @@ public class CharacterStatsController {
     @PatchMapping(path = "character-stats/{id}")
     public ResponseEntity<CharacterStatsDto> partialUpdate(
             @PathVariable("id") Long id,
-            @RequestBody CharacterStatsDto characterStatsDto) {
+            @RequestBody CharacterStatsDto characterStatsDto,
+            @AuthenticationPrincipal UserDetails principal) {
 
-        if (!characterStatsService.isExists(id)) {
+        Optional<CharacterStatsEntity> found = characterStatsService.findOne(id);
+        if (found.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (principal == null || !characterService.canEdit(found.get().getCharacter(), principal.getUsername())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
         if (characterStatsDto.getAbilityScores() != null) {
@@ -113,12 +139,27 @@ public class CharacterStatsController {
         }
 
         CharacterStatsEntity characterStatsEntity = characterStatsMapper.mapFrom(characterStatsDto);
+        // Same spurious-mapping hazard as fullUpdateCharacterStats above — pin the association to
+        // the already-verified owner before any partial-update field copying can see it.
+        characterStatsEntity.setCharacter(found.get().getCharacter());
         CharacterStatsEntity updatedCharacterStats = characterStatsService.partialUpdate(id, characterStatsEntity);
         return new ResponseEntity<>(characterStatsMapper.mapTo(updatedCharacterStats), HttpStatus.OK);
     }
 
     @DeleteMapping(path = "character-stats/{id}")
-    public ResponseEntity<Void> deleteCharacterStats(@PathVariable("id") Long id) {
+    public ResponseEntity<Void> deleteCharacterStats(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal UserDetails principal) {
+
+        Optional<CharacterStatsEntity> found = characterStatsService.findOne(id);
+        if (found.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (principal == null || !characterService.canEdit(found.get().getCharacter(), principal.getUsername())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
         characterStatsService.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -126,13 +167,18 @@ public class CharacterStatsController {
     @PutMapping(path = "character-stats/{id}/{classId}")
     public ResponseEntity<CharacterStatsDto> updateCharacterHp(
             @PathVariable("id") Long characterStatsId,
-            @PathVariable("classId") Long classId) {
+            @PathVariable("classId") Long classId,
+            @AuthenticationPrincipal UserDetails principal) {
         Optional<CharacterStatsEntity> foundCharacterStats = characterStatsService.findOne(characterStatsId);
         if (foundCharacterStats.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
         CharacterStatsEntity characterStatsEntity = foundCharacterStats.get();
+
+        if (principal == null || !characterService.canEdit(characterStatsEntity.getCharacter(), principal.getUsername())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         Optional<LevelEntity> characterLevelOptional = levelService.findOne(
                 new LevelKey(characterStatsEntity.getCharacter().getId(), classId)
         );
