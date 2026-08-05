@@ -100,10 +100,16 @@ public class CampaignController {
     @PutMapping(path = "campaign/{id}")
     public ResponseEntity<CampaignDto> fullUpdateCampaign(
             @PathVariable("id") Long id,
-            @RequestBody CampaignDto campaignDto){
+            @RequestBody CampaignDto campaignDto,
+            @AuthenticationPrincipal UserDetails principal){
 
-        if(!campaignService.isExists(id)){
+        Optional<CampaignEntity> found = campaignService.findOne(id);
+        if (found.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (principal == null || !campaignService.isDm(found.get(), principal.getUsername())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
         campaignDto.setId(id);
@@ -115,10 +121,16 @@ public class CampaignController {
     @PatchMapping(path = "campaign/{id}")
     public ResponseEntity<CampaignDto> partialUpdate(
             @PathVariable("id") Long id,
-            @RequestBody CampaignDto campaignDto
+            @RequestBody CampaignDto campaignDto,
+            @AuthenticationPrincipal UserDetails principal
     ){
-        if(!campaignService.isExists(id)){
+        Optional<CampaignEntity> found = campaignService.findOne(id);
+        if (found.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (principal == null || !campaignService.isDm(found.get(), principal.getUsername())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
         CampaignEntity campaignEntity = campaignMapper.mapFrom(campaignDto);
@@ -127,7 +139,18 @@ public class CampaignController {
     }
 
     @DeleteMapping(path = "campaign/{id}")
-    public ResponseEntity<?> deleteCampaign(@PathVariable("id") Long id){
+    public ResponseEntity<?> deleteCampaign(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal UserDetails principal){
+        Optional<CampaignEntity> found = campaignService.findOne(id);
+        if (found.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (principal == null || !campaignService.isDm(found.get(), principal.getUsername())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
         if (campaignService.hasCharacters(id)) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Cannot delete a campaign that still has characters. Delete or reassign its characters first.");

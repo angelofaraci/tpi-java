@@ -3,6 +3,7 @@ package com.utn.javaproject.dndsheets.services;
 import com.utn.javaproject.dndsheets.domain.entities.CharacterStatsEntity;
 import com.utn.javaproject.dndsheets.repositories.CharacterStatsRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +56,10 @@ public class CharacterStatsService {
         }).orElseThrow(() -> new RuntimeException("CharacterStats does not exist"));
     }
 
+    // See CharacterStatsRepository.deleteByIdBulk for why this uses a bulk JPQL delete instead
+    // of deleteById(id)/delete(entity).
+    @Transactional
     public void delete(Long id) {
-        characterStatsRepository.deleteById(id);
+        characterStatsRepository.deleteByIdBulk(id);
     }
 }

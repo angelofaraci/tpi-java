@@ -77,14 +77,14 @@ class DndClassEndpointTests {
 
     @Test
     void patchDndClass_updatesSavingThrows() throws Exception {
-        UserEntity user = savedUser("dnd-class-patch");
+        UserEntity admin = savedAdmin("dnd-class-patch");
 
         // Fetch a seeded class id (e.g. Barbarian)
         DndClassEntity barbarian = dndClassRepository.findByName("Barbarian")
                 .orElseThrow(() -> new AssertionError("Seeded class 'Barbarian' not found"));
 
         mockMvc.perform(patch("/dnd-class/" + barbarian.getId())
-                        .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user))
+                        .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(admin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 { "savingThrows": ["Wisdom", "Charisma"] }
@@ -97,14 +97,14 @@ class DndClassEndpointTests {
 
     @Test
     void patchDndClass_preservesExistingFieldsWhenOnlySavingThrowsUpdated() throws Exception {
-        UserEntity user = savedUser("dnd-class-patch-preserve");
+        UserEntity admin = savedAdmin("dnd-class-patch-preserve");
 
         DndClassEntity wizard = dndClassRepository.findByName("Wizard")
                 .orElseThrow(() -> new AssertionError("Seeded class 'Wizard' not found"));
         String originalName = wizard.getName();
 
         mockMvc.perform(patch("/dnd-class/" + wizard.getId())
-                        .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(user))
+                        .header(HttpHeaders.AUTHORIZATION, bearerTokenFor(admin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 { "savingThrows": ["Intelligence", "Wisdom"] }
@@ -158,6 +158,15 @@ class DndClassEndpointTests {
                 .email(prefix + "@user.com")
                 .password(passwordEncoder.encode("userpass"))
                 .role(Role.ROLE_USER)
+                .build());
+    }
+
+    private UserEntity savedAdmin(String prefix) {
+        return userRepository.save(UserEntity.builder()
+                .username(prefix + "-" + System.nanoTime())
+                .email(prefix + "@admin.com")
+                .password(passwordEncoder.encode("adminpass"))
+                .role(Role.ROLE_ADMIN)
                 .build());
     }
 
