@@ -345,6 +345,21 @@ describe('App create campaign flow', () => {
           level: 2,
         },
       ] as never)
+      // App.tsx's post-save `loadLevels()` refresh (keeps the Home level badge/sort in sync
+      // without requiring a page reload).
+      .mockResolvedValueOnce([
+        {
+          id: { characterId: 31, classId: 8 },
+          character: { id: 31 },
+          dndClass: {
+            id: 8,
+            name: 'Wizard',
+            description: 'Arcane scholar',
+            levelCharacteristics: { 1: 'Spellcasting', 2: 'Arcane Tradition' },
+          },
+          level: 2,
+        },
+      ] as never)
 
     render(<App />)
 

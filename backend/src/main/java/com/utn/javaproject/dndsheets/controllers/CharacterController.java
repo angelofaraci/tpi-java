@@ -136,7 +136,19 @@ public class CharacterController {
     }
 
     @DeleteMapping(path = "character/{id}")
-    public ResponseEntity<Void> deleteCharacter(@PathVariable("id") Long id) {
+    public ResponseEntity<Void> deleteCharacter(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal UserDetails principal) {
+
+        Optional<CharacterEntity> found = characterService.findOne(id);
+        if (found.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (principal == null || !characterService.canEdit(found.get(), principal.getUsername())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
         characterService.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

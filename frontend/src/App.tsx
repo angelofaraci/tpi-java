@@ -612,7 +612,11 @@ function App() {
     setView('home')
   }
 
-  const handleCreateCharacterSuccess = (result: { characterId?: number; characterName: string }) => {
+  // Awaits the refresh before switching views/rendering Home — otherwise Home mounts
+  // with the pre-creation characters/levels snapshot for one render (new character
+  // sorts as level 0 until the async refetch lands), which reads as a wrong position
+  // that only "fixes itself" on a manual reload.
+  const handleCreateCharacterSuccess = async (result: { characterId?: number; characterName: string }) => {
     if (characterFormMode === 'edit') {
       const resolvedCharacterId = result.characterId ?? editCharacterData?.characterId ?? selectedCharacterId
 
@@ -625,14 +629,14 @@ function App() {
       }
 
       setCharacterSheetRefreshToken((current) => current + 1)
+      await Promise.all([loadCharacters(), loadLevels()])
       setView(characterReturnView)
-      void loadCharacters()
       return
     }
 
+    await Promise.all([loadCharacters(), loadLevels(), loadPlayerCampaigns()])
     setView('home')
     setCampaignFeedback(`Character "${result.characterName}" created successfully.`)
-    void loadCharacters()
   }
 
   const handleRequestDeleteCharacter = (characterId: number, characterName?: string) => {
