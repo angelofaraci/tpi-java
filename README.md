@@ -1,29 +1,5 @@
 # D&D Character Manager
 
-## Integrates
-Faraci Angelo - 49604
-Verdera Nahuel - 49602
-
-## Modelo de datos
-
-<img width="1057" height="978" alt="imagen" src="https://github.com/user-attachments/assets/d0c53779-f295-4de0-94d7-44a74de236ed" />
-
-## Diagrama de clase
-
-<img width="1328" height="514" alt="imagen" src="https://github.com/user-attachments/assets/85e10668-62df-4ba4-8d24-79519f21b5ae" />
-
-
-##### Aprobación Directa
-
-|Requerimiento|cant. requerida|Caso(s) propuesto(s)|
-|:-|:-|:-|
-|ABMC|todos|Race, DndClass, Campaign, Character, CharacterStats, Level (+ Admin sobre User)|
-|CU "Complejo" (nivel resumen)|1|Alta de personaje con clases/niveles iniciales (CharacterCreateRequestValidator + LevelService.ensureLevel), o cálculo de HP|
-|Listado complejo|1|GET /campaigns/mine — filtro por DM autenticado + join + agregación de conteos|
-|Nivel de acceso|2|ROLE_ADMIN vs ROLE_USER, más el nivel de dominio DM/jugador/dueño (canAccess, isDm)|
-|Manejo de errores|obligatorio||
-|publicar el sitio|obligatorio||
-
 D&D Character Manager is a full-stack application for running tabletop campaigns. Authenticated users can create and manage D&D character sheets, create or join campaigns, view public campaigns, and upload an optional character portrait. Campaign creators become Dungeon Masters, while administrators can manage users, characters, campaigns, races, and classes.
 
 ## Quick start
