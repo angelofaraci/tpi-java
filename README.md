@@ -2,6 +2,14 @@
 
 D&D Character Manager is a full-stack application for running tabletop campaigns. Authenticated users can create and manage D&D character sheets, create or join campaigns, view public campaigns, and upload an optional character portrait. Campaign creators become Dungeon Masters, while administrators can manage users, characters, campaigns, races, and classes.
 
+## Why this stack
+
+Spring Boot was chosen because the project needs a mature, batteries-included framework for REST APIs, security, and ORM persistence, all covered by Spring Web, Spring Security, and Spring Data JPA without stitching together separate libraries. Spring Security with JWT keeps authentication stateless, which fits a decoupled SPA frontend calling a separate backend. PostgreSQL was picked over an embedded database for real relational integrity (foreign keys, constraints) across the character/campaign/level domain model, while H2 is used only for fast, isolated backend tests. React with TypeScript and Vite gives a typed, component-based frontend with fast local iteration, kept independent from the backend so each side can be built, tested, and deployed separately. Docker Compose is used only to run PostgreSQL locally, avoiding a manual database install for every contributor.
+
+## Why this backend architecture
+
+The backend follows a classic layered architecture: controllers handle HTTP concerns, services hold business logic, repositories handle persistence through Spring Data JPA, domain holds the entities, and mappers convert between entities and DTOs. This separation exists so business rules (ownership checks, level/HP calculation, DM authorization) live in one place instead of leaking into controllers or the database layer, which keeps the logic testable independently of HTTP or persistence concerns. A dedicated exceptions layer centralizes error handling so every endpoint returns consistent, predictable error responses instead of ad hoc failures. This structure also matches the project's admin/owner authorization requirements: access rules belong to services, where they can be applied consistently regardless of which controller triggers them.
+
 ## Quick start
 
 ### Prerequisites
