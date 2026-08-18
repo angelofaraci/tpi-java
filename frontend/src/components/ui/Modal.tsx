@@ -9,14 +9,16 @@ export interface ModalProps {
   children: ReactNode
   footer?: ReactNode
   maxWidthClassName?: string
+  testId?: string
 }
 
-export function Modal({ open, titleId, eyebrow, title, children, footer, maxWidthClassName = 'max-w-[440px]' }: ModalProps) {
+export function Modal({ open, titleId, eyebrow, title, children, footer, maxWidthClassName = 'max-w-[440px]', testId }: ModalProps) {
   if (!open) return null
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-[rgba(6,8,12,.72)] p-[20px]" role="presentation">
       <div
+        data-testid={testId}
         className={`w-full ${maxWidthClassName} rounded-home-3xl border border-home-border bg-home-surface p-[22px_24px] shadow-[0_24px_60px_-20px_rgba(0,0,0,.8)]`}
         role="dialog"
         aria-modal="true"

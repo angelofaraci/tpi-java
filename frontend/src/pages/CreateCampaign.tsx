@@ -127,12 +127,12 @@ export function CreateCampaign({ onCancel, onLogout, onSuccess }: CreateCampaign
           </div>
 
           {submitError && (
-            <div className="mb-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
+            <div data-testid="create-campaign-error" className="mb-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
               {submitError}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate>
+          <form data-testid="create-campaign-form" onSubmit={handleSubmit} noValidate>
             <FormField id="campaign-name" label="Campaign Name">
               <Input
                 id="campaign-name"
@@ -193,10 +193,10 @@ export function CreateCampaign({ onCancel, onLogout, onSuccess }: CreateCampaign
             </div>
 
             <div className="mt-[20px] flex justify-end gap-[10px]">
-              <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+              <Button data-testid="create-campaign-cancel" type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button data-testid="create-campaign-submit" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating...' : 'Create Campaign'}
               </Button>
             </div>

@@ -690,9 +690,9 @@ export function CreateCharacter({
           )}
 
           {!isLoadingCatalog && !catalogError && (
-            <form onSubmit={handleSubmit} noValidate>
+            <form data-testid="create-character-form" onSubmit={handleSubmit} noValidate>
               {submitError && (
-                <div className="mb-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
+                <div data-testid="create-character-error" className="mb-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
                   {submitError}
                 </div>
               )}
@@ -725,7 +725,7 @@ export function CreateCharacter({
                       <p className="mt-[5px] block text-[11.5px] text-home-dim">Validating code...</p>
                     )}
                     {campaignCodeStatus === 'valid' && resolvedCampaignName && (
-                      <p className="mt-[5px] block text-[11.5px] text-[#22c55e]">✓ Campaign: <strong>{resolvedCampaignName}</strong></p>
+                      <p data-testid="character-campaign-code-valid" className="mt-[5px] block text-[11.5px] text-[#22c55e]">✓ Campaign: <strong>{resolvedCampaignName}</strong></p>
                     )}
                     {campaignCodeStatus === 'invalid' && campaignCodeError && (
                       <p className="mt-[5px] block text-[11.5px] text-home-danger">{campaignCodeError}</p>
@@ -1354,13 +1354,14 @@ export function CreateCharacter({
               <div className="mt-[20px] flex justify-end gap-[10px]">
                 <button
                   type="button"
+                  data-testid="create-character-cancel"
                   className="text-[12px] text-home-dim transition-colors duration-150 hover:text-home-text-soft"
                   onClick={onCancel}
                   disabled={isSubmitting}
                 >
                   {cancelLabel}
                 </button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button data-testid="create-character-submit" type="submit" disabled={isSubmitting}>
                   {isSubmitting ? submittingLabel : submitLabel}
                 </Button>
               </div>
