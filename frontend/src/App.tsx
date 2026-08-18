@@ -870,12 +870,13 @@ function App() {
       {joinCodeDialog && (
         <Modal
           open
+          testId="join-code-modal"
           onClose={() => setJoinCodeDialog(null)}
           titleId="join-code-title"
           eyebrow="Campaign created!"
           title={`🎲 ${joinCodeDialog.campaignName}`}
           footer={
-            <Button variant="primary" onClick={() => setJoinCodeDialog(null)}>
+            <Button data-testid="join-code-dismiss" variant="primary" onClick={() => setJoinCodeDialog(null)}>
               Got it!
             </Button>
           }
@@ -886,7 +887,7 @@ function App() {
               JOIN CODE
             </div>
             <div className="flex items-center justify-center gap-[12px]">
-              <div className="font-home-mono text-[32px] font-black tracking-[.15em] text-home-text-strong">
+              <div data-testid="join-code-value" className="font-home-mono text-[32px] font-black tracking-[.15em] text-home-text-strong">
                 {joinCodeDialog.joinCode}
               </div>
               <CopyCodeButton code={joinCodeDialog.joinCode} size="md" />
@@ -898,6 +899,7 @@ function App() {
       {deleteDialog && (
         <Modal
           open
+          testId="delete-character-modal"
           onClose={handleCloseDeleteDialog}
           titleId="delete-character-title"
           eyebrow="Character deletion"
@@ -905,6 +907,7 @@ function App() {
           footer={
             <>
               <Button
+                data-testid="delete-character-cancel"
                 variant="secondary"
                 onClick={handleCloseDeleteDialog}
                 disabled={deletingCharacterId === deleteDialog.characterId}
@@ -913,6 +916,7 @@ function App() {
               </Button>
               <button
                 type="button"
+                data-testid="delete-character-confirm"
                 className={dangerButtonClasses}
                 onClick={() => void handleConfirmDeleteCharacter()}
                 disabled={deletingCharacterId === deleteDialog.characterId}

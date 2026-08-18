@@ -102,6 +102,7 @@ Run backend commands from `backend/`:
 | `./mvnw spring-boot:run` | Start the Spring Boot API |
 | `./mvnw test` | Run the backend test suite, which uses an in-memory H2 database |
 | `./mvnw package` | Build the backend artifact and run its tests |
+| `./mvnw verify -Pe2e` | Run the Selenium E2E suite (see "End-to-end tests" below) |
 
 On Windows, use `mvnw.cmd` in place of `./mvnw`.
 
@@ -110,6 +111,43 @@ To stop the local database from the repository root:
 ```bash
 docker compose down
 ```
+
+## End-to-end tests
+
+Browser-driven Selenium tests cover five critical journeys (register/login, home
+dashboard, create character, delete character, create campaign) against a real
+backend port and a production-built frontend. They live under
+`backend/src/test/java/.../e2e/` and only run under the dedicated `e2e` Maven
+profile — **plain `./mvnw test`/`./mvnw verify` never executes them**, since
+Failsafe (which picks up `*IT` classes) is scoped to that profile and Surefire's
+default includes never match the `IT` suffix.
+
+The suite needs two live origins at fixed ports:
+
+1. Backend on **`:18080`** — booted automatically by the suite itself via
+   `@SpringBootTest(webEnvironment = DEFINED_PORT)` against the `e2e` profile
+   (`backend/src/test/resources/application-e2e.properties`). No separate process
+   needed.
+2. Frontend on **`:4173`** — a production build served with `vite preview`, started
+   manually beforehand (the JVM never spawns this process):
+
+   ```bash
+   cd frontend
+   VITE_API_BASE_URL=http://localhost:18080 npm run build
+   npx vite preview --port 4173 --strictPort
+   ```
+
+With the preview server running, in another terminal:
+
+```bash
+cd backend
+./mvnw verify -Pe2e
+```
+
+CI runs the same suite in `.github/workflows/e2e.yml` on every push/PR to `main`.
+That workflow is intentionally independent from `deploy-backend.yml` and
+`deploy-frontend.yml` (no `needs:` relation either direction), so a red E2E run
+never blocks a deploy.
 
 ## Repository layout
 

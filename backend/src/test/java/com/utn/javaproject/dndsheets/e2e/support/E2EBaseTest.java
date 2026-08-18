@@ -8,6 +8,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -103,5 +104,61 @@ public abstract class E2EBaseTest {
     /** Locates an element by its {@code data-testid} attribute. */
     protected WebElement testId(String id) {
         return driver.findElement(By.cssSelector("[data-testid='" + id + "']"));
+    }
+
+    /**
+     * Locates an element by its plain HTML {@code id} attribute. Several forms
+     * (character creation, campaign creation) predate this E2E suite and already
+     * carry stable {@code id}s -- those are reused as-is per design.md rather than
+     * duplicated as {@code data-testid}s.
+     */
+    protected WebElement byId(String id) {
+        return driver.findElement(By.id(id));
+    }
+
+    /**
+     * Shared arrangement: creates a campaign from the authenticated home dashboard
+     * via the UI, captures its join code from the post-creation modal, and returns
+     * to home. Character creation requires an existing campaign (its join code is a
+     * required field, see {@code CreateCharacter.validateForm}), so this is a
+     * prerequisite step for character-creation flows, not just campaign-flow tests.
+     */
+    protected String createCampaignAndGetJoinCode(String campaignName) {
+        testId("home-new-campaign").click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='create-campaign-form']")));
+
+        byId("campaign-name").sendKeys(campaignName);
+        testId("create-campaign-submit").click();
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='join-code-modal']")));
+        String joinCode = testId("join-code-value").getText().trim();
+        testId("join-code-dismiss").click();
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector("[data-testid='join-code-modal']")));
+
+        return joinCode;
+    }
+
+    /**
+     * Shared arrangement: creates a character on an existing campaign (identified by
+     * its join code) from the authenticated home dashboard via the UI, and waits for
+     * the round trip back to the home dashboard. Picks the first available race and
+     * class from the seeded catalog and a canonical alignment -- the exact choice is
+     * irrelevant to the flows that use this as setup.
+     */
+    protected void createCharacter(String characterName, String joinCode) {
+        testId("home-new-character").click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='create-character-form']")));
+
+        byId("character-campaign-code").sendKeys(joinCode);
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='character-campaign-code-valid']")));
+
+        byId("character-name").sendKeys(characterName);
+        new Select(byId("character-alignment")).selectByIndex(1);
+        byId("character-background").sendKeys("Soldier");
+        new Select(byId("character-race")).selectByIndex(1);
+        new Select(byId("character-class")).selectByIndex(1);
+
+        testId("create-character-submit").click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='home-dashboard']")));
     }
 }

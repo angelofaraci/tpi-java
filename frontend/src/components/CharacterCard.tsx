@@ -77,10 +77,10 @@ export function CharacterCard({
     : 'rounded-home-3xl border border-home-border bg-[linear-gradient(165deg,#111721,#0c0f14)] p-[15px_16px_13px] transition-colors duration-150'
 
   return (
-    <div {...interactiveProps} className={containerClassName}>
+    <div data-testid="character-card" {...interactiveProps} className={containerClassName}>
       <div className="flex items-start justify-between gap-[10px]">
         <div>
-          <div className="font-home-display text-[17.5px] font-semibold tracking-[-.01em] text-home-text-strong">
+          <div data-testid="character-card-name" className="font-home-display text-[17.5px] font-semibold tracking-[-.01em] text-home-text-strong">
             {character.name || 'Unnamed Character'}
           </div>
           <div className="mt-[3px] text-[12px] text-home-muted">
@@ -125,6 +125,7 @@ export function CharacterCard({
           <span className="font-home-display text-[11.5px] font-semibold text-home-blue-400">Open sheet →</span>
           <button
             type="button"
+            data-testid="character-card-delete"
             title={`More actions for ${character.name || 'character'}`}
             onClick={(event) => {
               event.stopPropagation()
