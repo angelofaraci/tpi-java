@@ -17,7 +17,7 @@ testing:
   layers:
     unit: { available: true, tool: vitest }
     integration: { available: true, tool: "@testing-library/react" }
-    e2e: { available: false }
+    e2e: { available: true, tool: selenium }
   coverage:
     available: true
     command: "cd frontend && npx vitest run --coverage"

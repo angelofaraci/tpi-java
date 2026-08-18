@@ -114,6 +114,16 @@
 							<artifactId>lombok</artifactId>
 						</path>
 					</annotationProcessorPaths>
+					<!--
+						Maven compiles the entire src/test/java tree regardless of the
+						active profile; the e2e/ sources need selenium-java, which is only
+						on the classpath under -Pe2e (see the e2e profile below). Exclude
+						e2e/ here so plain `mvn test`/`mvn verify` keep compiling and
+						running unaffected; the e2e profile re-includes it.
+					-->
+					<testExcludes>
+						<testExclude>**/e2e/**</testExclude>
+					</testExcludes>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -130,5 +140,54 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!--
+			Dedicated E2E profile. Never active for plain `mvn test`/`mvn verify`;
+			only Failsafe (not Surefire) runs here, scoped to backend/src/test/java/.../e2e/*IT.java,
+			so the default lifecycle's test count/output is unaffected.
+			selenium.version is managed by the spring-boot-dependencies 3.5.3 BOM (currently 4.31.0,
+			which is >= 4.6, so Selenium Manager resolves ChromeDriver without an extra dependency);
+			no explicit pin needed.
+		-->
+		<profile>
+			<id>e2e</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.seleniumhq.selenium</groupId>
+					<artifactId>selenium-java</artifactId>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<configuration>
+							<testExcludes combine.self="override" />
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<configuration>
+							<includes>
+								<include>**/e2e/*IT.java</include>
+							</includes>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>
