@@ -144,17 +144,18 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
         </h2>
 
         {error && (
-          <div className="mt-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
+          <div data-testid={showRegister ? 'register-error' : 'login-error'} className="mt-[16px] rounded-home-xl border border-[#3f2226] bg-[rgba(220,38,38,.08)] p-[12px_14px] text-[12.5px] text-[#f2b8b5]">
             {error}
           </div>
         )}
 
         {!showRegister && (
-          <form onSubmit={handleLogin} className="mt-[20px]">
+          <form data-testid="login-form" onSubmit={handleLogin} className="mt-[20px]">
             <FormField id="login-username" label="Username:">
               <Input
                 type="text"
                 id="login-username"
+                data-testid="login-username"
                 value={loginForm.username}
                 onChange={(e) => setLoginForm((prev) => ({ ...prev, username: e.target.value }))}
                 required
@@ -165,24 +166,30 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
               <Input
                 type="password"
                 id="login-password"
+                data-testid="login-password"
                 value={loginForm.password}
                 onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
                 required
                 disabled={isLoggingIn}
               />
             </FormField>
-            <Button type="submit" disabled={isLoggingIn || !loginForm.username || !loginForm.password}>
+            <Button
+              type="submit"
+              data-testid="login-submit"
+              disabled={isLoggingIn || !loginForm.username || !loginForm.password}
+            >
               {isLoggingIn ? 'Logging in...' : 'Login'}
             </Button>
           </form>
         )}
 
         {showRegister && (
-          <form onSubmit={handleRegister} className="mt-[20px]">
+          <form data-testid="register-form" onSubmit={handleRegister} className="mt-[20px]">
             <FormField id="reg-email" label="Email:">
               <Input
                 type="email"
                 id="reg-email"
+                data-testid="register-email"
                 value={registerForm.email}
                 onChange={(e) => setRegisterForm((prev) => ({ ...prev, email: e.target.value }))}
                 required
@@ -193,6 +200,7 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
               <Input
                 type="text"
                 id="reg-username"
+                data-testid="register-username"
                 value={registerForm.username}
                 onChange={(e) => setRegisterForm((prev) => ({ ...prev, username: e.target.value }))}
                 required
@@ -203,6 +211,7 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
               <Input
                 type="password"
                 id="reg-password"
+                data-testid="register-password"
                 value={registerForm.password}
                 onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
                 required
@@ -217,6 +226,7 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
               <Input
                 type="password"
                 id="reg-confirm"
+                data-testid="register-confirm"
                 value={registerForm.confirmPassword}
                 onChange={(e) => setRegisterForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                 required
@@ -226,6 +236,7 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
             </FormField>
             <Button
               type="submit"
+              data-testid="register-submit"
               disabled={
                 isRegistering ||
                 !registerForm.email ||
@@ -246,6 +257,7 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
               Already have an account?{' '}
               <button
                 type="button"
+                data-testid="show-login"
                 onClick={() => {
                   setShowRegister(false)
                   setError(null)
@@ -260,6 +272,7 @@ export function Login({ onAuthSuccess }: { onAuthSuccess: () => void }) {
               Don't have an account?{' '}
               <button
                 type="button"
+                data-testid="show-register"
                 onClick={() => {
                   setShowRegister(true)
                   setError(null)

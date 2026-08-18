@@ -74,11 +74,18 @@ public abstract class E2EBaseTest {
 
     /**
      * Shared arrangement: registers a fresh unique user through the register
-     * form, then logs in with the same credentials through the login form.
-     * Leaves the browser on the authenticated home dashboard.
+     * form. The backend's {@code /register} endpoint returns a JWT (see
+     * {@code AuthService.register}), so registering auto-authenticates the
+     * user -- there is no separate login step in this flow. Leaves the
+     * browser on the authenticated home dashboard.
      */
     protected void registerAndLogin(String username) {
         driver.get(FRONTEND_URL);
+
+        // The app boots on the unauthenticated demo landing page; navigate into
+        // the auth flow before the login form exists in the DOM.
+        wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='demo-login-request']")))
+                .click();
 
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='login-form']")));
         testId("show-register").click();
@@ -89,11 +96,6 @@ public abstract class E2EBaseTest {
         testId("register-password").sendKeys("Password123!");
         testId("register-confirm").sendKeys("Password123!");
         testId("register-submit").click();
-
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='login-form']")));
-        testId("login-username").sendKeys(username);
-        testId("login-password").sendKeys("Password123!");
-        testId("login-submit").click();
 
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='home-dashboard']")));
     }

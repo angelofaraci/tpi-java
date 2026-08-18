@@ -35,11 +35,11 @@ Chain strategy: pending
 
 ## Phase 2: Auth + Dashboard Flows (PR 2, TDD)
 
-- [ ] 2.1 RED: write `backend/src/test/java/.../e2e/AuthFlowIT.java` — register with `uniqueUsername()`, then log in via `data-testid` selectors (`register-form`, `register-username`, ..., `login-form`, `login-submit`), assert `home-dashboard` element present. Run `mvn -Pe2e verify -Dit.test=AuthFlowIT`; confirm it fails on missing `data-testid` selectors (not on backend logic).
-- [ ] 2.2 GREEN: add `data-testid` attributes to `frontend/src/pages/Login.tsx` (`login-form`, `login-username`, `login-password`, `login-submit`, `login-error`, `show-register`, `register-form`, `register-email`, `register-username`, `register-password`, `register-confirm`, `register-submit`, `show-login`) and confirm/add `data-testid="home-dashboard"` on the authenticated `Home.tsx` (or `App.tsx`) root. Re-run `mvn -Pe2e verify -Dit.test=AuthFlowIT` until green.
-- [ ] 2.3 RED: write `backend/src/test/java/.../e2e/HomeDashboardIT.java` — reuse `registerAndLogin`, assert characters-list and campaigns-list `data-testid` elements are present in the DOM. Run and confirm it fails on missing selectors.
-- [ ] 2.4 GREEN: add `data-testid` attributes to `frontend/src/pages/Home.tsx` (`home-root`, `home-welcome`, `home-new-character`, `home-new-campaign`, `home-logout`, `home-characters-count`, `home-campaigns-count`; reuse existing `home-metrics-grid`, `home-body-grid`, `home-rail-list`). Re-run `mvn -Pe2e verify -Dit.test=HomeDashboardIT` until green.
-- [ ] 2.5 Run both together: `mvn -Pe2e verify -Dit.test=AuthFlowIT,HomeDashboardIT`; confirm green and confirm plain `mvn test` is still unaffected.
+- [x] 2.1 RED: write `backend/src/test/java/.../e2e/AuthFlowIT.java` — register with `uniqueUsername()`, then log in via `data-testid` selectors (`register-form`, `register-username`, ..., `login-form`, `login-submit`), assert `home-dashboard` element present. Run `mvn -Pe2e verify -Dit.test=AuthFlowIT`; confirm it fails on missing `data-testid` selectors (not on backend logic).
+- [x] 2.2 GREEN: add `data-testid` attributes to `frontend/src/pages/Login.tsx` (`login-form`, `login-username`, `login-password`, `login-submit`, `login-error`, `show-register`, `register-form`, `register-email`, `register-username`, `register-password`, `register-confirm`, `register-submit`, `show-login`) and confirm/add `data-testid="home-dashboard"` on the authenticated `Home.tsx` (or `App.tsx`) root. Re-run `mvn -Pe2e verify -Dit.test=AuthFlowIT` until green.
+- [x] 2.3 RED: write `backend/src/test/java/.../e2e/HomeDashboardIT.java` — reuse `registerAndLogin`, assert characters-list and campaigns-list `data-testid` elements are present in the DOM. Run and confirm it fails on missing selectors.
+- [x] 2.4 GREEN: add `data-testid` attributes to `frontend/src/pages/Home.tsx` (`home-root`, `home-welcome`, `home-new-character`, `home-new-campaign`, `home-logout`, `home-characters-count`, `home-campaigns-count`; reuse existing `home-metrics-grid`, `home-body-grid`, `home-rail-list`). Re-run `mvn -Pe2e verify -Dit.test=HomeDashboardIT` until green.
+- [x] 2.5 Run both together: `mvn -Pe2e verify -Dit.test=AuthFlowIT,HomeDashboardIT`; confirm green and confirm plain `mvn test` is still unaffected.
 
 ## Phase 3: Character + Campaign Flows (PR 3, TDD)
 

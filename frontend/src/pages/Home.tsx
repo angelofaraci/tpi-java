@@ -161,7 +161,11 @@ export function Home({
   const featuredCampaignId = railCampaigns.find((c) => c.role === 'DM')?.id ?? null
 
   return (
-    <div className="bg-home-ink-900 text-home-text" style={{ fontFamily: 'var(--font-home-display)' }}>
+    <div
+      data-testid="home-dashboard"
+      className="bg-home-ink-900 text-home-text"
+      style={{ fontFamily: 'var(--font-home-display)' }}
+    >
       <header className="flex h-[58px] items-center justify-between bg-home-ink-800 border-b border-home-line px-[26px]">
         <div className="flex items-center gap-[30px]">
           <div className="flex items-center gap-[10px]">
@@ -218,6 +222,7 @@ export function Home({
 
           <button
             type="button"
+            data-testid="home-logout"
             onClick={onLogout}
             className="text-[12px] text-home-dim transition-colors duration-150 hover:text-home-text-soft"
           >
@@ -232,7 +237,10 @@ export function Home({
             <div className="mb-[8px] font-home-mono text-[10px] tracking-[.18em] text-[#5b6deb]">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
             </div>
-            <h1 className="font-home-display text-[27px] font-semibold leading-[1.15] tracking-[-.01em] text-home-text-strong">
+            <h1
+              data-testid="home-welcome"
+              className="font-home-display text-[27px] font-semibold leading-[1.15] tracking-[-.01em] text-home-text-strong"
+            >
               Welcome back, {firstName}
             </h1>
             <p className="mt-[6px] text-[13px] text-home-muted">{subtitle}</p>
@@ -240,6 +248,7 @@ export function Home({
           <div className="flex gap-[10px]">
             <button
               type="button"
+              data-testid="home-new-character"
               onClick={onOpenCreateCharacter}
               className="h-[36px] rounded-home-md bg-home-blue-600 px-[16px] font-home-display text-[12.5px] font-semibold text-white shadow-[0_6px_18px_-6px_rgba(37,99,235,.8)] transition-colors duration-150 hover:bg-home-blue-500"
             >
@@ -247,6 +256,7 @@ export function Home({
             </button>
             <button
               type="button"
+              data-testid="home-new-campaign"
               onClick={onOpenCreateCampaign}
               className="h-[36px] rounded-home-md border border-home-border-hi bg-[#111621] px-[16px] font-home-display text-[12.5px] font-semibold text-home-text-soft transition-colors duration-150 hover:bg-home-chip"
             >
@@ -256,8 +266,8 @@ export function Home({
         </div>
 
         <div data-testid="home-metrics-grid" className="grid grid-cols-2 gap-[10px] md:grid-cols-4">
-          <MetricTile value={metrics.campaignsCount} label="CAMPAIGNS" />
-          <MetricTile value={metrics.charactersCount} label="CHARACTERS" />
+          <MetricTile testId="home-campaigns-count" value={metrics.campaignsCount} label="CAMPAIGNS" />
+          <MetricTile testId="home-characters-count" value={metrics.charactersCount} label="CHARACTERS" />
           <MetricTile value={metrics.asDmCount} label="AS DUNGEON MASTER" valueClassName="text-home-blue-400" />
           <MetricTile value={metrics.playersAtTables} label="PLAYERS AT YOUR TABLES" />
         </div>

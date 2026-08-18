@@ -2,12 +2,14 @@ export interface MetricTileProps {
   value: string | number
   label: string
   valueClassName?: string
+  testId?: string
 }
 
-export function MetricTile({ value, label, valueClassName }: MetricTileProps) {
+export function MetricTile({ value, label, valueClassName, testId }: MetricTileProps) {
   return (
     <div className="rounded-home-xl border border-home-border bg-home-surface p-[13px_14px]">
       <div
+        data-testid={testId}
         className={`font-home-mono text-[24px] leading-none ${valueClassName ?? 'text-home-text-strong'}`}
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
