@@ -25,7 +25,7 @@ The system MUST run E2E tests only under a dedicated Maven profile (`e2e`) and M
 
 ### Requirement: Full-Stack Test Harness
 
-The system MUST boot a real backend HTTP listener (`@SpringBootTest(webEnvironment = RANDOM_PORT)`) and a served frontend production build (`vite preview`), MUST wire the frontend to the backend's assigned port, and MUST tear down both after the suite.
+The system MUST boot a real backend HTTP listener (`@SpringBootTest(webEnvironment = DEFINED_PORT)` on a fixed port, since Vite bakes the API base URL in at build time, before any random port would be known) and a served frontend production build (`vite preview`), MUST wire the frontend to the backend's fixed port, and MUST tear down both after the suite.
 
 #### Scenario: Harness coordinates two origins
 
