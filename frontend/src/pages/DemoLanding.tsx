@@ -26,6 +26,7 @@ export function DemoLanding({ onLoginRequest }: DemoLandingProps) {
 
         <button
           type="button"
+          data-testid="demo-login-request"
           onClick={onLoginRequest}
           className="h-[36px] rounded-home-md bg-home-blue-600 px-[16px] font-home-display text-[12.5px] font-semibold text-white shadow-[0_6px_18px_-6px_rgba(37,99,235,.8)] transition-colors duration-150 hover:bg-home-blue-500"
         >
